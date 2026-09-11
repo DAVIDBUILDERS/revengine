@@ -1,0 +1,27 @@
+{
+  "name": "@david/preview",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 3002",
+    "build": "next build"
+  },
+  "dependencies": {
+    "next": "16.3.4",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "tailwindcss": "4.3.3",
+    "@tailwindcss/postcss": "4.3.3",
+    "@david/contracts": "workspace:*",
+    "@david/ui": "workspace:*",
+    "@david/agents": "workspace:*",
+    "@david/domain": "workspace:*",
+    "zod": "4.6.2",
+    "lucide-react": "1.44.0",
+    "@radix-ui/react-dialog": "1.1.23"
+  },
+  "engines": {
+    "node": "24.x"
+  }
+}

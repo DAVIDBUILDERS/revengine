@@ -1,6 +1,6 @@
 # Deployment runbook
 
-Status: no Vercel team/project or Supabase organization/project was supplied or changed. No provider authorization, deployment, migration, seed, restore or DNS cutover has been executed. This runbook is the concrete setup and verification path for the completed source tree. Local evidence is in [TEST_EVIDENCE.md](TEST_EVIDENCE.md); release decisions are separate in [RELEASE_READINESS.md](RELEASE_READINESS.md).
+Status: the private `DAVIDBUILDERS/revengine` GitHub repository and the `davidai/revengine` Vercel project were created for the separate browser demo. See [HOSTED_PREVIEW.md](HOSTED_PREVIEW.md) for deployment and Git integration status. Operational Supabase, provider authorization, migration, seed, restore and DNS cutover remain outstanding. This runbook is the concrete setup and verification path for the completed source tree. Local evidence is in [TEST_EVIDENCE.md](TEST_EVIDENCE.md); release decisions are separate in [RELEASE_READINESS.md](RELEASE_READINESS.md).
 
 ## Project and region record
 
@@ -51,7 +51,7 @@ The workflow CI has separate checks and a manual environment-protected migration
 
 ## Vercel Git setup
 
-Connect the verified repository/branch to the three approved projects. Set root directory **`apps/web`** for operational test/production and **`apps/demo`** for the public demo; include workspace files outside the root directory. Use pnpm 10.33.2, Node 24.x and the committed lockfile. Each app has its own `vercel.json` and `pnpm build` script. Root `pnpm build` is the local/CI command that builds both apps. Do not deploy the repository as one shared web/demo project.
+Connect the verified repository/branch to the three approved projects. Set root directory **`apps/web`** for operational test/production and **`apps/demo`** for the public demo; include workspace files outside the root directory. Use pnpm 10.33.2, Node 24.x and the committed lockfile. Each app has its own `vercel.json` and `pnpm build` script. Root `pnpm build` is the local/CI command that builds all three apps. Do not deploy the repository as one shared web/demo project.
 
 Production operational settings remain shadow/outbound-disabled through initial testing. Verify headers, TLS, authentication, redirected OAuth origin, membership revocation, private files and correct database roles. Use deployment protection/firewall controls supported by the actual Vercel plan. Public demo's anonymous access grants no route into operational records.
 

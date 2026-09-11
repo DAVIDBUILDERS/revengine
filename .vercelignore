@@ -1,0 +1,13 @@
+.git
+**/node_modules
+**/.next
+**/out
+**/.env*
+**/.fixture
+**/.workflow-data
+**/.well-known
+**/coverage
+**/test-results
+**/playwright-report
+docs/evidence
+artifacts

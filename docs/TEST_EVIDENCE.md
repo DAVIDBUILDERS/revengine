@@ -4,6 +4,10 @@ This report separates executable local evidence, browser evidence, authored host
 
 September 11 design verification reran all 170 unit tests, TypeScript, lint, both production builds and 12 browser tests. The source-linked agent interface and all-screen mobile audit are recorded in [DESIGN_REVISION.md](DESIGN_REVISION.md); [production visual sweep](evidence/design-revision/visual-check.json) at `2026-09-11T13:51:11.901Z` passed without page overflow or uncaught browser errors. The original frozen unit report below remains retained as initial-build evidence.
 
+## September 11 hosted-browser addition
+
+The separate browser demo adds three unit checks for session/workspace isolation, replay validation and failed-write atomicity, plus a Chromium test for preparation, pause, refresh persistence, all nine mobile screens, separate browser contexts and absent operational API calls. Current local result: **173 unit tests / 20 files, 13 browser tests, lint, TypeScript and all three production builds passed**. Deployment details and external verification are recorded in [HOSTED_PREVIEW.md](HOSTED_PREVIEW.md). Earlier frozen reports below remain historical evidence for the operational source.
+
 ## Final recorded executions
 
 | Command/check | Observed result | Scope / limitation |

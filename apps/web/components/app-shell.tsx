@@ -88,7 +88,13 @@ const navigation = [
   { id: "connections", label: "Connections", icon: Plug },
 ] as const;
 
-export function AppShell() {
+export type WorkspaceDataSource = {
+  list(): Promise<{ workspaces: { id: string; name: string }[]; limited?: boolean }>;
+  read(workspace: string | null): Promise<AppSnapshot>;
+  execute(workspace: string | null, command: Command): Promise<CommandResult>;
+};
+
+export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } = {}) {
   const [state, setState] = useState<AppSnapshot | null>(null);
   const [page, setPage] = useState<PageId>("today");
   const [loadError, setLoadError] = useState("");
@@ -120,15 +126,18 @@ export function AppShell() {
   const [workspaceListError, setWorkspaceListError] = useState("");
   const loadWorkspaces = useCallback(async () => {
     try {
-      const response = await fetch("/api/workspaces", {
-        cache: "no-store",
-        credentials: "same-origin",
-      });
-      const result = await response.json();
-      if (!response.ok)
-        throw new Error(
-          result.message ?? "Assigned workspaces could not be loaded.",
-        );
+      const result = browserDemo ? await browserDemo.list() : await (async () => {
+        const response = await fetch("/api/workspaces", {
+          cache: "no-store",
+          credentials: "same-origin",
+        });
+        const result = await response.json();
+        if (!response.ok)
+          throw new Error(
+            result.message ?? "Assigned workspaces could not be loaded.",
+          );
+        return result;
+      })();
       if (
         !Array.isArray(result.workspaces) ||
         !result.workspaces.every(
@@ -154,7 +163,7 @@ export function AppShell() {
         error instanceof Error ? error.message : "Workspace list unavailable.",
       );
     }
-  }, []);
+  }, [browserDemo]);
 
   const load = useCallback(async () => {
     if (mutating.current) return;
@@ -163,20 +172,22 @@ export function AppShell() {
       const requested =
         workspaceKey.current ??
         new URLSearchParams(window.location.search).get("workspace");
-      const response = await fetch(
-        `/api/state${requested ? `?${new URLSearchParams({ workspace: requested })}` : ""}`,
-        {
-          cache: "no-store",
-          credentials: "same-origin",
-        },
-      );
-      const result = await response.json();
-      if (!response.ok)
-        throw new Error(
-          result.message ?? result.error ?? "Unable to load this workspace.",
+      const snapshot: AppSnapshot = browserDemo ? await browserDemo.read(requested) : await (async () => {
+        const response = await fetch(
+          `/api/state${requested ? `?${new URLSearchParams({ workspace: requested })}` : ""}`,
+          {
+            cache: "no-store",
+            credentials: "same-origin",
+          },
         );
+        const result = await response.json();
+        if (!response.ok)
+          throw new Error(
+            result.message ?? result.error ?? "Unable to load this workspace.",
+          );
+        return result.snapshot ?? result;
+      })();
       if (mutating.current || epoch !== mutationEpoch.current) return;
-      const snapshot: AppSnapshot = result.snapshot ?? result;
       workspaceKey.current =
         snapshot.workspace.mode === "fixture"
           ? requested
@@ -190,7 +201,7 @@ export function AppShell() {
           : "The workspace could not be loaded.",
       );
     }
-  }, []);
+  }, [browserDemo]);
   useEffect(() => {
     void load();
     void loadWorkspaces();
@@ -237,22 +248,25 @@ export function AppShell() {
     setBusy(true);
     setNotice(null);
     try {
-      const response = await fetch(
-        `/api/command${workspaceKey.current ? `?${new URLSearchParams({ workspace: workspaceKey.current })}` : ""}`,
-        {
-          method: "POST",
-          credentials: "same-origin",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(command),
-        },
-      );
-      const result = await response.json();
-      if (!response.ok)
-        throw new Error(
-          result.message ??
-            result.error ??
-            "The action could not be completed.",
+      const result: CommandResult = browserDemo ? await browserDemo.execute(workspaceKey.current, command) : await (async () => {
+        const response = await fetch(
+          `/api/command${workspaceKey.current ? `?${new URLSearchParams({ workspace: workspaceKey.current })}` : ""}`,
+          {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(command),
+          },
         );
+        const result = await response.json();
+        if (!response.ok)
+          throw new Error(
+            result.message ??
+              result.error ??
+              "The action could not be completed.",
+          );
+        return result;
+      })();
       setState(result.snapshot);
       setNotice({ text: result.message, error: false });
       return result;
@@ -309,16 +323,17 @@ export function AppShell() {
                 <RefreshCw size={15} />
                 Try again
               </Button>
-              <a href="/login" className="btn btn-primary">
+              {!browserDemo && <a href="/login" className="btn btn-primary">
                 Sign in to DAVID
-              </a>
+              </a>}
             </div>
           ) : (
             <LoaderCircle size={22} aria-hidden />
           )}
           <p className="tiny muted">
-            For the local demonstrator, start the server with
-            DAVID_MODE=fixture. Deployed workspaces require an invited account.
+            {browserDemo
+              ? "Browser demo. Allow session storage to explore synthetic workspaces. Use sample data only."
+              : "For the local demonstrator, start the server with DAVID_MODE=fixture. Deployed workspaces require an invited account."}
           </p>
         </div>
       </div>
@@ -486,7 +501,7 @@ export function AppShell() {
                 </span>
                 <div>
                   {state.workspace.mode === "fixture"
-                    ? "Local operator"
+                    ? (browserDemo ? "Demo operator" : "Local operator")
                     : words(state.context.role)}
                   <small>
                     {state.workspace.mode === "fixture"
@@ -570,8 +585,10 @@ export function AppShell() {
                 <div className="fixture-banner">
                   <FlaskConical size={14} />
                   <span>
-                    <strong>Local demonstrator.</strong> Synthetic records and
-                    outcomes. No real messages are sent or appointments booked.
+                    <strong>{browserDemo ? "Browser demo." : "Local demonstrator."}</strong>{" "}
+                    {browserDemo
+                      ? "Synthetic data stays in this browser tab. Use sample data only. No real messages or bookings."
+                      : "Synthetic records and outcomes. No real messages are sent or appointments booked."}
                   </span>
                 </div>
               )}

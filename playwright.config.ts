@@ -17,6 +17,12 @@ export default defineConfig({
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: [
     {
+      command: "pnpm --filter @david/preview dev",
+      url: "http://localhost:3002",
+      timeout: 120_000,
+      reuseExistingServer: !process.env.CI,
+    },
+    {
       command: "pnpm --filter @david/web dev",
       url: "http://localhost:3000",
       timeout: 120_000,

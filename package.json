@@ -11,7 +11,7 @@
     "dev": "pnpm --filter @david/web dev",
     "demo": "pnpm --filter @david/demo dev",
     "fixture": "DAVID_MODE=fixture pnpm dev",
-    "build": "pnpm --filter @david/web build && pnpm --filter @david/demo build",
+    "build": "pnpm --filter @david/web build && pnpm --filter @david/demo build && pnpm --filter @david/preview build",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . && tsx scripts/check-boundaries.ts",
     "test": "vitest run",
@@ -24,7 +24,8 @@
     "db:seed": "tsx scripts/seed.ts",
     "db:types": "tsx scripts/generate-types.ts",
     "dispatch:tick": "tsx scripts/dispatch-tick.ts",
-    "test:db:concurrency": "tsx scripts/test-db-concurrency.ts"
+    "test:db:concurrency": "tsx scripts/test-db-concurrency.ts",
+    "preview": "pnpm --filter @david/preview dev"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",

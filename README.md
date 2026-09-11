@@ -2,11 +2,11 @@
 
 Vercel + hosted Supabase implementation of the complete v3 build brief. One modular Next.js application, a separate credential-free sales demo, shared domain services, PostgreSQL migrations, Google adapters and versioned Vercel workflows. No Docker or AWS setup is required.
 
-**Current release:** a runnable, explicitly synthetic local demonstrator. Cloud deployment, hosted PostgreSQL isolation, durable waits, Google OAuth/receipts and live business use require the named projects, credentials and evidence listed in [release readiness](docs/RELEASE_READINESS.md). Nothing has been deployed or sent to a real recipient by this build.
+**Current release:** [hosted browser demo](https://revengine-bay.vercel.app) and a local operational fixture demonstrator. Source: [private DAVIDBUILDERS/revengine repository](https://github.com/DAVIDBUILDERS/revengine). The hosted demo uses synthetic browser-session data; live Supabase, Google, model and workflow verification remain outstanding. See [hosted deployment and Git setup](docs/HOSTED_PREVIEW.md) and [release readiness](docs/RELEASE_READINESS.md).
 
 ## Start locally
 
-Use Node **24.21.0 LTS** and pnpm **10.33.2**. `.nvmrc` pins Node; pnpm also manages the project Node version through `.npmrc`.
+Use Node **24.21.0 LTS** and pnpm **10.33.2**. `.nvmrc` pins Node; run `nvm use` (or select that version with your Node manager) before pnpm. Vercel uses `package.json` engines; `.npmrc` must not contain `use-node-version`.
 
 ```sh
 pnpm install --frozen-lockfile
@@ -46,7 +46,7 @@ pnpm build
 pnpm run doctor
 ```
 
-`pnpm run doctor` intentionally exits **2 (BLOCKED)** when required external setup is missing. Use `pnpm run doctor`, because `pnpm doctor` is pnpm's own command. Unit tests run offline. Browser installation needs a download once. The production build compiles both apps and Workflow entrypoints without a local database.
+`pnpm run doctor` intentionally exits **2 (BLOCKED)** when required external setup is missing. Use `pnpm run doctor`, because `pnpm doctor` is pnpm's own command. Unit tests run offline. Browser installation needs a download once. The production build compiles all three apps and Workflow entrypoints without a local database.
 
 These commands require an explicitly approved hosted nonproduction project. Put tool-only values in an untracked root `.env.tools.local` or the shell, never in Vercel runtime configuration:
 
@@ -66,7 +66,8 @@ See [development without Docker](docs/DEVELOPMENT_WITHOUT_DOCKER.md) for exact v
 ## Project map and continuation
 
 - `apps/web`: customer/operator UI, Supabase SSR Auth, protected API routes, Workflow entrypoints and Cron dispatch.
-- `apps/demo`: separate anonymous synthetic application, with its own Vercel project configuration.
+- `apps/demo`: separate anonymous sales demo, with its own Vercel project configuration.
+- `apps/preview`: full customer/operator browser demo, sharing the product UI and pure domain fixtures; static export, sessionStorage, no operational API. See [hosted preview](docs/HOSTED_PREVIEW.md).
 - `packages/contracts`, `domain`, `agents`: shared executable schemas, deterministic rules, catalog, preparations, read models and fixture engine.
 - `packages/db`, `connectors`, `orchestration`, `ai`, `ui`, `observability`: tenant SQL access, real provider adapters, checked external writes, model boundary, theme and redaction.
 - `supabase/migrations`, `supabase/tests`: tenant-aware database definitions, exact checked mutations and hosted tests.
@@ -75,4 +76,4 @@ See [development without Docker](docs/DEVELOPMENT_WITHOUT_DOCKER.md) for exact v
 
 The repository began empty on `codex/david-engine-v3`. No v13 source, existing schema, brand assets or remote was available to verify reuse. The supplied DAVIDENGINE house wordmark was integrated on September 11 alongside the [product design revision](docs/DESIGN_REVISION.md). The legacy system has not been replaced. [Legacy migration](docs/LEGACY_MIGRATION.md) defines the handoff and cutover gate.
 
-Verified locally: **170 unit tests, 12 Chromium tests, lint, TypeScript and both production builds pass**. The [evidence matrix](docs/TEST_EVIDENCE.md) distinguishes these results from blocked hosted checks. [Deployment/setup](docs/DEPLOYMENT_RUNBOOK.md), [reviewed operating records](docs/PROVISIONING_RECORDS.md), [privacy operations](docs/PRIVACY_OPERATIONS.md) and [current implementation status](docs/IMPLEMENTATION_STATUS.md) provide the continuation path.
+Verified locally: **173 unit tests, 13 Chromium tests, lint, TypeScript and all three production builds pass**. The [evidence matrix](docs/TEST_EVIDENCE.md) distinguishes these results from blocked hosted checks. [Deployment/setup](docs/DEPLOYMENT_RUNBOOK.md), [reviewed operating records](docs/PROVISIONING_RECORDS.md), [privacy operations](docs/PRIVACY_OPERATIONS.md) and [current implementation status](docs/IMPLEMENTATION_STATUS.md) provide the continuation path.

@@ -2,7 +2,7 @@ import { readFile, readdir } from 'node:fs/promises';
 import { join, relative, resolve, dirname } from 'node:path';
 import ts from 'typescript';
 
-async function files(dir:string):Promise<string[]>{const items=await readdir(dir,{withFileTypes:true});return (await Promise.all(items.filter(i=>!['node_modules','.next','.fixture'].includes(i.name)).map(async i=>i.isDirectory()?files(join(dir,i.name)):/\.[cm]?[jt]sx?$/.test(i.name)?[join(dir,i.name)]:[]))).flat();}
+async function files(dir:string):Promise<string[]>{const items=await readdir(dir,{withFileTypes:true});return (await Promise.all(items.filter(i=>!['node_modules','.next','.fixture','out'].includes(i.name)).map(async i=>i.isDirectory()?files(join(dir,i.name)):/\.[cm]?[jt]sx?$/.test(i.name)?[join(dir,i.name)]:[]))).flat();}
 const sources=[...await files('apps'),...await files('packages')];
 const failures:string[]=[];
 for(const file of sources){
@@ -19,6 +19,7 @@ for(const file of sources){
     if(/provider-writes/.test(target)&&file!=='packages/orchestration/src/action-service.ts'&&!file.startsWith('packages/connectors/src/internal/')&&!file.endsWith('.test.ts'))failures.push(`${file}: raw provider writes outside action service`);
     if(file.startsWith('packages/domain/')&&/next\/|supabase|postgres|connectors|workflow/.test(specifier))failures.push(`${file}: domain imports platform implementation`);
     if(file.startsWith('apps/demo/')&&/packages\/(db|connectors|orchestration|ai)|@david\/(db|connectors|orchestration|ai)|apps\/web/.test(target))failures.push(`${file}: public demo imports operational code`);
+    if(file.startsWith('apps/preview/')&&/packages\/(db|connectors|orchestration|ai)|@david\/(db|connectors|orchestration|ai)|apps\/web\/(lib|workflows|app\/api)/.test(target))failures.push(`${file}: browser preview imports operational server code`);
     if(file.startsWith('packages/agents/')&&/connectors|workflow\/api|postgres|supabase/.test(specifier))failures.push(`${file}: agent definition has operational import`);
   }
 }
