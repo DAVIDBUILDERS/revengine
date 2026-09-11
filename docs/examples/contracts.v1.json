@@ -1,0 +1,758 @@
+{
+  "WorkspaceContext": {
+    "schemaVersion": 1,
+    "actorId": "f71b0afc-09ce-5071-ad8b-a0aac3a02333",
+    "workspaceId": "49f64fb6-054c-5105-ad98-ba4c0d20d267",
+    "membershipId": "4dee7bb1-61a4-5ce3-aa24-626d0e065927",
+    "role": "workspace_owner",
+    "environment": "fixture",
+    "permittedOperations": [
+      "read",
+      "command",
+      "approve",
+      "pause",
+      "configure"
+    ],
+    "assurance": "aal1"
+  },
+  "ConnectionCapability": {
+    "id": "101673c2-b565-5c69-aa58-7f1cf989f0e7",
+    "workspaceId": "49f64fb6-054c-5105-ad98-ba4c0d20d267",
+    "provider": "fixture",
+    "identity": "Fixture only — no connected Google account",
+    "resource": "Synthetic proposal batch",
+    "scopes": [],
+    "operations": [
+      "proposals.current"
+    ],
+    "health": "fixture",
+    "lastSyncAt": "2026-09-10T16:00:00.000Z",
+    "verifiedAt": "2026-09-10T16:00:00.000Z",
+    "owner": "Fixture operator",
+    "freshnessSeconds": 86400
+  },
+  "ContactRecord": {
+    "id": "3951076a-320a-50e4-a227-00b205b6d914",
+    "workspaceId": "49f64fb6-054c-5105-ad98-ba4c0d20d267",
+    "name": "Maya Chen",
+    "email": "sample-1@example.invalid",
+    "account": "Northstar Advisory",
+    "suppressed": false,
+    "enrolled": true,
+    "humanTakeover": false,
+    "owner": "Fixture operator",
+    "lastContactAt": "2026-09-10T16:00:00.000Z"
+  },
+  "OpportunityRecord": {
+    "schemaVersion": 1,
+    "id": "a8d2db21-85c8-557b-ab64-80a59b20f337",
+    "workspaceId": "49f64fb6-054c-5105-ad98-ba4c0d20d267",
+    "contactId": "3951076a-320a-50e4-a227-00b205b6d914",
+    "accountId": "cf66cb94-3e27-5f02-a740-d0584fe50a3e",
+    "businessModel": "b2b_services",
+    "owner": "Fixture operator",
+    "stage": "proposal",
+    "rawStage": "proposal",
+    "evidence": [
+      {
+        "id": "b0f0684a-b7a3-5ff8-a175-2c6ab48e0ed0",
+        "label": "P-1001 synthetic proposal source",
+        "source": "fixture proposal",
+        "capturedAt": "2026-09-10T16:00:00.000Z",
+        "quality": "fixture"
+      }
+    ]
+  },
+  "ProposalRecord": {
+    "schemaVersion": 1,
+    "id": "1f188b26-f8f0-5441-aa99-93ec1a7f4e93",
+    "workspaceId": "49f64fb6-054c-5105-ad98-ba4c0d20d267",
+    "opportunityId": "a8d2db21-85c8-557b-ab64-80a59b20f337",
+    "contactId": "3951076a-320a-50e4-a227-00b205b6d914",
+    "version": 1,
+    "reference": "P-1001",
+    "issuedAt": "2026-09-01T16:00:00.000Z",
+    "validUntil": "2026-10-10T16:00:00.000Z",
+    "amountMinor": 500000,
+    "currency": "USD",
+    "valueKind": "monthly_recurring",
+    "scopeSummary": "Five selected specialist responsibilities with shared context, reporting and coordination. Scope and pricing require the existing approved proposal.",
+    "sourceUrl": null,
+    "status": "open",
+    "rawStatus": "open",
+    "owner": "Fixture operator",
+    "sourceVerifiedAt": "2026-09-10T16:00:00.000Z",
+    "syncedAt": "2026-09-10T16:00:00.000Z",
+    "evidence": [
+      {
+        "id": "b0f0684a-b7a3-5ff8-a175-2c6ab48e0ed0",
+        "label": "P-1001 synthetic proposal source",
+        "source": "fixture proposal",
+        "capturedAt": "2026-09-10T16:00:00.000Z",
+        "quality": "fixture"
+      }
+    ],
+    "fixture": true
+  },
+  "AgentDefinition": {
+    "id": "deal-follow-up",
+    "name": "Deal Follow-up",
+    "version": "1.0.0",
+    "category": "Close revenue",
+    "responsibility": "Follow up on eligible existing proposals; stop on replies and hand off checked appointments. Proposal Follow-up is the B2B playbook.",
+    "supportedArchetypes": [
+      "b2b_services",
+      "home_services",
+      "commerce"
+    ],
+    "modes": [
+      "monitored_execution"
+    ],
+    "releaseStatus": "pilot",
+    "requiredCapabilities": [
+      "proposals.current",
+      "gmail.send",
+      "gmail.reply_read",
+      "cohort.enrolled"
+    ],
+    "triggers": [
+      "reviewed_manual_run",
+      "verified_source_change"
+    ],
+    "allowedTasks": [
+      "draft_follow_up",
+      "propose_send",
+      "stop_on_reply",
+      "assign_appointment"
+    ],
+    "toolNames": [
+      "read_bound_source",
+      "propose_checked_action"
+    ],
+    "outputSchema": "ActionProposal.v1",
+    "prerequisites": [
+      "current_policy",
+      "assigned_operator",
+      "selected_installation",
+      "approved_action",
+      "fresh_bound_sources"
+    ],
+    "stopConditions": [
+      "workspace_paused",
+      "capacity_exhausted",
+      "required_source_unavailable",
+      "suppression",
+      "human_takeover",
+      "source_stale",
+      "permission_revoked",
+      "ownership_conflict",
+      "reply_or_terminal_status"
+    ],
+    "capacityUnit": "actions/day",
+    "dependencies": [
+      "shared_coordination"
+    ],
+    "failureModes": [
+      "missing_source",
+      "invalid_output",
+      "capacity_exhausted",
+      "uncertain_provider_write"
+    ],
+    "fallback": "Stop and assign the responsible operator; no implicit authority.",
+    "metrics": [
+      "human_replies",
+      "verified_bookings"
+    ],
+    "evaluationCases": [
+      "valid",
+      "suppressed",
+      "stale",
+      "concurrent",
+      "uncertain",
+      "reply_stops"
+    ],
+    "aliases": [
+      "Proposal Follow-up"
+    ]
+  },
+  "AgentInstallation": {
+    "id": "d4fd113f-1863-5cb4-a13b-26ddd807ad06",
+    "workspaceId": "49f64fb6-054c-5105-ad98-ba4c0d20d267",
+    "agentId": "deal-follow-up",
+    "definitionVersion": "1.0.0",
+    "mode": "monitored_execution",
+    "status": "waiting_for_input",
+    "sourceMappings": [
+      "fixture-proposals"
+    ],
+    "policyVersion": 1,
+    "dailyCapacity": 10,
+    "lastPreparationAt": null,
+    "lastBusinessActionAt": "2026-09-10T16:00:00.000Z",
+    "blockers": []
+  },
+  "SourceEvent": {
+    "schemaVersion": 1,
+    "id": "01b6001a-4956-5949-a3c0-2f70200ac21b",
+    "workspaceId": "49f64fb6-054c-5105-ad98-ba4c0d20d267",
+    "connectionId": "101673c2-b565-5c69-aa58-7f1cf989f0e7",
+    "sourceId": "synthetic-proposals",
+    "providerEventId": "FIXTURE_EVENT_contract_example",
+    "entityId": "1f188b26-f8f0-5441-aa99-93ec1a7f4e93",
+    "occurredAt": "2026-09-10T16:00:00.000Z",
+    "receivedAt": "2026-09-10T16:00:00.000Z",
+    "sourceVersion": "1",
+    "correlationId": "7848f99a-504b-56bc-abe4-f59adab7b2b4",
+    "evidenceId": "b0f0684a-b7a3-5ff8-a175-2c6ab48e0ed0"
+  },
+  "ReadinessResult": {
+    "integration": false,
+    "action": false,
+    "measurement": false,
+    "blockers": [
+      {
+        "code": "proposals.current",
+        "message": "proposals · current: real capability has not been verified.",
+        "owner": "DAVID operator",
+        "nextStep": "Bind and verify the real source for live use; fixture behavior is available.",
+        "dimension": "integration"
+      },
+      {
+        "code": "gmail.send",
+        "message": "gmail · send: real capability has not been verified.",
+        "owner": "DAVID operator",
+        "nextStep": "Bind and verify the real source for live use; fixture behavior is available.",
+        "dimension": "integration"
+      },
+      {
+        "code": "gmail.reply_read",
+        "message": "gmail · reply read: real capability has not been verified.",
+        "owner": "DAVID operator",
+        "nextStep": "Bind and verify the real source for live use; fixture behavior is available.",
+        "dimension": "integration"
+      },
+      {
+        "code": "cohort.enrolled",
+        "message": "cohort · enrolled: real capability has not been verified.",
+        "owner": "Workspace owner",
+        "nextStep": "Bind and verify the real source for live use; fixture behavior is available.",
+        "dimension": "integration"
+      },
+      {
+        "code": "calendar.availability",
+        "message": "calendar · availability: real capability has not been verified.",
+        "owner": "DAVID operator",
+        "nextStep": "Bind and verify the real source for live use; fixture behavior is available.",
+        "dimension": "integration"
+      },
+      {
+        "code": "calendar.book",
+        "message": "calendar · book: real capability has not been verified.",
+        "owner": "DAVID operator",
+        "nextStep": "Bind and verify the real source for live use; fixture behavior is available.",
+        "dimension": "integration"
+      },
+      {
+        "code": "conversation.assignment",
+        "message": "conversation · assignment: real capability has not been verified.",
+        "owner": "DAVID operator",
+        "nextStep": "Bind and verify the real source for live use; fixture behavior is available.",
+        "dimension": "integration"
+      },
+      {
+        "code": "financial_evidence",
+        "message": "Payment and fulfillment sources are unavailable.",
+        "owner": "Finance/source owner",
+        "nextStep": "Connect an authoritative payment source or retain a labeled manual confirmation.",
+        "dimension": "measurement"
+      }
+    ],
+    "evaluatedAt": "2026-09-10T16:00:00.000Z",
+    "freshUntil": "2026-09-10T17:00:00.000Z",
+    "fallback": "Prepare approved internal artifacts and inspect the labeled fixture journey while live prerequisites are resolved."
+  },
+  "ActionProposal": {
+    "schemaVersion": 1,
+    "id": "90ec7c5a-7cbb-5007-a91e-85d4b15a6b55",
+    "workspaceId": "49f64fb6-054c-5105-ad98-ba4c0d20d267",
+    "installationId": "d4fd113f-1863-5cb4-a13b-26ddd807ad06",
+    "runId": "a2acf140-1ef2-5a36-a2a9-c7386b9c4ce6",
+    "contactId": "3951076a-320a-50e4-a227-00b205b6d914",
+    "proposalId": "1f188b26-f8f0-5441-aa99-93ec1a7f4e93",
+    "type": "send_follow_up",
+    "payload": {
+      "recipient": "sample-1@example.invalid",
+      "subject": "Following up on P-1001",
+      "body": "Hello Maya Chen,\n\nI am following up on proposal P-1001. The approved scope is: Five selected specialist responsibilities with shared context, reporting and coordination. Scope and pricing require the existing approved proposal.\n\nWould a conversation with Fixture operator help you decide on the next step? We can clarify the existing proposal; any change to pricing, scope or terms needs a separate review.\n\nThank you,\nFixture operator",
+      "proposalVersion": 1
+    },
+    "payloadHash": "a471594797b32703f18f43870248b53b1450112aa265f6411c6051a448680263",
+    "evidence": [
+      {
+        "id": "b0f0684a-b7a3-5ff8-a175-2c6ab48e0ed0",
+        "label": "P-1001 synthetic proposal source",
+        "source": "fixture proposal",
+        "capturedAt": "2026-09-10T16:00:00.000Z",
+        "quality": "fixture"
+      }
+    ],
+    "approvalId": "998ecb21-f7f1-574a-a5e4-f3d3452b5cf8",
+    "reservedCostMinor": 1,
+    "status": "provider_accepted",
+    "createdAt": "2026-09-10T16:00:00.000Z",
+    "expiresAt": "2026-09-11T16:00:00.000Z"
+  },
+  "Approval": {
+    "id": "998ecb21-f7f1-574a-a5e4-f3d3452b5cf8",
+    "workspaceId": "49f64fb6-054c-5105-ad98-ba4c0d20d267",
+    "actionId": "90ec7c5a-7cbb-5007-a91e-85d4b15a6b55",
+    "status": "approved",
+    "payloadHash": "a471594797b32703f18f43870248b53b1450112aa265f6411c6051a448680263",
+    "approverId": "f71b0afc-09ce-5071-ad8b-a0aac3a02333",
+    "decidedAt": "2026-09-10T16:00:00.000Z",
+    "expiresAt": "2026-09-11T16:00:00.000Z"
+  },
+  "ActionReceipt": {
+    "id": "fb367aed-58fd-5d63-ad28-134d223f1dc3",
+    "workspaceId": "49f64fb6-054c-5105-ad98-ba4c0d20d267",
+    "actionId": "90ec7c5a-7cbb-5007-a91e-85d4b15a6b55",
+    "status": "provider_accepted",
+    "provider": "fixture",
+    "providerId": "FIXTURE_ONLY_send_follow_up_90ec7c5a-7cbb-5007-a91e-85d4b15a6b55",
+    "message": "Provider accepted the message. Delivery and recipient reading are not verified.",
+    "reconciliation": "not_required",
+    "observedAt": "2026-09-10T16:00:00.000Z",
+    "evidence": [
+      {
+        "id": "fb68828a-4dc0-5e42-aacf-115a90629976",
+        "label": "Fixture receipt FIXTURE_ONLY_send_follow_up_90ec7c5a-7cbb-5007-a91e-85d4b15a6b55",
+        "source": "fixture provider",
+        "capturedAt": "2026-09-10T16:00:00.000Z",
+        "quality": "fixture"
+      }
+    ]
+  },
+  "OutcomeObservation": {
+    "id": "5c27a655-7a24-55e3-a797-c8653b87457b",
+    "workspaceId": "49f64fb6-054c-5105-ad98-ba4c0d20d267",
+    "opportunityId": "a8d2db21-85c8-557b-ab64-80a59b20f337",
+    "metric": "human_replies",
+    "metricVersion": 1,
+    "stage": "reply",
+    "source": "fixture conversation",
+    "periodStart": "2026-09-10T16:00:00.000Z",
+    "periodEnd": "2026-09-10T16:00:00.000Z",
+    "value": 1,
+    "valueType": "count",
+    "currency": null,
+    "quality": "fixture",
+    "evidence": [
+      {
+        "id": "e4f5c803-9826-5189-a65c-9ab315b4b561",
+        "label": "Illustrative positive reply",
+        "source": "fixture conversation",
+        "capturedAt": "2026-09-10T16:00:00.000Z",
+        "quality": "fixture"
+      }
+    ]
+  },
+  "BriefSnapshot": {
+    "id": "881fd0c1-8037-54fd-a282-1b590a519539",
+    "workspaceId": "49f64fb6-054c-5105-ad98-ba4c0d20d267",
+    "asOf": "2026-09-10T16:00:00.000Z",
+    "metrics": [
+      {
+        "key": "human_replies",
+        "label": "Human replies",
+        "value": 1,
+        "unit": "count",
+        "stage": "reply",
+        "evidenceIds": [
+          "e4f5c803-9826-5189-a65c-9ab315b4b561"
+        ],
+        "limitation": "Illustrative fixture evidence only."
+      },
+      {
+        "key": "verified_bookings",
+        "label": "Verified bookings",
+        "value": 0,
+        "unit": "count",
+        "stage": "booked",
+        "evidenceIds": [],
+        "limitation": "Illustrative fixture evidence only."
+      },
+      {
+        "key": "attended_meetings",
+        "label": "Held meetings",
+        "value": null,
+        "unit": "count",
+        "stage": "attended",
+        "evidenceIds": [],
+        "limitation": "Attendance requires separate evidence or a labeled responsible-person confirmation."
+      },
+      {
+        "key": "signed_value",
+        "label": "Won business",
+        "value": null,
+        "unit": "money unavailable",
+        "stage": "signed",
+        "evidenceIds": [],
+        "limitation": "Financial source is missing, unknown, conflicting or uses mixed currencies; unavailable, not zero."
+      },
+      {
+        "key": "collected_revenue",
+        "label": "Collected revenue",
+        "value": null,
+        "unit": "money unavailable",
+        "stage": "paid",
+        "evidenceIds": [],
+        "limitation": "Financial source is missing, unknown, conflicting or uses mixed currencies; unavailable, not zero."
+      },
+      {
+        "key": "gross_profit",
+        "label": "Customer gross profit",
+        "value": null,
+        "unit": "money unavailable",
+        "stage": "profit",
+        "evidenceIds": [],
+        "limitation": "Fulfillment costs and collection evidence are not connected."
+      },
+      {
+        "key": "pipeline_USD_monthly_recurring",
+        "label": "Open proposal value · USD monthly recurring",
+        "value": 1500000,
+        "unit": "USD minor",
+        "stage": "pipeline",
+        "evidenceIds": [
+          "b0f0684a-b7a3-5ff8-a175-2c6ab48e0ed0",
+          "abf0606b-bea3-5afd-ac75-248bbb8e19d5",
+          "aaf05ed8-bda3-596a-ab75-22f8ba8e1842"
+        ],
+        "limitation": "Latest proposal versions only. Pipeline is potential value, not won or collected revenue. Unknown amounts remain unavailable; stale records are flagged."
+      },
+      {
+        "key": "accepted_actions",
+        "label": "Provider-accepted actions",
+        "value": 1,
+        "unit": "count",
+        "stage": "provider_acceptance",
+        "evidenceIds": [
+          "fb68828a-4dc0-5e42-aacf-115a90629976"
+        ],
+        "limitation": "Email acceptance does not establish delivery."
+      },
+      {
+        "key": "prepared_artifacts",
+        "label": "Saved preparation artifacts",
+        "value": 1,
+        "unit": "count",
+        "stage": "preparation",
+        "evidenceIds": [
+          "687d1f41-b210-55ca-ab44-7dbfcd23d144"
+        ],
+        "limitation": "Drafts are internal work, not external actions or business outcomes."
+      }
+    ],
+    "evidence": [
+      {
+        "id": "e4f5c803-9826-5189-a65c-9ab315b4b561",
+        "label": "Illustrative positive reply",
+        "source": "fixture conversation",
+        "capturedAt": "2026-09-10T16:00:00.000Z",
+        "quality": "fixture"
+      }
+    ],
+    "limitations": [
+      "Financial return unavailable without payment and fulfillment evidence.",
+      "All source records and results are illustrative fixture data.",
+      "Provider acceptance does not prove delivery; booking does not prove attendance."
+    ],
+    "decisions": [
+      "Confirm unresolved proposal status",
+      "Review a positive-reply appointment handoff"
+    ],
+    "commitments": [
+      "Resolve the current source and permission blockers with their named owners.",
+      "Review waiting replies and uncertain actions before preparing further contact."
+    ],
+    "narrativeVersion": "deterministic-brief.v1",
+    "narrative": "As of 2026-09-10T16:00:00.000Z, 1 human replies and 0 bookings are recorded in the illustrative fixture. 0 actions need reconciliation. 1 internal preparation artifacts are saved. Collected revenue and customer gross profit are unavailable."
+  },
+  "TeamRecommendation": {
+    "id": "eed87d76-42aa-5e44-a3f6-6bae0ef2ed84",
+    "workspaceId": "49f64fb6-054c-5105-ad98-ba4c0d20d267",
+    "goal": "Recover eligible proposals and coordinate sales conversations",
+    "businessModel": "b2b_services",
+    "specialistIds": [
+      "deal-follow-up",
+      "appointment-coordinator",
+      "account-intelligence",
+      "search-growth",
+      "technical-seo-monitor"
+    ],
+    "rationale": {
+      "deal-follow-up": "Follow up on eligible existing proposals; stop on replies and hand off checked appointments. Proposal Follow-up is the B2B playbook.",
+      "appointment-coordinator": "Coordinate an authorized sales appointment from a reviewed conversation handoff.",
+      "account-intelligence": "Prepare source-grounded WebsiteProfile for human review.",
+      "search-growth": "Prepare source-grounded ContentBrief for human review.",
+      "technical-seo-monitor": "Prepare source-grounded CapturedPageAudit for human review."
+    },
+    "dependencies": [
+      "shared_coordination",
+      "structured_conversation_handoff",
+      "shared_company_context"
+    ],
+    "limitations": [
+      "Five selected responsibilities do not establish action readiness.",
+      "Planned capabilities need engineering; preparation drafts do not publish or prove revenue."
+    ]
+  },
+  "ActivationPlan": {
+    "id": "043836d5-e5dc-56df-ac25-4be5935e5047",
+    "workspaceId": "49f64fb6-054c-5105-ad98-ba4c0d20d267",
+    "selectedTeam": [
+      "deal-follow-up",
+      "appointment-coordinator",
+      "account-intelligence",
+      "search-growth",
+      "technical-seo-monitor"
+    ],
+    "step": 1,
+    "prerequisites": [
+      {
+        "key": "proposals.current",
+        "label": "proposals · current",
+        "provider": "Proposal source",
+        "owner": "DAVID operator",
+        "unlocks": [
+          "Deal Follow-up"
+        ],
+        "state": "missing",
+        "evidence": null,
+        "nextStep": "Bind and verify the real source for live use; fixture behavior is available."
+      },
+      {
+        "key": "gmail.send",
+        "label": "gmail · send",
+        "provider": "Google Workspace",
+        "owner": "DAVID operator",
+        "unlocks": [
+          "Deal Follow-up"
+        ],
+        "state": "missing",
+        "evidence": null,
+        "nextStep": "Bind and verify the real source for live use; fixture behavior is available."
+      },
+      {
+        "key": "gmail.reply_read",
+        "label": "gmail · reply read",
+        "provider": "Google Workspace",
+        "owner": "DAVID operator",
+        "unlocks": [
+          "Deal Follow-up"
+        ],
+        "state": "missing",
+        "evidence": null,
+        "nextStep": "Bind and verify the real source for live use; fixture behavior is available."
+      },
+      {
+        "key": "cohort.enrolled",
+        "label": "cohort · enrolled",
+        "provider": "DAVID",
+        "owner": "Workspace owner",
+        "unlocks": [
+          "Deal Follow-up"
+        ],
+        "state": "missing",
+        "evidence": null,
+        "nextStep": "Bind and verify the real source for live use; fixture behavior is available."
+      },
+      {
+        "key": "calendar.availability",
+        "label": "calendar · availability",
+        "provider": "Google Workspace",
+        "owner": "DAVID operator",
+        "unlocks": [
+          "Appointment Coordinator"
+        ],
+        "state": "missing",
+        "evidence": null,
+        "nextStep": "Bind and verify the real source for live use; fixture behavior is available."
+      },
+      {
+        "key": "calendar.book",
+        "label": "calendar · book",
+        "provider": "Google Workspace",
+        "owner": "DAVID operator",
+        "unlocks": [
+          "Appointment Coordinator"
+        ],
+        "state": "missing",
+        "evidence": null,
+        "nextStep": "Bind and verify the real source for live use; fixture behavior is available."
+      },
+      {
+        "key": "conversation.assignment",
+        "label": "conversation · assignment",
+        "provider": "DAVID",
+        "owner": "DAVID operator",
+        "unlocks": [
+          "Appointment Coordinator"
+        ],
+        "state": "missing",
+        "evidence": null,
+        "nextStep": "Bind and verify the real source for live use; fixture behavior is available."
+      },
+      {
+        "key": "website.captured",
+        "label": "website · captured",
+        "provider": "Approved website",
+        "owner": "DAVID operator",
+        "unlocks": [
+          "Account Intelligence",
+          "Search Growth",
+          "Technical SEO Monitor"
+        ],
+        "state": "verified",
+        "evidence": "Confirmed illustrative fixture; not live validation.",
+        "nextStep": "Bind and verify the real source for live use; fixture behavior is available."
+      },
+      {
+        "key": "company.confirmed",
+        "label": "company · confirmed",
+        "provider": "Company owner",
+        "owner": "Workspace owner",
+        "unlocks": [
+          "Account Intelligence",
+          "Search Growth",
+          "Technical SEO Monitor"
+        ],
+        "state": "verified",
+        "evidence": "Confirmed illustrative fixture; not live validation.",
+        "nextStep": "Bind and verify the real source for live use; fixture behavior is available."
+      }
+    ],
+    "milestone": "authorized_test_action",
+    "confirmedFacts": true,
+    "owner": "Fixture operator"
+  },
+  "WorkOpportunity": {
+    "id": "813a8676-f15b-556e-a906-9d8eb26b25ca",
+    "workspaceId": "49f64fb6-054c-5105-ad98-ba4c0d20d267",
+    "title": "Review open proposals without a next action",
+    "affectedIds": [
+      "1f188b26-f8f0-5441-aa99-93ec1a7f4e93"
+    ],
+    "observedCondition": "1 eligible open proposal(s) have no active follow-up.",
+    "evidence": [
+      {
+        "id": "b0f0684a-b7a3-5ff8-a175-2c6ab48e0ed0",
+        "label": "P-1001 synthetic proposal source",
+        "source": "fixture proposal",
+        "capturedAt": "2026-09-10T16:00:00.000Z",
+        "quality": "fixture"
+      }
+    ],
+    "hypothesis": "A factual, reviewed follow-up may produce a useful response.",
+    "agentId": "deal-follow-up",
+    "effortMinutes": 15,
+    "costMinor": null,
+    "owner": "Fixture operator",
+    "evaluationRule": "strategy.v1/neglected: compare retained response/status evidence with the baseline at review. Missing or insufficient evidence remains inconclusive. Condition resolved at 2026-09-10T16:00:00.000Z; original observation retained, no success attribution inferred.",
+    "status": "reviewed",
+    "alternatives": [
+      "Wait for a source update",
+      "Ask the proposal owner for the next step"
+    ],
+    "baseline": "No verified follow-up outcome recorded for these records.",
+    "target": "Record an observed reply or an explicit no-response result.",
+    "reviewAt": "2026-09-17T16:00:00.000Z"
+  },
+  "PreparedArtifact": {
+    "id": "4457a849-a4b5-5d42-aeaa-d80b1d4121d8",
+    "workspaceId": "49f64fb6-054c-5105-ad98-ba4c0d20d267",
+    "agentId": "account-intelligence",
+    "type": "WebsiteProfile",
+    "sourceSnapshot": [
+      {
+        "id": "687d1f41-b210-55ca-ab44-7dbfcd23d144",
+        "label": "Confirmed synthetic company profile",
+        "source": "fixture website",
+        "capturedAt": "2026-09-10T16:00:00.000Z",
+        "quality": "fixture"
+      }
+    ],
+    "factualInputs": [
+      "Company: DAVID AI",
+      "Approved offer: Managed business execution with five selected specialists",
+      "Confirmed customer type: B2B service businesses"
+    ],
+    "title": "Company positioning profile",
+    "content": "ILLUSTRATIVE FIXTURE — DAVID AI\nApproved offers: Managed business execution with five selected specialists\nCustomer types: B2B service businesses\nSource coverage: 1 approved page(s).\nPositioning hypothesis for review: Explain how Managed business execution with five selected specialists serves B2B service businesses.\nUnverified: named prospect accounts, market size, pricing outside approved facts.\n\nApproved source references:\nhttps://example.com/david-fixture",
+    "reviewState": "draft",
+    "capabilityVersion": "1.0.0",
+    "runId": "32b01287-04f0-52b1-aeac-31e3959a506d",
+    "createdAt": "2026-09-10T16:00:00.000Z",
+    "limitation": "A website profile is shared context, not a sourced prospect list."
+  },
+  "ForecastScenario": {
+    "id": "57ed2ebf-c1f5-5a07-a680-3abbc0ab2b3f",
+    "workspaceId": "49f64fb6-054c-5105-ad98-ba4c0d20d267",
+    "version": 1,
+    "name": "Illustrative proposal recovery · 30 days",
+    "businessModel": "b2b_services",
+    "currency": "USD",
+    "horizonDays": 30,
+    "volume": 20,
+    "cohort": "recovery",
+    "overlapResolved": true,
+    "conversions": [
+      {
+        "label": "Qualified conversations",
+        "low": 0.2,
+        "base": 0.3,
+        "high": 0.4
+      },
+      {
+        "label": "Bookings",
+        "low": 0.4,
+        "base": 0.5,
+        "high": 0.6
+      },
+      {
+        "label": "Held meetings",
+        "low": 0.7,
+        "base": 0.8,
+        "high": 0.9
+      },
+      {
+        "label": "Wins",
+        "low": 0.2,
+        "base": 0.3,
+        "high": 0.4
+      }
+    ],
+    "capacity": 4,
+    "valueMinor": 500000,
+    "spendMinor": 500000,
+    "baselineWins": null,
+    "counterfactual": null,
+    "assumptions": [
+      "Illustrative inputs, not business forecasts.",
+      "Recovery cohort is separate from new demand.",
+      "Unit value is monthly recurring value; not collected revenue."
+    ],
+    "createdAt": "2026-09-10T16:00:00.000Z"
+  },
+  "RuntimeHealth": {
+    "component": "Web application",
+    "health": "fixture",
+    "observedAt": "2026-09-10T16:00:00.000Z",
+    "lastSuccessAt": "2026-09-10T16:00:00.000Z",
+    "lastPreparationAt": null,
+    "lastBusinessActionAt": null,
+    "coverage": "Local deterministic fixture service",
+    "owner": "DAVID operator",
+    "nextStep": "Review the labeled fixture journey."
+  }
+}

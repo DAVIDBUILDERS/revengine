@@ -1,0 +1,37 @@
+name: Guarded remote migration
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        type: choice
+        options: [test, production]
+        required: true
+      operation:
+        type: choice
+        options: [preview, apply]
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: database-migration-${{ inputs.target }}
+  cancel-in-progress: false
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: ${{ inputs.target }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:${{ inputs.operation }}
+        env:
+          EXPECTED_SUPABASE_PROJECT_ID: ${{ vars.SUPABASE_PROJECT_ID }}
+          CONFIRMED_DATABASE_PROJECT_ID: ${{ vars.SUPABASE_PROJECT_ID }}
+          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
+          DATABASE_CA_CERT: ${{ secrets.DATABASE_CA_CERT }}

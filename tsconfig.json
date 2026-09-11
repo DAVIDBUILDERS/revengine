@@ -1,0 +1,87 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@david/contracts": [
+        "packages/contracts/src/index.ts"
+      ],
+      "@david/domain": [
+        "packages/domain/src/index.ts"
+      ],
+      "@david/db": [
+        "packages/db/src/index.ts"
+      ],
+      "@david/connectors": [
+        "packages/connectors/src/index.ts"
+      ],
+      "@david/agents": [
+        "packages/agents/src/index.ts"
+      ],
+      "@david/orchestration": [
+        "packages/orchestration/src/index.ts"
+      ],
+      "@david/ai": [
+        "packages/ai/src/index.ts"
+      ],
+      "@david/ui": [
+        "packages/ui/src/index.ts"
+      ],
+      "@david/observability": [
+        "packages/observability/src/index.ts"
+      ],
+      "@david/contracts/*": [
+        "packages/contracts/src/*"
+      ],
+      "@david/domain/*": [
+        "packages/domain/src/*"
+      ],
+      "@david/db/*": [
+        "packages/db/src/*"
+      ],
+      "@david/connectors/*": [
+        "packages/connectors/src/*"
+      ],
+      "@david/agents/*": [
+        "packages/agents/src/*"
+      ],
+      "@david/orchestration/*": [
+        "packages/orchestration/src/*"
+      ],
+      "@david/ai/*": [
+        "packages/ai/src/*"
+      ],
+      "@david/ui/*": [
+        "packages/ui/src/*"
+      ],
+      "@david/observability/*": [
+        "packages/observability/src/*"
+      ]
+    }
+  },
+  "include": [
+    "apps/**/*.ts",
+    "apps/**/*.tsx",
+    "packages/**/*.ts",
+    "packages/**/*.tsx",
+    "scripts/**/*.ts",
+    "tests/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/.next/**"
+  ]
+}

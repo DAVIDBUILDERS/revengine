@@ -1,0 +1,16 @@
+node_modules/
+.next/
+.vercel/
+.env*
+!.env.example
+!.env.fixture.example
+!.env.tools.example
+.fixture/
+.workflow-data/
+.well-known/workflow/
+coverage/
+test-results/
+playwright-report/
+*.tsbuildinfo
+.DS_Store
+artifacts/

@@ -1,0 +1,6 @@
+import { existsSync, readFileSync } from 'node:fs';
+import postgres from 'postgres';
+if(existsSync('.env.tools.local'))process.loadEnvFile('.env.tools.local');
+export function blocked(message:string):never{console.error(`BLOCKED: ${message}`);process.exit(2);}
+export function database(url:string){return postgres(url,{max:1,prepare:false,connect_timeout:10,idle_timeout:10,ssl:{rejectUnauthorized:true,...(process.env.DATABASE_CA_CERT?{ca:process.env.DATABASE_CA_CERT.includes('BEGIN CERTIFICATE')?process.env.DATABASE_CA_CERT:readFileSync(process.env.DATABASE_CA_CERT,'utf8')}: {})}});}
+export function nonproductionTarget(){const ref=process.env.TEST_SUPABASE_PROJECT_ID;const production=process.env.PRODUCTION_SUPABASE_PROJECT_ID;if(!ref||!production||!process.env.TEST_DATABASE_URL)blocked('Set TEST_SUPABASE_PROJECT_ID, PRODUCTION_SUPABASE_PROJECT_ID and TEST_DATABASE_URL from approved hosted projects.');if(ref===production)blocked('Production cannot be used for tests or seeds.');const url=new URL(process.env.TEST_DATABASE_URL!);if(!['postgres:','postgresql:'].includes(url.protocol)||(url.hostname!==`db.${ref}.supabase.co`&&!(url.hostname.endsWith('.pooler.supabase.com')&&decodeURIComponent(url.username).endsWith(`.${ref}`))))blocked('TEST_DATABASE_URL does not match TEST_SUPABASE_PROJECT_ID.');return {ref,url:process.env.TEST_DATABASE_URL!};}

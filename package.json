@@ -1,0 +1,54 @@
+{
+  "name": "david-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.33.2",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @david/web dev",
+    "demo": "pnpm --filter @david/demo dev",
+    "fixture": "DAVID_MODE=fixture pnpm dev",
+    "build": "pnpm --filter @david/web build && pnpm --filter @david/demo build",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . && tsx scripts/check-boundaries.ts",
+    "test": "vitest run",
+    "test:unit": "vitest run",
+    "test:e2e": "playwright test",
+    "test:db": "tsx scripts/test-db.ts",
+    "doctor": "tsx scripts/doctor.ts",
+    "db:preview": "tsx scripts/migrate.ts preview",
+    "db:apply": "tsx scripts/migrate.ts apply",
+    "db:seed": "tsx scripts/seed.ts",
+    "db:types": "tsx scripts/generate-types.ts",
+    "dispatch:tick": "tsx scripts/dispatch-tick.ts",
+    "test:db:concurrency": "tsx scripts/test-db-concurrency.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "24.10.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "eslint": "10.10.0",
+    "pgsql-parser": "18.2.6",
+    "tsx": "4.23.13",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.70.0",
+    "vitest": "5.0.0"
+  },
+  "dependencies": {
+    "@ai-sdk/gateway": "4.0.78",
+    "@radix-ui/react-dialog": "1.1.23",
+    "@supabase/ssr": "0.12.7",
+    "@supabase/supabase-js": "2.116.0",
+    "ai": "7.0.97",
+    "lucide-react": "1.44.0",
+    "postgres": "3.4.9",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "workflow": "4.8.8",
+    "zod": "4.6.2"
+  }
+}

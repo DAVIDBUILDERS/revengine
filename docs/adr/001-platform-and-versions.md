@@ -1,0 +1,11 @@
+# ADR 001 — Vercel / Supabase modular monolith
+
+Accepted 2026-09-10. The v3 brief is the implementation authority. Empty repository has no verified legacy code to port. Use Next.js 16.3.4 / React 19.3.0, Node 24.21.0 LTS, pnpm 10.33.2, Workflow 4.8.8, Supabase JS 2.116.0 / SSR 0.12.7, AI SDK 7.0.97 / Gateway 4.0.78, Zod 4.6.2, PostgreSQL adapter 3.4.9; exact package versions and transitive lockfile are versioned. Versions were read from npm; build/type checks determine local compatibility. Node 26 is installed globally on the host; `.nvmrc` and pnpm's managed Node pin select LTS for project scripts.
+
+Ordinary domain operations depend on typed ports, never Next request or Google client shapes. One checked action service owns external write access. PostgreSQL handles transactional concurrency; Workflow handles durable execution. No additional queue vendor, worker service, local database/container or AWS dependency.
+
+Sources checked: [Next installation](https://nextjs.org/docs/app/getting-started/installation), [Workflow Next integration](https://workflow-sdk.dev/docs/getting-started/next), [Workflow hooks](https://workflow-sdk.dev/docs/api-reference/workflow/create-hook), [start semantics](https://workflow-sdk.dev/docs/api-reference/workflow-api/start), [Supabase SSR](https://supabase.com/docs/guides/auth/server-side/creating-a-client), [transaction pooling](https://supabase.com/docs/guides/database/connecting-to-postgres), [AI structured output](https://ai-sdk.dev/docs/ai-sdk-core/generating-structured-data). Hosted account compatibility/limits remain unverified.
+
+Workflow start is not assumed idempotent. Persist business-run records before dispatch, claim execution in SQL and reconcile uncertain starts. Workflow hooks are internal wakeup credentials; saved approval decisions are authoritative. Freeze version-one handlers while work is in flight. Pin to the deployment that starts a run; do not use `deploymentId: latest` for existing conversations.
+
+Compute/database/storage/workflow/model regions must be recorded independently from actual approved projects. No guessed region is committed. Separate operational test, operational production and public demo Vercel projects; separate hosted test/production Supabase projects. Demo stores synthetic session state only.
