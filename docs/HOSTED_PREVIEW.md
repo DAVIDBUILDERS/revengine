@@ -13,7 +13,7 @@ Created September 11, 2026 at the user's request.
 
 ## What is deployed
 
-The full shared customer/operator interface, the supplied DAVID wordmark, six-section resumable onboarding and operator setup queue, agent workspaces, proposals, decisions, journey, scenarios and fixture operator controls. The application loads deterministic synthetic workspaces and runs the existing pure domain fixture engine entirely inside the browser. A validated, bounded command journal in sessionStorage survives refresh, separates workspaces and resets only the selected workspace. Storage failure rejects a change rather than claiming it was saved. Separate browser contexts have independent data. Browser duplication/restoration may copy sessionStorage according to the browser's own behavior.
+The full shared customer/operator interface, the supplied DAVID wordmark, guided five-stage onboarding, the complete six-section profile and operator setup queue, agent workspaces, proposals, decisions, journey, scenarios and fixture operator controls. The application loads deterministic synthetic workspaces and runs the existing pure domain fixture engine entirely inside the browser. A validated, bounded command journal in sessionStorage survives refresh, separates workspaces and resets only the selected workspace. Storage failure rejects a change rather than claiming it was saved. Separate browser contexts have independent data. Browser duplication/restoration may copy sessionStorage according to the browser's own behavior.
 
 A persistent **Browser demo** banner says to use sample data only and identifies the simulation. There is no deployed operational API, authentication service, database, OAuth, workflow, model inference, email or calendar write. Real source capture and connection setup remain disabled with their existing fixture explanations. This is a shareable interface demonstration, not a hosted live product release.
 
@@ -21,9 +21,9 @@ Project environment-variable inspection returned an empty list. `.vercelignore` 
 
 ## Verification
 
-- 186 unit tests, module-boundary lint and TypeScript passed.
+- 193 unit tests, module-boundary lint and TypeScript passed.
 - All three production apps built locally; the preview also built successfully in Vercel on Node 24.x.
-- All 14 Chromium tests passed locally, including the new preview test.
+- All 15 Chromium tests passed locally, including the new preview test.
 - The same Chromium preview test passed against the public Vercel domain (3.2 seconds), including all nine mobile screens, preparation/pause/reload and independent browser state. It is reusable with `PREVIEW_URL` (command below).
 - Public HTTP checks verify application/activation/logo availability, security headers, and 404 responses for operational state and workflow routes.
 
@@ -31,7 +31,7 @@ Project environment-variable inspection returned an empty list. `.vercelignore` 
 
 Implementation commit `7ae989853ca501ac197c550a7d79f5a597ecb168` deployed successfully to the existing project, deployment `A26sSn35VTGUtpAtdVHRA3WuH1Cu` / `revengine-iia9h2hxe-davidai.vercel.app`, aliased to the public domain. Both `browser-preview.spec.ts` and `onboarding.spec.ts` passed against `https://revengine-bay.vercel.app` (2 tests, 10.6 seconds). Activation returns HTTP 200; `/api/state`, `/api/onboarding/access` and the workflow route return 404. CSP still includes `connect-src 'none'`.
 
-The public onboarding flow stores synthetic setup in browser sessionStorage. Migration 018, real invitations, authentication and Supabase persistence are implemented in the separate operational app and remain externally unverified. See [remaining platform setup](ONBOARDING_IMPLEMENTATION.md).
+The public onboarding flow stores synthetic setup in browser sessionStorage. Migrations 018–019, real invitations, authentication and Supabase persistence are implemented in the separate operational app and remain externally unverified. See [remaining platform setup](ONBOARDING_IMPLEMENTATION.md).
 
 ## Deploy again
 
@@ -51,9 +51,9 @@ PREVIEW_URL=https://revengine-bay.vercel.app pnpm exec playwright test tests/e2e
 
 The explicit local config matters: the repository-root `vercel.json` is for a different, operational deployment. Do not deploy that root configuration to this browser-demo project. Do not set the Vercel Next output directory to `out`: the framework adapter needs the default `.next` manifests and handles static export itself. Vercel rejects pnpm's `use-node-version` setting in `.npmrc`; Node selection belongs in package engines, Vercel settings and `.nvmrc`.
 
-## Git integration still needs an organization owner
+## Git integration still needs GitHub installation access
 
-The repository exists and its `main` branch is pushed. Vercel's existing GitHub app installation in DAVIDBUILDERS (`134359119`) only has selected-repository access and cannot see this new repository. GitHub rejected adding it through the signed-in CLI account with HTTP 403: “You do not have permission to modify this app on DAVIDBUILDERS. Please contact an Organization Owner.” No existing repository permissions were changed.
+The repository exists and its `main` branch is pushed. Vercel's existing GitHub app installation in DAVIDBUILDERS (`134359119`) only has selected-repository access and cannot see this new repository. GitHub rejected adding it through the signed-in CLI account with HTTP 403: “You do not have permission to modify this app on DAVIDBUILDERS. Please contact an Organization Owner.” No existing repository permissions were changed. On September 11, the guided-onboarding retry of `vercel git connect` again failed because Vercel could not access the private repository. Read-only Vercel inspection still returned `link: null`, with root `apps/preview`. The current CLI reports repository/org administration but lacks the token access needed to manage the installation; a GitHub installation API read returned HTTP 403. The owner was asked to grant this exact repository in GitHub, and no alternate identity was used to bypass that denial.
 
 A DAVIDBUILDERS organization owner must open https://github.com/organizations/DAVIDBUILDERS/settings/installations/134359119 and add **revengine** to Vercel's selected repositories. Then connect **DAVIDBUILDERS/revengine** in the existing Vercel project's Settings → Git, production branch **main**, retaining root **apps/preview**. Do not create a second project. Until that is done, deployments are manual; pushing GitHub alone does not update the public application. GitHub Actions validation is independent of that connection.
 

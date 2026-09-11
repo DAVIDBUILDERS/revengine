@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 const origin=process.env.PREVIEW_URL??'http://localhost:3002';
 test('onboarding collects reusable answers, resumes, isolates workspaces and exposes honest readiness',async({page},testInfo)=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto(`${origin}/?view=activation`);
+ await page.goto(`${origin}/?view=activation&mode=profile`);
  await page.getByLabel('Company name',{exact:true}).fill('Example Advisory');
  await page.getByLabel('Company website',{exact:true}).fill('https://example.invalid');
  await page.getByLabel('Offers',{exact:true}).fill('Advisory\nImplementation');
@@ -55,9 +55,9 @@ test('onboarding collects reusable answers, resumes, isolates workspaces and exp
  await page.getByRole('button',{name:'Mark output reviewed',exact:true}).click();
  await expect(page.getByText(/Company positioning profile · reviewed/)).toBeVisible();
  await expect(page.getByText('5 of 6 sections complete',{exact:true})).toBeVisible();
- await page.goto(`${origin}/?view=activation&workspace=northstar`);
+ await page.goto(`${origin}/?view=activation&mode=profile&workspace=northstar`);
  await expect(page.getByLabel('Company name',{exact:true})).not.toHaveValue('Example Advisory');
- await page.goto(`${origin}/?view=activation`);
+ await page.goto(`${origin}/?view=activation&mode=profile`);
  await page.getByRole('button',{name:/1\. Company & objectives/}).click();
  await expect(page.getByLabel('Company name',{exact:true})).toHaveValue('Example Advisory');
  await expect(page.getByLabel('Offers',{exact:true})).toHaveValue('Advisory\nImplementation');

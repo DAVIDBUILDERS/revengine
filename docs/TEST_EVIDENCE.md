@@ -16,6 +16,12 @@ The deployed onboarding and browser-isolation tests both passed against `https:/
 
 Migration 018 and hosted suite 008 also pass the PostgreSQL PL/pgSQL syntax parser. `pnpm test:db` returned **BLOCKED (exit 2)**: `TEST_SUPABASE_PROJECT_ID`, `PRODUCTION_SUPABASE_PROJECT_ID` and `TEST_DATABASE_URL` are unavailable. No hosted persistence/Auth/RLS or provider execution success is claimed. See [implementation and remaining setup](ONBOARDING_IMPLEMENTATION.md).
 
+## September 11 guided onboarding
+
+Local verification: **193 unit tests / 22 files**, lint (95-source boundary audit), TypeScript, **15 Chromium tests** (21.4 seconds) and all three production builds passed. [Frozen unit results](evidence/guided-onboarding-unit-tests.json) retain the Node 24 run. Desktop and 390px mobile screenshots were visually inspected. The added browser journey covers cited sample company facts, explicit confirmation, recommended team, reviewed spreadsheet mappings, explicit budget/policy decisions, a retained preparation using the reviewed company name, resumption and independent workspaces. The preview makes no operational API calls.
+
+Migration 019 and hosted suite 009 pass SQL and PL/pgSQL syntax parsing. Hosted database execution remains **BLOCKED** for the same missing test project IDs and database URL above. Google metadata tests use controlled HTTP responses, including permission denial and expired authorization; no real Google discovery or consent is claimed. See [implementation decisions and missing setup](GUIDED_ONBOARDING.md). Public deployment verification is recorded in HOSTED_PREVIEW.md after publication.
+
 ## Final recorded executions
 
 | Command/check | Observed result | Scope / limitation |

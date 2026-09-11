@@ -361,7 +361,7 @@ test("mobile navigation and operator forms remain usable", async ({ page }) => {
 test("activation resumes and preparation leads to a bounded reviewed initiative", async ({
   page,
 }) => {
-  await page.goto("/?view=activation");
+  await page.goto("/?view=activation&mode=profile");
   await page.getByRole("button", { name: /3\. Systems & sources/ }).click();
   await page.reload();
   await expect(page.getByRole("heading", { name: "Systems & sources", exact: true })).toBeVisible();

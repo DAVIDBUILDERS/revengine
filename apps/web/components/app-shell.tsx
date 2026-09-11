@@ -8,7 +8,8 @@ import type {
   EvidenceRef,
 } from "@david/contracts";
 import { money, words } from "@david/ui";
-import { Onboarding, OnboardingOperator } from "./onboarding";
+import { OnboardingOperator } from "./onboarding";
+import { GuidedOnboarding } from "./guided-onboarding";
 import { Today } from "./today";
 import { activeApprovals } from "./approval-state";
 import {
@@ -633,7 +634,7 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
                 />
               )}
               {page === "team" && <Team {...props} />}
-              {page === "activation" && <Onboarding key={state.workspace.id} {...props} />}
+              {page === "activation" && <GuidedOnboarding key={state.workspace.id} {...props} />}
               {page === "opportunities" && <Opportunities {...props} />}
               {page === "decisions" && <Decisions {...props} />}
               {page === "journey" && <CustomerJourney {...props} />}

@@ -70,6 +70,7 @@ export type TimelineEntry = { id: string; workspaceId: string; opportunityId: st
 export type Initiative = { id: string; workspaceId: string; findingId: string; title: string; owner: string; baseline: string; target: string; reviewAt: string; status: 'active' | 'supported' | 'unsupported' | 'inconclusive'; assignments: string[] };
 export type UsageRecord = { id: string; workspaceId: string; category: 'setup' | 'recurring_support' | 'provider' | 'infrastructure' | 'research'; minutes: number; costMinor: number | null; note: string; at: string };
 export interface AppSnapshot {
+  onboardingCapture?: {id:string;sourceHash:string;fixture:boolean;pages:{url:string;title:string;description:string;text:string;capturedAt:string}[]};
   onboarding?: OnboardingRecord;
   workspace: { entitlement?: number; id: string; name: string; businessModel: z.infer<typeof BusinessModel>; timeZone: string; mode: z.infer<typeof Mode>; paused: boolean; subscriptionMinor: number; currency: string };
   asOf: string; context: WorkspaceContext; contacts: ContactRecord[]; opportunities: OpportunityRecord[]; proposals: ProposalRecord[];

@@ -37,6 +37,9 @@ export async function operationalSnapshot(requested:string|null):Promise<C.AppSn
  usage:rows.usage_records.map(r=>({id:text(r,'id'),workspaceId,category:text(r,'category') as C.UsageRecord['category'],minutes:Number(r.minutes),costMinor:number(r,'cost_minor'),note:text(r,'note'),at:date(r,'created_at')!})),
  metrics:[],timeline:[],readiness:{integration:false,action:false,measurement:false,evaluatedAt:asOf,freshUntil:null,fallback:'Prepare approved internal work while the assigned operator resolves critical readiness.',blockers:[]},health:[]};
  state.activation.selectedTeam=installations.filter(i=>i.status!=='paused').map(i=>i.agentId).slice(0,32);
+ const {data:latestCapture}=await client.from('product_records').select('payload').eq('workspace_id',workspaceId).eq('kind','company_context').order('created_at',{ascending:false}).limit(1).maybeSingle();
+ const capture=latestCapture?.payload as {id:string;sourceHash:string;context:{fixture:boolean;pages:NonNullable<C.AppSnapshot['onboardingCapture']>['pages']}}|undefined;
+ if(capture)state.onboardingCapture={id:capture.id,sourceHash:capture.sourceHash,fixture:capture.context.fixture,pages:capture.context.pages};
  state.activation.confirmedFacts=rows.product_records.some(r=>r.kind==='company_context'&&(r.payload as {context?:{confirmed?:boolean}})?.context?.confirmed===true);
  state.activation.milestone=state.outcomes.some(o=>o.quality==='provider_verified'&&['booked','attended','signed','completed','paid'].includes(o.stage))?'live_business_outcome':state.receipts.some(r=>r.provider!=='fixture'&&['provider_accepted','confirmed'].includes(r.status))?'authorized_test_action':state.artifacts.length?'preparation_artifact':'not_started';
  const {data:authoritativeMetrics,error:metricsError}=await client.rpc('read_workspace_metrics',{p_workspace:workspaceId});
@@ -64,6 +67,7 @@ export async function operationalCommand(command:C.Command,requested:string|null
  await rpc('consume_request_quota',{p_workspace:workspaceId,p_scope:'commands'});
  const current=await operationalSnapshot(workspaceId);let message='Change saved.';let invitationUrl:string|undefined;
  switch(command.type){
+  case 'confirm_sample_company':case 'sample_onboarding_capture':throw new HttpError(403,'FIXTURE_ONLY','Synthetic captures are unavailable in operational workspaces.');
   case 'assign_operator':await rpc('assign_onboarding_operator',{p_workspace:workspaceId,p_email:command.email});message='Registered DAVID operator assigned to this workspace. MFA remains required for operator access.';break;
   case 'save_onboarding':await rpc('save_onboarding',{p_workspace:workspaceId,p_expected_revision:command.expectedRevision,p_answers:command.answers});message='Setup saved. Changed operating configuration pauses execution and requires fresh verification.';break;
   case 'onboarding_task':await rpc('update_onboarding_task',{p_workspace:workspaceId,p_revision:command.expectedRevision,p_id:command.taskId,p_title:command.title,p_owner:command.owner,p_status:command.status,p_note:command.note});message='Setup request saved. Task status does not grant capability verification.';break;

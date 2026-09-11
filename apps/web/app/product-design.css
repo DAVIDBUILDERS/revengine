@@ -975,3 +975,10 @@ details > summary:focus-visible {
 .onboarding details { overflow-wrap: anywhere; }
 .onboarding .field { min-width: 0; }
 .onboarding .between { gap: 12px; }
+.guided-setup h1 { font-family: var(--font-heading, Georgia, serif); font-size: clamp(30px, 4vw, 46px); letter-spacing: -.035em; }
+.guided-goals { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr)); gap:12px; }
+.guided-goals .help { display:block; margin-top:8px; }
+.guided-citation { border-left:2px solid var(--border); margin:18px 0; padding-left:16px; overflow-wrap:anywhere; }
+.guided-citation blockquote { margin:8px 0; color:var(--muted); }
+.guided-recommendation { border-bottom:1px solid var(--border); padding:12px 0; }
+.guided-setup .prose { white-space:pre-wrap; overflow-wrap:anywhere; }

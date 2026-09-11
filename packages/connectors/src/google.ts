@@ -6,6 +6,7 @@ export type { SecretStore, Token, GoogleOperation } from './internal/transport';
 export { GoogleError } from './internal/transport';
 export const GOOGLE_SCOPES = {
   identity:['openid','email'], sheets:['https://www.googleapis.com/auth/drive.file'],
+  sheets_discovery:['https://www.googleapis.com/auth/drive.metadata.readonly','https://www.googleapis.com/auth/spreadsheets.readonly'],
   mail:['https://www.googleapis.com/auth/gmail.send','https://www.googleapis.com/auth/gmail.readonly'],
   calendar:['https://www.googleapis.com/auth/calendar.freebusy','https://www.googleapis.com/auth/calendar.events.owned']
 } as const;
@@ -30,6 +31,21 @@ export function createGoogleConnector(options:{binding:GoogleBinding;secrets:Sec
   const transport=makeTransport({...options,connectionId:binding.connectionId,identity:binding.identity});
   const api={
     binding:Object.freeze(binding),
+    async discoverSheets(pageToken?:string):Promise<{files:{id:string;name:string}[];nextPageToken?:string}> {
+      if(pageToken)z.string().max(1000).parse(pageToken);
+      const query=new URLSearchParams({q:"mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false",pageSize:'50',fields:'nextPageToken,files(id,name)',...(pageToken?{pageToken}:{})});
+      return z.object({files:z.array(z.object({id:ResourceId,name:z.string().max(1000)})).max(50).default([]),nextPageToken:z.string().max(1000).optional()}).parse(await transport.request('sheets.read',`https://www.googleapis.com/drive/v3/files?${query}`));
+    },
+    async inspectSheet(fileId:string,tab?:string):Promise<{title:string;tabs:string[];headers:string[]}> {
+      ResourceId.parse(fileId);if(tab)z.string().min(1).max(100).parse(tab);
+      const metadata=z.object({properties:z.object({title:z.string()}),sheets:z.array(z.object({properties:z.object({title:z.string()})})).max(200)}).parse(await transport.request('sheets.read',`https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(fileId)}?fields=properties(title),sheets(properties(title))`));
+      const tabs=metadata.sheets.map(s=>s.properties.title);
+      if(tab&&!tabs.includes(tab))throw new GoogleError('sheet_tab_not_found');
+      if(!tab)return{title:metadata.properties.title,tabs,headers:[]};
+      const range=`'${tab.replaceAll("'","''")}'!A1:AZ1`;
+      const row=z.object({values:z.array(z.array(z.union([z.string(),z.number(),z.boolean()]))).max(1).optional()}).parse(await transport.request('sheets.read',`https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(fileId)}/values/${encodeURIComponent(range)}`));
+      return{title:metadata.properties.title,tabs,headers:(row.values?.[0]??[]).map(String).map(h=>h.trim()).filter(Boolean)};
+    },
     async readSheet():Promise<{range:string;values:string[][];fetchedAt:string}> {
       if(!binding.sheet)throw new GoogleError('sheet_not_bound');
       const raw=await transport.request('sheets.read',`https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(binding.sheet.fileId)}/values/${encodeURIComponent(binding.sheet.range)}?valueRenderOption=FORMATTED_VALUE&dateTimeRenderOption=FORMATTED_STRING`);

@@ -57,3 +57,23 @@ describe('Google HTTP fixtures — live provider verification not performed',()=
   const a=createOAuthRequest({clientId:'fixture',redirectUri:'https://app.example.invalid/callback',scopes:['openid','email']});const b=createOAuthRequest({clientId:'fixture',redirectUri:'https://app.example.invalid/callback',scopes:['openid','email']});const params=new URL(a.url).searchParams;expect(a.stateHash).toBe(hashOAuthState(params.get('state')!));expect(a.stateHash).not.toBe(b.stateHash);expect(params.get('code_challenge_method')).toBe('S256');expect(params.get('code_challenge')).not.toBe(a.verifier);
  });
 });
+
+describe('onboarding discovery HTTP fixtures',()=>{
+ it('lists only authorized spreadsheet metadata with bounded pagination',async()=>{
+  const http=vi.fn<typeof fetch>(async()=>json({files:[{id:'selected-sheet',name:'Current proposals'}],nextPageToken:'next'}));
+  const result=await fixtureConnector(http).discoverSheets('prior');
+  expect(result.files[0].name).toBe('Current proposals');
+  const url=new URL(String(http.mock.calls[0][0]));expect(url.hostname).toBe('www.googleapis.com');expect(url.pathname).toBe('/drive/v3/files');
+  expect(url.searchParams.get('fields')).toBe('nextPageToken,files(id,name)');expect(url.searchParams.get('pageSize')).toBe('50');expect(url.searchParams.get('pageToken')).toBe('prior');
+ });
+ it('inspects exact selected tabs and reads only a bounded header row',async()=>{
+  const http=vi.fn<typeof fetch>(async(input)=>String(input).includes('/values/')?json({values:[['Proposal ID','Email Address']]}):json({properties:{title:'Proposals'},sheets:[{properties:{title:"Owner's proposals"}}]}));
+  const result=await fixtureConnector(http).inspectSheet('selected-sheet',"Owner's proposals");expect(result.headers).toEqual(['Proposal ID','Email Address']);
+  expect(decodeURIComponent(String(http.mock.calls[1][0]))).toContain("'Owner''s proposals'!A1:AZ1");
+  await expect(fixtureConnector(http).inspectSheet('selected-sheet','Another tab')).rejects.toThrow('sheet_tab_not_found');
+ });
+ it('retains permission-denied and expired-grant failures instead of returning invented resources',async()=>{
+  await expect(fixtureConnector(async()=>json({},403)).discoverSheets()).rejects.toThrow('permission_denied');
+  const secrets=fixtureSecrets();await expect(fixtureConnector(async()=>json({},401),secrets).inspectSheet('selected-sheet')).rejects.toThrow('reauthorization_required');expect(secrets.expire).toHaveBeenCalledWith(connectionId);
+ });
+});

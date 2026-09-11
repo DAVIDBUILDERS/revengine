@@ -16,6 +16,8 @@ export function emptyOnboarding(input:{name:string;businessModel:'b2b_services'|
  return {version:1,revision:0,appliedRevision:null,updatedAt:at,updatedBy:'Not saved',reviews:[],history:[],tasks:[],invitations:[],answers:{company:{name:input.name,businessModel:input.businessModel,timeZone:input.timeZone,website:'',offers:[],customers:[],priorities:[],successDefinition:'',brandGuidance:'',forbiddenClaims:''},team:[],systems:[],operations:{approvalMode:'each_action',automationAcknowledged:false,contactRestrictions:'',workingDays:[1,2,3,4,5],startHour:9,endHour:17,meetingMinutes:30,bufferMinutes:15,dailyCapacity:0,modelDailyBudgetMinor:null,actionDailyBudgetMinor:0,sender:'',calendarId:'',escalationOwner:'',approvedContactIds:[],policyAcknowledged:false},people:[],measurement:{owner:'',outcomeSources:'',baseline:[],sharing:'private'}}};
 }
 export const onboardingCommands = [
+ z.object({type:z.literal('sample_onboarding_capture')}).strict(),
+ z.object({type:z.literal('confirm_sample_company'),expectedRevision:z.number().int().nonnegative()}).strict(),
  z.object({type:z.literal('assign_operator'),email:z.email()}).strict(),
  z.object({type:z.literal('save_onboarding'),expectedRevision:z.number().int().nonnegative(),answers:OnboardingAnswers}).strict(),
  z.object({type:z.literal('onboarding_task'),expectedRevision:z.number().int().nonnegative(),taskId:z.string().min(1).max(100),title:z.string().min(1).max(500),owner:z.string().min(1).max(300),status:z.enum(['open','in_progress','resolved']),note:z.string().max(2000)}).strict(),
