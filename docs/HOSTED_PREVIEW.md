@@ -68,3 +68,11 @@ A DAVIDBUILDERS organization owner must open https://github.com/organizations/DA
 Use [DEPLOYMENT_RUNBOOK.md](DEPLOYMENT_RUNBOOK.md) and [RELEASE_READINESS.md](RELEASE_READINESS.md) to provision the separate operational `apps/web` projects, Supabase Auth/database/storage/roles, Google OAuth, model access and workflow evidence. No Docker, AWS dependency, Supabase project, live recipient action or DNS cutover was introduced by this deployment.
 
 GitHub Actions independently passed the implementation commit `508b234193d6dda603b6d81711998f33d9327476`: [Application checks 34647667962](https://github.com/DAVIDBUILDERS/revengine/actions/runs/34647667962), including install, lint, TypeScript, unit tests, all three builds and the complete browser suite (job duration 3m44s). This CI success does not establish a Vercel Git connection.
+
+## Prepared setup deployment verification
+
+Commit `f76f4ef8b06f24a05b25e62dc15cbb05379e14a1` is pushed to GitHub `main` and deployed to the existing `revengine` project. Deployment `7ea9TPSBZdNTb7xAN9vHY9QYs26A` / `revengine-qpc27ta51-davidai.vercel.app` is aliased to `https://revengine-bay.vercel.app`. The published browser-isolation test, two prepared-setup journeys and complete-profile test all passed: **4 Chromium tests, 11.5 seconds**. Activation returns 200; operational `/api/state`, `/api/google/discover`, `/api/command` and workflow endpoints return 404. CSP retains `connect-src 'none'`.
+
+The public sample journey requires one typed field (the spending limit), plus the user's objective, review and start/accept choices. Actual clients may need to correct missing facts, choose resources or name a responsible person when identity data is unavailable. This is not a universal one-field claim. Real Supabase storage, selected document processing, website/account discovery and provider output need the separately configured operational deployment and migration 020.
+
+This deployment used the authorized CLI. Read-only Vercel inspection still reports Git `link: null`, root `apps/preview`; the existing GitHub installation access requirement remains unresolved.

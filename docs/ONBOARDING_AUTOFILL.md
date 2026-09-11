@@ -46,3 +46,5 @@ Apply migration **020** to the authorized operational hosted Supabase project an
 Final local checks: 203 unit tests in 23 files, lint, TypeScript, all three production builds; full 16-test browser regression plus both affected prepared-setup flows after the final guards. SQL and PL/pgSQL syntax pass. Hosted tests are blocked by missing `TEST_SUPABASE_PROJECT_ID`, `PRODUCTION_SUPABASE_PROJECT_ID` and `TEST_DATABASE_URL`.
 
 Vercel inspection still reports project `revengine`, root `apps/preview`, Git link `null`. The existing GitHub installation access request remains unresolved; deployments continue via the authorized CLI to the same project. No alternate identity was used to bypass the GitHub access denial.
+
+The final UI guard also rejects saving local draft edits after source or saved-answer changes, avoiding an overwrite of a newer revision. A browser test changes a selected source while unsaved edits are present and verifies Save remains disabled until regeneration. The refresh action explicitly says unsaved edits will be replaced.

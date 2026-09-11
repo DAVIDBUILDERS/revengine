@@ -117,3 +117,7 @@ September 11: **203 unit tests / 23 files**, lint (98-source boundary audit), Ty
 Migration 020 and suite 010 pass SQL/PLpgSQL syntax parsing. `pnpm test:db` remains **BLOCKED (exit 2)** because `TEST_SUPABASE_PROJECT_ID`, `PRODUCTION_SUPABASE_PROJECT_ID` and `TEST_DATABASE_URL` are absent. No hosted persistence/RLS, real website/account discovery or model execution is claimed. See [implementation and remaining setup](ONBOARDING_AUTOFILL.md).
 
 After the final source-removal and unsaved-edit guards, all 203 unit tests, lint and TypeScript passed again, and both affected prepared-setup browser journeys passed (7.5 seconds).
+
+The four published preview/onboarding tests passed against `https://revengine-bay.vercel.app` in 11.5 seconds. Production HTTP checks preserve the browser-only boundary. All three production builds passed after the final guards. Deployment IDs and manual Git-deployment status are in HOSTED_PREVIEW.md.
+
+The final stale-draft-save regression passed with both prepared-setup browser journeys (8.7 seconds), lint and TypeScript. Regeneration is required before stale local edits can be saved.

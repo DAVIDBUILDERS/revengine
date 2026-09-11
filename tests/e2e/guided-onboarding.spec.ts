@@ -33,6 +33,8 @@ test('prepared setup needs only a budget and review, then retains first work acr
  await page.locator('nav[aria-label="Prepared setup stages"] button').nth(2).click();await page.screenshot({path:testInfo.outputPath('prepared-review-mobile.png'),fullPage:true});
  await page.getByRole('button',{name:'Edit company details'}).click();await page.getByLabel('Company name',{exact:true}).fill('Unsaved correction');
  await page.locator('nav[aria-label="Prepared setup stages"] button').nth(3).click();await expect(page.getByRole('button',{name:'Start Account Intelligence',exact:true})).toBeDisabled();
+ await page.locator('nav[aria-label="Prepared setup stages"] button').first().click();await page.getByText('Add an existing company brief (optional)',{exact:true}).click();await page.getByRole('button',{name:'Use a sample company brief',exact:true}).click();
+ await page.locator('nav[aria-label="Prepared setup stages"] button').nth(2).click();await expect(page.getByRole('button',{name:'Save progress for later',exact:true})).toBeDisabled();await expect(page.getByText(/Sources or saved answers changed/)).toBeVisible();
  await page.goto(`${origin}/?view=activation&workspace=northstar`);await expect(page.getByRole('button',{name:'Prepare a sample setup'})).toBeVisible();await expect(page.getByText('Company positioning profile · reviewed')).toHaveCount(0);
  expect(errors).toEqual([]);expect(apiCalls).toEqual([]);
 });
