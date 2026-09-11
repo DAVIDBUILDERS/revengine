@@ -20,7 +20,7 @@ Migration 018 and hosted suite 008 also pass the PostgreSQL PL/pgSQL syntax pars
 
 Local verification: **193 unit tests / 22 files**, lint (95-source boundary audit), TypeScript, **15 Chromium tests** (21.4 seconds) and all three production builds passed. [Frozen unit results](evidence/guided-onboarding-unit-tests.json) retain the Node 24 run. Desktop and 390px mobile screenshots were visually inspected. The added browser journey covers cited sample company facts, explicit confirmation, recommended team, reviewed spreadsheet mappings, explicit budget/policy decisions, a retained preparation using the reviewed company name, resumption and independent workspaces. The preview makes no operational API calls.
 
-Migration 019 and hosted suite 009 pass SQL and PL/pgSQL syntax parsing. Hosted database execution remains **BLOCKED** for the same missing test project IDs and database URL above. Google metadata tests use controlled HTTP responses, including permission denial and expired authorization; no real Google discovery or consent is claimed. See [implementation decisions and missing setup](GUIDED_ONBOARDING.md). Public deployment verification is recorded in HOSTED_PREVIEW.md after publication.
+Migration 019 and hosted suite 009 pass SQL and PL/pgSQL syntax parsing. Hosted database execution remains **BLOCKED** for the same missing test project IDs and database URL above. Google metadata tests use controlled HTTP responses, including permission denial and expired authorization; no real Google discovery or consent is claimed. See [implementation decisions and missing setup](GUIDED_ONBOARDING.md). The three deployed preview/onboarding tests passed against `https://revengine-bay.vercel.app` in 10.4 seconds. Public HTTP checks confirm activation 200, operational/discovery/workflow APIs 404 and `connect-src 'none'`. Exact deployment and Git connection status are recorded in HOSTED_PREVIEW.md.
 
 ## Final recorded executions
 
@@ -107,3 +107,5 @@ Run the authored independent-session harness, then add/run the remaining platfor
 - Production preparation previously only checked for a model key. It now invokes a bounded model adapter for eight capabilities, validates selected source facts, records budget/usage, and saves the bounded template plus reviewed wording; technical SEO remains deterministic. SQL claims/cadence/cost gates need hosted verification.
 
 No deployed endpoint, live business result, causal ROI or legacy equivalence is established by this report.
+
+GitHub Actions independently passed the implementation commit `508b234193d6dda603b6d81711998f33d9327476`: [Application checks 34647667962](https://github.com/DAVIDBUILDERS/revengine/actions/runs/34647667962), including install, lint, TypeScript, unit tests, all three builds and the complete browser suite (job duration 3m44s). This CI success does not establish a Vercel Git connection.

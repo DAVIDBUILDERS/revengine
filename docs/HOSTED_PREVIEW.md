@@ -33,6 +33,12 @@ Implementation commit `7ae989853ca501ac197c550a7d79f5a597ecb168` deployed succes
 
 The public onboarding flow stores synthetic setup in browser sessionStorage. Migrations 018–019, real invitations, authentication and Supabase persistence are implemented in the separate operational app and remain externally unverified. See [remaining platform setup](ONBOARDING_IMPLEMENTATION.md).
 
+## Guided onboarding deployment verification
+
+Implementation commit `508b234193d6dda603b6d81711998f33d9327476` is pushed to GitHub `main` and deployed to this same Vercel project. Deployment `HY3HiAiVMf2g3Fty6V3etE8rHnHW` / `revengine-4nzizs6v8-davidai.vercel.app` is aliased to `https://revengine-bay.vercel.app`. The guided journey, full-profile onboarding and browser isolation tests all passed against that public URL: **3 Chromium tests, 10.4 seconds**. Activation returns HTTP 200; `/api/state`, `/api/google/discover`, `/api/onboarding/access` and the workflow route return 404. CSP retains `connect-src 'none'`.
+
+The default activation screen now suggests cited sample facts, recommends a team, previews column mapping and requires explicit policy/budget review before first useful work. The operational implementation and exact missing configuration are documented in [GUIDED_ONBOARDING.md](GUIDED_ONBOARDING.md). This was a manual CLI deployment. GitHub-to-Vercel automatic deployment remains blocked by the installation access described below; a public deployment and successful repository push do not prove that integration.
+
 ## Deploy again
 
 From the repository root with the existing authorized Vercel account:
@@ -60,3 +66,5 @@ A DAVIDBUILDERS organization owner must open https://github.com/organizations/DA
 ## Live integration work remains separate
 
 Use [DEPLOYMENT_RUNBOOK.md](DEPLOYMENT_RUNBOOK.md) and [RELEASE_READINESS.md](RELEASE_READINESS.md) to provision the separate operational `apps/web` projects, Supabase Auth/database/storage/roles, Google OAuth, model access and workflow evidence. No Docker, AWS dependency, Supabase project, live recipient action or DNS cutover was introduced by this deployment.
+
+GitHub Actions independently passed the implementation commit `508b234193d6dda603b6d81711998f33d9327476`: [Application checks 34647667962](https://github.com/DAVIDBUILDERS/revengine/actions/runs/34647667962), including install, lint, TypeScript, unit tests, all three builds and the complete browser suite (job duration 3m44s). This CI success does not establish a Vercel Git connection.
