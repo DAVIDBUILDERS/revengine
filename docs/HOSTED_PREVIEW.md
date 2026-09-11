@@ -27,6 +27,12 @@ Project environment-variable inspection returned an empty list. `.vercelignore` 
 - The same Chromium preview test passed against the public Vercel domain (3.2 seconds), including all nine mobile screens, preparation/pause/reload and independent browser state. It is reusable with `PREVIEW_URL` (command below).
 - Public HTTP checks verify application/activation/logo availability, security headers, and 404 responses for operational state and workflow routes.
 
+## Onboarding deployment verification
+
+Implementation commit `7ae989853ca501ac197c550a7d79f5a597ecb168` deployed successfully to the existing project, deployment `A26sSn35VTGUtpAtdVHRA3WuH1Cu` / `revengine-iia9h2hxe-davidai.vercel.app`, aliased to the public domain. Both `browser-preview.spec.ts` and `onboarding.spec.ts` passed against `https://revengine-bay.vercel.app` (2 tests, 10.6 seconds). Activation returns HTTP 200; `/api/state`, `/api/onboarding/access` and the workflow route return 404. CSP still includes `connect-src 'none'`.
+
+The public onboarding flow stores synthetic setup in browser sessionStorage. Migration 018, real invitations, authentication and Supabase persistence are implemented in the separate operational app and remain externally unverified. See [remaining platform setup](ONBOARDING_IMPLEMENTATION.md).
+
 ## Deploy again
 
 From the repository root with the existing authorized Vercel account:

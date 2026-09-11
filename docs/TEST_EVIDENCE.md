@@ -12,6 +12,8 @@ The separate browser demo adds three unit checks for session/workspace isolation
 
 Final local verification: **186 unit tests / 21 files**, lint (91-source boundary audit), TypeScript, **14 Chromium tests** (19.4 seconds) and all three production builds passed. [Frozen unit results](evidence/onboarding-unit-tests.json) include 13 new onboarding cases. The complete browser flow verifies saved answers, resumption, independent workspaces, assistance requests, fixture invitation labeling, reviewed output and all six mobile sections. Desktop/mobile screenshots were visually inspected.
 
+The deployed onboarding and browser-isolation tests both passed against `https://revengine-bay.vercel.app` (2 tests, 10.6 seconds), retaining the static preview boundary.
+
 Migration 018 and hosted suite 008 also pass the PostgreSQL PL/pgSQL syntax parser. `pnpm test:db` returned **BLOCKED (exit 2)**: `TEST_SUPABASE_PROJECT_ID`, `PRODUCTION_SUPABASE_PROJECT_ID` and `TEST_DATABASE_URL` are unavailable. No hosted persistence/Auth/RLS or provider execution success is claimed. See [implementation and remaining setup](ONBOARDING_IMPLEMENTATION.md).
 
 ## Final recorded executions
