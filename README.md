@@ -6,7 +6,7 @@ Vercel + hosted Supabase implementation of the complete v3 build brief. One modu
 
 ## Repeatable client onboarding
 
-[Open the onboarding preview](https://revengine-bay.vercel.app/?view=activation). Guided setup drafts cited company facts, recommends a team from your objective, helps select authorized resources and map columns, then asks you to review permissions and first useful work. The complete six-section profile remains available for advanced settings. The operator queue shares the same workspace record. See [guided flow and decisions](docs/GUIDED_ONBOARDING.md) and [exact remaining hosted setup](docs/ONBOARDING_IMPLEMENTATION.md). The preview remains synthetic; the Supabase-backed version requires the separate operational deployment.
+[Open the onboarding preview](https://revengine-bay.vercel.app/?view=activation). Prepared setup combines your website and objective, extracts cited facts from captured pages and selected text briefs, proposes a team and known responsibilities, and derives supported baselines. Clients correct exceptions and approve a spending limit and policy before first work. The complete six-section profile remains available for advanced settings. The operator queue shares the same workspace record. See [prepared setup and decisions](docs/ONBOARDING_AUTOFILL.md) and [exact remaining hosted setup](docs/ONBOARDING_IMPLEMENTATION.md). The preview remains synthetic; the Supabase-backed version requires the separate operational deployment.
 
 ## Start locally
 

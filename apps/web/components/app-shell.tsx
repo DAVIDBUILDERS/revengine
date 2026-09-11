@@ -9,7 +9,7 @@ import type {
 } from "@david/contracts";
 import { money, words } from "@david/ui";
 import { OnboardingOperator } from "./onboarding";
-import { GuidedOnboarding } from "./guided-onboarding";
+import { PreparedOnboarding } from "./prepared-onboarding";
 import { Today } from "./today";
 import { activeApprovals } from "./approval-state";
 import {
@@ -634,7 +634,7 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
                 />
               )}
               {page === "team" && <Team {...props} />}
-              {page === "activation" && <GuidedOnboarding key={state.workspace.id} {...props} />}
+              {page === "activation" && <PreparedOnboarding key={state.workspace.id} {...props} />}
               {page === "opportunities" && <Opportunities {...props} />}
               {page === "decisions" && <Decisions {...props} />}
               {page === "journey" && <CustomerJourney {...props} />}

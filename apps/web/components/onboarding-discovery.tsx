@@ -1,5 +1,5 @@
 "use client";
-import {useState} from 'react';
+import {useEffect,useState} from 'react';
 import type {AppSnapshot,OnboardingAnswers} from '@david/contracts';
 import {proposalFields,suggestColumnMapping} from '@david/domain/onboarding-assist';
 import {Button,Badge} from './ui';
@@ -7,16 +7,18 @@ import {Button,Badge} from './ui';
 type Source=OnboardingAnswers['systems'][number];
 export function OnboardingDiscovery({state,onSave}:{state:AppSnapshot;onSave:(source:Source)=>Promise<boolean>}){
  const demo=state.workspace.mode==='fixture';
- const [connectionId,setConnectionId]=useState('');
+ const available=state.connections.filter(c=>c.provider==='google'&&!['expired','revoked'].includes(c.health));
+ const [connectionId,setConnectionId]=useState(available.length===1?available[0].id:'');
  const [kind,setKind]=useState<'sheet'|'mailbox'|'calendar'>('sheet');
  const [files,setFiles]=useState<{id:string;name:string}[]>([]);
  const [nextPage,setNextPage]=useState<string|undefined>();
  const [fileId,setFileId]=useState('');const [tabs,setTabs]=useState<string[]>([]);const [tab,setTab]=useState('');
  const [headers,setHeaders]=useState<string[]>([]);const [columns,setColumns]=useState<Record<string,string>>({});
- const [owner,setOwner]=useState('');const [resource,setResource]=useState('');const [busy,setBusy]=useState(false);const [message,setMessage]=useState('');
+ const [owner,setOwner]=useState(state.setupIdentity?.email??'');const [resource,setResource]=useState('');const [busy,setBusy]=useState(false);const [message,setMessage]=useState('');
  const [reviewed,setReviewed]=useState(false);const [allMappings,setAllMappings]=useState(false);
  const connection=state.connections.find(c=>c.id===connectionId);
  const missing=proposalFields.filter(f=>!columns[f]);
+ useEffect(()=>{if(!demo&&connectionId&&connection?.scopes.some(s=>s.endsWith('/drive.file')||s.endsWith('/drive.metadata.readonly')))void load();},[connectionId]);
  async function request(path:string,body:Record<string,unknown>){
   const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({workspaceId:state.workspace.id,...body})});
   const result=await r.json();if(!r.ok)throw new Error(result.message??'Account access could not be checked.');return result;
@@ -26,7 +28,7 @@ export function OnboardingDiscovery({state,onSave}:{state:AppSnapshot;onSave:(so
   try{
    const result=await request('/api/google/discover',{connectionId,...(file?{fileId:file,...(selectedTab?{tab:selectedTab}:{})}:more?{pageToken:nextPage}:{})});
    if(result.files){setFiles(prev=>more?[...prev,...result.files]:result.files);setNextPage(result.nextPageToken);if(!result.files.length)setMessage('No authorized Sheets found. Use an already authorized file ID, or explicitly authorize read-only spreadsheet discovery above.');}
-   if(result.tabs){setTabs(result.tabs);setTab(selectedTab??'');setHeaders(result.headers);setColumns(result.mapping?.columns??{});}
+   if(result.tabs){setTabs(result.tabs);setTab(selectedTab??'');setHeaders(result.headers);setColumns(result.mapping?.columns??{});if(file&&!selectedTab&&result.tabs.length===1)await load(file,result.tabs[0]);}
   }catch(e){setMessage(e instanceof Error?e.message:'Discovery failed.');}finally{setBusy(false);}
  }
  function sample(){setFileId('sample-proposals');setTabs(['Proposals']);setTab('Proposals');setHeaders([...proposalFields]);setColumns(suggestColumnMapping([...proposalFields]).columns);setOwner('Example source owner');setMessage('Illustrative headers loaded. No Google account was accessed.');setReviewed(false);}

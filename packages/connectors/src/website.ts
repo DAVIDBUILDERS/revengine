@@ -37,12 +37,28 @@ async function download(url:URL,address:{address:string;family:number},options:{
  });
 }
 function decodeText(value:string){return value.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&nbsp;/g,' ');}
+function structuredCompanyText(html:string):string {
+ const facts:string[]=[];let visited=0;
+ const add=(label:string,value:unknown)=>{if(typeof value==='string'&&value.trim()&&value.length<=500)facts.push(`${label}: ${value.trim().replace(/\s+/g,' ')}`);};
+ const visit=(node:unknown,depth=0)=>{
+  if(depth>5||++visited>100||!node||typeof node!=='object')return;
+  if(Array.isArray(node)){node.slice(0,20).forEach(n=>visit(n,depth+1));return;}
+  const item=node as Record<string,unknown>, types=Array.isArray(item['@type'])?item['@type']:[item['@type']];
+  if(types.some(t=>['Organization','Corporation','LocalBusiness','ProfessionalService'].includes(String(t))))add('Organization name',item.name);
+  if(types.some(t=>['Service','Product'].includes(String(t)))){add('Offer',item.name);if(typeof item.audience==='object'&&item.audience)add('Audience',(item.audience as Record<string,unknown>).audienceType??(item.audience as Record<string,unknown>).name);}
+  for(const key of ['@graph','hasOfferCatalog','itemListElement','itemOffered','makesOffer','offers','audience'])if(item[key])visit(item[key],depth+1);
+ };
+ for(const match of html.matchAll(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)){if(match[1].length>100000)continue;try{visit(JSON.parse(match[1]));}catch{/* malformed metadata is not a fact */}if(visited>100)break;}
+ return [...new Set(facts)].slice(0,30).join('\n');
+}
 function parsePage(url:URL,html:string,bytes:number,at:string):WebsiteSnapshot {
  const stripped=html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,' ').replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi,' ').replace(/<!--[\s\S]*?-->/g,' ');
  const title=decodeText(/<title\b[^>]*>([\s\S]*?)<\/title>/i.exec(stripped)?.[1]??'').trim().slice(0,250);
  const descriptionTag=(stripped.match(/<meta\s[^>]*>/gi)??[]).find(tag=>/name\s*=\s*["']description["']/i.test(tag));
  const description=decodeText(/content\s*=\s*["']([^"']*)/i.exec(descriptionTag??'')?.[1]??'').slice(0,1000);
- const text=decodeText(stripped.replace(/<[^>]{0,10000}>/g,' ')).replace(/\s+/g,' ').trim().slice(0,30000);
+ const bodyText=decodeText(stripped.replace(/<\/(?:p|h[1-6]|li|section|div)>/gi,'\n').replace(/<[^>]{0,10000}>/g,' ')).replace(/[^\S\n]+/g,' ').replace(/\n\s*\n/g,'\n').trim();
+ const structured=structuredCompanyText(html);
+ const text=((structured?`[Page structured company metadata; requires review]\n${structured}\n\n`:'' )+bodyText.slice(0,25000)).slice(0,30000);
  const links:string[]=[];for(const match of stripped.matchAll(/<a\s[^>]{0,2000}href\s*=\s*["']([^"']{1,2000})["']/gi)){try{const link=validatePublicUrl(new URL(decodeText(match[1]!),url).href);if(link.origin===url.origin&&!links.includes(link.href))links.push(link.href);}catch{/* unsupported links never fetched */}if(links.length>=30)break;}
  return{url:url.href,fetchedAt:at,hash:createHash('sha256').update(html).digest('hex'),title,description,text,links,bytes,verifiedFacts:false};
 }
@@ -66,7 +82,7 @@ export function createWebsiteCapture(dependencies:{resolve?:Resolver;download?:D
     if(!loaded||loaded.status!==200)throw new Error('Website page is inaccessible');
     total+=loaded.bytes;if(total>totalLimit)throw new Error('Website capture total size limit reached');
     const page=parsePage(url,loaded.body,loaded.bytes,(options.now?.()??new Date()).toISOString());pages.push(page);
-    if(pages.length===1){for(const link of page.links.slice(0,2))queue.push(new URL(link));}
+    if(pages.length===1){const relevant=[...page.links].sort((a,b)=>Number(/about|services|solutions|products|customers/i.test(new URL(b).pathname))-Number(/about|services|solutions|products|customers/i.test(new URL(a).pathname)));for(const link of relevant.slice(0,2))queue.push(new URL(link));}
    }catch(error){limitations.push(`${url.origin}: ${error instanceof Error?error.message:'Capture unavailable'}`);}
   }
   if(!pages.length)throw new Error(limitations.join('; ')||'No accessible website pages');

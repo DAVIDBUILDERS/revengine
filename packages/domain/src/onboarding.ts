@@ -19,7 +19,9 @@ export function onboardingReport(state:AppSnapshot) {
   const add=(kind:string,message:string)=>{if(status==='ready')status=kind;missing.push(message);};
   if(!agent.supportedArchetypes.includes(a.company.businessModel))add('not_applicable','This responsibility does not apply to the selected business model.');
   if(agent.releaseStatus==='planned')add('engineering_required','This capability still requires implementation and provider integration.');
-  if(!complete[0]||!complete[3]||!complete[4])add('information_required','Complete company, operating rules, approver and measurement details.');
+  const preparationFacts=!!(a.company.name&&a.company.website&&a.company.offers.length&&a.company.customers.length);
+  const preparationPermission=complete[3]&&a.people.some(p=>p.responsibility==='approver'&&p.role==='workspace_owner');
+  if(agent.releaseStatus==='implemented'?(!preparationFacts||!preparationPermission):(!complete[0]||!complete[3]||!complete[4]))add('information_required',agent.releaseStatus==='implemented'?'Review company facts, an approver and operating limits for this preparation.':'Complete company, operating rules, approver and measurement details.');
   // Preparation capabilities currently read approved website snapshots. Other systems are future dependencies,
   // not a claim that these preparations read Drive, ads, social platforms or search analytics today.
   const needed=agent.releaseStatus==='implemented'?['website']:requiredSystems;

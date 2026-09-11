@@ -15,6 +15,10 @@ export function suggestCompany(capture: CapturedCompany): CompanySuggestion[] {
     if(clean&&!suggestions.some(s=>s.field===field&&s.value===clean))suggestions.push({field,value:clean,quote:quote.slice(0,700),url,basis});
   };
   for(const page of capture.pages.slice(0,3)){
+    for(const line of page.text.split('\n')){
+      const metadata=/^(Organization name|Offer|Audience):\s*(.{2,500})$/.exec(line);
+      if(metadata)add(metadata[1]==='Organization name'?'name':metadata[1]==='Offer'?'offers':'customers',metadata[2],line,page.url,'Explicit page metadata; confirm before use');
+    }
     if(!suggestions.some(s=>s.field==='name'))add('name',page.title.split(/\s+[|–—-]\s+/)[0]??'',page.title,page.url,'Page title; confirm the company name');
     const sentences=[page.description,page.text].flatMap(text=>text.split(/(?<=[.!?])\s+/)).filter(s=>s.length>8&&s.length<700);
     for(const sentence of sentences){

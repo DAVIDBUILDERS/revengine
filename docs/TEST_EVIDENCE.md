@@ -109,3 +109,11 @@ Run the authored independent-session harness, then add/run the remaining platfor
 No deployed endpoint, live business result, causal ROI or legacy equivalence is established by this report.
 
 GitHub Actions independently passed the implementation commit `508b234193d6dda603b6d81711998f33d9327476`: [Application checks 34647667962](https://github.com/DAVIDBUILDERS/revengine/actions/runs/34647667962), including install, lint, TypeScript, unit tests, all three builds and the complete browser suite (job duration 3m44s). This CI success does not establish a Vercel Git connection.
+
+## Prepared onboarding verification
+
+September 11: **203 unit tests / 23 files**, lint (98-source boundary audit), TypeScript and **16 Chromium tests** (24.1 seconds) passed. [Frozen unit evidence](evidence/prepared-setup-unit-tests.json) is retained. The two prepared-onboarding browser journeys cover a sample reaching reviewed first work with only the budget typed; selected briefs and citations; mapping review; an administrator blocker; corrections; resumption; independent workspaces; and all four mobile stages. Desktop/mobile screenshots were visually inspected.
+
+Migration 020 and suite 010 pass SQL/PLpgSQL syntax parsing. `pnpm test:db` remains **BLOCKED (exit 2)** because `TEST_SUPABASE_PROJECT_ID`, `PRODUCTION_SUPABASE_PROJECT_ID` and `TEST_DATABASE_URL` are absent. No hosted persistence/RLS, real website/account discovery or model execution is claimed. See [implementation and remaining setup](ONBOARDING_AUTOFILL.md).
+
+After the final source-removal and unsaved-edit guards, all 203 unit tests, lint and TypeScript passed again, and both affected prepared-setup browser journeys passed (7.5 seconds).

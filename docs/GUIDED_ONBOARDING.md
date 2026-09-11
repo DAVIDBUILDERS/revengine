@@ -1,5 +1,7 @@
 # Guided onboarding
 
+**Historical five-stage implementation.** The default is now the four-stage [prepared setup](ONBOARDING_AUTOFILL.md). This document retains the original discovery/access decisions; the complete profile remains available.
+
 September 11, 2026. Requested follow-up to repeatable onboarding: use the information already available, propose a profile and ask the client to review decisions. The complete onboarding document remains the source of truth.
 
 ## Implementation plan and decisions

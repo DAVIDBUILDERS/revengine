@@ -982,3 +982,12 @@ details > summary:focus-visible {
 .guided-citation blockquote { margin:8px 0; color:var(--muted); }
 .guided-recommendation { border-bottom:1px solid var(--border); padding:12px 0; }
 .guided-setup .prose { white-space:pre-wrap; overflow-wrap:anywhere; }
+
+/* Review-first setup: keep discovered answers legible and corrections optional. */
+.setup-summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.setup-summary{min-width:0;padding:20px;border:1px solid var(--border,#e0e4eb);border-radius:4px;display:flex;flex-direction:column;gap:12px}
+.setup-baseline{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:12px 0;border-bottom:1px solid var(--border,#e0e4eb)}
+.setup-baseline .help{grid-column:1/-1;overflow-wrap:anywhere}
+.prepared-onboarding .guided-citation,.prepared-onboarding .setup-summary p{overflow-wrap:anywhere}
+.prepared-onboarding details>summary{cursor:pointer;padding:8px 0}
+@media(max-width:760px){.setup-summary-grid{grid-template-columns:1fr}.setup-baseline{grid-template-columns:1fr}.prepared-onboarding .page-heading .btn{width:100%}}

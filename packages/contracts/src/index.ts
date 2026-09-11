@@ -1,5 +1,7 @@
 import { onboardingCommands, type OnboardingRecord } from './onboarding';
 export * from './onboarding';
+import {setupCommands,type SetupDocument,type PreparedSetup} from './setup';
+export * from './setup';
 import { z } from 'zod';
 
 export const Id = z.uuid();
@@ -70,6 +72,9 @@ export type TimelineEntry = { id: string; workspaceId: string; opportunityId: st
 export type Initiative = { id: string; workspaceId: string; findingId: string; title: string; owner: string; baseline: string; target: string; reviewAt: string; status: 'active' | 'supported' | 'unsupported' | 'inconclusive'; assignments: string[] };
 export type UsageRecord = { id: string; workspaceId: string; category: 'setup' | 'recurring_support' | 'provider' | 'infrastructure' | 'research'; minutes: number; costMinor: number | null; note: string; at: string };
 export interface AppSnapshot {
+  setupDocuments?: SetupDocument[];
+  preparedSetup?: PreparedSetup;
+  setupIdentity?: {email:string;name:string};
   onboardingCapture?: {id:string;sourceHash:string;fixture:boolean;pages:{url:string;title:string;description:string;text:string;capturedAt:string}[]};
   onboarding?: OnboardingRecord;
   workspace: { entitlement?: number; id: string; name: string; businessModel: z.infer<typeof BusinessModel>; timeZone: string; mode: z.infer<typeof Mode>; paused: boolean; subscriptionMinor: number; currency: string };
@@ -81,6 +86,7 @@ export interface AppSnapshot {
 }
 export const Command = z.discriminatedUnion('type', [
   ...onboardingCommands,
+  ...setupCommands,
   z.object({type: z.literal('record_outcome'), proposalId: Id, stage: z.enum(['attended','signed','completed','invoiced','paid']), value: Money, currency: Currency.nullable(), reference: z.string().min(3).max(500), observedAt: Utc}).strict(),
   z.object({type: z.literal('draft'), proposalId: Id}).strict(),
   z.object({type: z.literal('approve'), actionId: Id}).strict(),

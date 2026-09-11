@@ -1,3 +1,4 @@
+import {buildPreparedSetup,validateSetupAcceptance} from '../../../packages/domain/src/prepared-setup';
 import {randomUUID,randomBytes,createHash} from 'node:crypto';
 import {z} from 'zod';
 import * as C from '../../../packages/contracts/src/index';
@@ -36,6 +37,11 @@ export async function operationalSnapshot(requested:string|null):Promise<C.AppSn
  findings:product('work_opportunity',C.WorkOpportunity),initiatives:rows.product_records.filter(r=>r.kind==='initiative').map(r=>r.payload as C.Initiative),scenarios:product('forecast_scenario',C.ForecastScenario),brief:product('brief_snapshot',C.BriefSnapshot).at(-1)??null,
  usage:rows.usage_records.map(r=>({id:text(r,'id'),workspaceId,category:text(r,'category') as C.UsageRecord['category'],minutes:Number(r.minutes),costMinor:number(r,'cost_minor'),note:text(r,'note'),at:date(r,'created_at')!})),
  metrics:[],timeline:[],readiness:{integration:false,action:false,measurement:false,evaluatedAt:asOf,freshUntil:null,fallback:'Prepare approved internal work while the assigned operator resolves critical readiness.',blockers:[]},health:[]};
+ const {data:setupSources,error:setupSourceError}=await client.from('product_records').select('payload,kind').eq('workspace_id',workspaceId).in('kind',['prepared_setup','setup_document']).limit(6);
+ if(setupSourceError)throw new HttpError(503,'SETUP_DISCOVERY_UNAVAILABLE','Prepared setup storage is unavailable.');
+ state.setupDocuments=(setupSources??[]).filter(r=>r.kind==='setup_document').map(r=>C.SetupDocument.parse(r.payload));
+ const prepared=(setupSources??[]).find(r=>r.kind==='prepared_setup');if(prepared)state.preparedSetup=C.PreparedSetup.parse(prepared.payload);
+ if(context.role==='workspace_owner'){const {data}=await client.auth.getUser();if(data.user?.email&&data.user.email_confirmed_at)state.setupIdentity={email:data.user.email,name:String(data.user.user_metadata?.full_name??data.user.email).slice(0,200)};}
  state.activation.selectedTeam=installations.filter(i=>i.status!=='paused').map(i=>i.agentId).slice(0,32);
  const {data:latestCapture}=await client.from('product_records').select('payload').eq('workspace_id',workspaceId).eq('kind','company_context').order('created_at',{ascending:false}).limit(1).maybeSingle();
  const capture=latestCapture?.payload as {id:string;sourceHash:string;context:{fixture:boolean;pages:NonNullable<C.AppSnapshot['onboardingCapture']>['pages']}}|undefined;
@@ -65,8 +71,13 @@ export async function operationalCommand(command:C.Command,requested:string|null
  if(!['workspace_owner','david_operator'].includes(context.role))throw new HttpError(403,'OWNER_REQUIRED','An assigned owner or operator must make this change.');
  async function rpc(name:string,args:Record<string,unknown>){const {data,error}=await client.rpc(name,args);if(error)throw new HttpError(409,'OPERATION_BLOCKED',error.message.slice(0,500));return data;}
  await rpc('consume_request_quota',{p_workspace:workspaceId,p_scope:'commands'});
+ const setupFingerprint=command.type==='build_setup'?await rpc('read_setup_fingerprint',{p_workspace:workspaceId}):null;
  const current=await operationalSnapshot(workspaceId);let message='Change saved.';let invitationUrl:string|undefined;
  switch(command.type){
+  case 'save_setup_document':await rpc('save_setup_document',{p_workspace:workspaceId,p_name:command.name,p_text:command.text});message='Selected company brief saved for discovery. Facts remain unconfirmed.';break;
+  case 'remove_setup_document':await rpc('remove_setup_document',{p_workspace:workspaceId,p_document:command.documentId});message='Selected brief removed. Refresh discovery before accepting a setup.';break;
+  case 'build_setup':{const proposal=buildPreparedSetup(current,command.goal,current.preparedSetup?.id??randomUUID());await rpc('save_prepared_setup',{p_workspace:workspaceId,p_expected_revision:command.expectedRevision,p_expected_generation:command.expectedGeneration,p_fingerprint:setupFingerprint,p_payload:proposal});message='Prepared setup saved for review. No operating permissions were granted.';break;}
+  case 'accept_setup':{const answers=validateSetupAcceptance(current,command.generation,command.expectedRevision,command.answers);await rpc('accept_prepared_setup',{p_workspace:workspaceId,p_generation:command.generation,p_revision:command.expectedRevision,p_answers:answers});message='Reviewed setup saved. Confirm captured sources and apply reviewed settings before first work.';break;}
   case 'confirm_sample_company':case 'sample_onboarding_capture':throw new HttpError(403,'FIXTURE_ONLY','Synthetic captures are unavailable in operational workspaces.');
   case 'assign_operator':await rpc('assign_onboarding_operator',{p_workspace:workspaceId,p_email:command.email});message='Registered DAVID operator assigned to this workspace. MFA remains required for operator access.';break;
   case 'save_onboarding':await rpc('save_onboarding',{p_workspace:workspaceId,p_expected_revision:command.expectedRevision,p_answers:command.answers});message='Setup saved. Changed operating configuration pauses execution and requires fresh verification.';break;

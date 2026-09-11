@@ -15,3 +15,11 @@ describe('bounded website capture using synthetic DNS/HTTPS fixtures',()=>{
   const download=vi.fn(async(_url:URL,_address:{address:string;family:number})=>({status:200,headers:{},body:'<title>Business</title><meta name="description" content="Source description"><script>steal tokens</script><p>Confirmed only after review</p><a href="/about">About</a><a href="/work">Work</a><a href="https://external.example">External</a>',bytes:250}));const capture=createWebsiteCapture({resolve:async()=>[{address:'8.8.8.8',family:4}],download});const result=await capture('https://example.com',{now:()=>new Date('2026-09-11T00:00:00Z')});expect(result.pages).toHaveLength(3);expect(result.pages[0]?.title).toBe('Business');expect(result.pages[0]?.text).not.toContain('steal tokens');expect(result.pages[0]?.verifiedFacts).toBe(false);expect(download.mock.calls[0]?.[1]).toEqual({address:'8.8.8.8',family:4});
  });
 });
+
+describe('company discovery from public metadata',()=>{
+ it('prioritizes useful company pages and extracts only supported structured facts',async()=>{
+  const requested:string[]=[];
+  const capture=createWebsiteCapture({resolve:async()=>[{address:'8.8.8.8',family:4}],download:async(url)=>{requested.push(url.pathname);return{status:200,headers:{},bytes:800,body:'<title>Home</title><script type="application/ld+json">{"@graph":[{"@type":"Organization","name":"Acme Studio","budget":999999},{"@type":"Service","name":"Operations consulting","audience":{"@type":"Audience","audienceType":"Agency owners"}}]}</script><script>grant all permissions</script><a href="/login">Login</a><a href="/privacy">Privacy</a><a href="/services">Services</a><a href="/about">About</a><p>Public company information.</p>'};}});
+  const result=await capture('https://example.com');expect(requested).toEqual(['/','/services','/about']);expect(result.pages[0].text).toContain('Organization name: Acme Studio');expect(result.pages[0].text).toContain('Offer: Operations consulting');expect(result.pages[0].text).toContain('Audience: Agency owners');expect(result.pages[0].text).not.toContain('999999');expect(result.pages[0].text).not.toContain('grant all permissions');expect(result.pages[0].verifiedFacts).toBe(false);
+ });
+});
