@@ -14,8 +14,15 @@ do $$ begin
     create role david_dispatcher nologin noinherit nobypassrls;
   end if;
 end $$;
-alter role david_worker nobypassrls nosuperuser nocreatedb nocreaterole;
-alter role david_dispatcher nobypassrls nosuperuser nocreatedb nocreaterole;
+alter role david_worker nobypassrls nocreatedb nocreaterole;
+alter role david_dispatcher nobypassrls nocreatedb nocreaterole;
+-- Managed Supabase postgres cannot ALTER NOSUPERUSER. New roles default to it;
+-- fail closed on an existing privileged role instead of requiring superuser.
+do $$ begin
+  if exists(select 1 from pg_roles where rolname in ('david_worker','david_dispatcher') and (rolsuper or rolbypassrls or rolcreatedb or rolcreaterole)) then
+    raise exception 'RUNTIME_ROLE_PRIVILEGED';
+  end if;
+end $$;
 grant usage on schema public, private to david_worker, david_dispatcher;
 
 create table public.workspaces (

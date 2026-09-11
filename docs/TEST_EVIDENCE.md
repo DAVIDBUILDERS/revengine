@@ -1,5 +1,7 @@
 # Test evidence and acceptance audit
 
+**September 11 hosted update:** Real Supabase-backed onboarding is deployed separately from the synthetic preview. Both database projects, all 21 migrations, scoped runtime roles, and hosted onboarding/isolation checks are now verified. Signup email remains limited to Supabase organization members until custom SMTP is configured; agent execution remains disabled. [Current targets, evidence and remaining setup](OPERATIONAL_ONBOARDING.md). Earlier status entries below are historical unless explicitly reconfirmed.
+
 This report separates executable local evidence, browser evidence, authored hosted tests and external verification. Passing a synthetic HTTP fixture does not verify a Google permission; a JavaScript concurrency test does not establish PostgreSQL/RLS behavior. The 40 requirements below are from section 19 of `BUILD_BRIEF_v3.md`.
 
 September 11 design verification reran all 170 unit tests, TypeScript, lint, both production builds and 12 browser tests. The source-linked agent interface and all-screen mobile audit are recorded in [DESIGN_REVISION.md](DESIGN_REVISION.md); [production visual sweep](evidence/design-revision/visual-check.json) at `2026-09-11T13:51:11.901Z` passed without page overflow or uncaught browser errors. The original frozen unit report below remains retained as initial-build evidence.

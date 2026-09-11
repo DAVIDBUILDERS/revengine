@@ -1,5 +1,7 @@
 # DAVID Engine
 
+Real company setup: https://revengine-production.vercel.app/login. [Operational onboarding setup and current limitations](docs/OPERATIONAL_ONBOARDING.md). The original `revengine-bay` URL remains a synthetic preview.
+
 Vercel + hosted Supabase implementation of the complete v3 build brief. One modular Next.js application, a separate credential-free sales demo, shared domain services, PostgreSQL migrations, Google adapters and versioned Vercel workflows. No Docker or AWS setup is required.
 
 **Current release:** [hosted browser demo](https://revengine-bay.vercel.app) and a local operational fixture demonstrator. Source: [private DAVIDBUILDERS/revengine repository](https://github.com/DAVIDBUILDERS/revengine). The hosted demo uses synthetic browser-session data; live Supabase, Google, model and workflow verification remain outstanding. See [hosted deployment and Git setup](docs/HOSTED_PREVIEW.md) and [release readiness](docs/RELEASE_READINESS.md).

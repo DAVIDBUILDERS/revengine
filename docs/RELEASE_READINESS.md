@@ -1,5 +1,7 @@
 # Release readiness
 
+**September 11 hosted update:** Real Supabase-backed onboarding is deployed separately from the synthetic preview. Both database projects, all 21 migrations, scoped runtime roles, and hosted onboarding/isolation checks are now verified. Signup email remains limited to Supabase organization members until custom SMTP is configured; agent execution remains disabled. [Current targets, evidence and remaining setup](OPERATIONAL_ONBOARDING.md). Earlier status entries below are historical unless explicitly reconfirmed.
+
 Current assessed tier: **locally verified internal fixture demonstrator**, with product coverage implemented across the local customer/operator interface and further hosted implementation under integration review. This is not a live pilot, a verified hosted product-coverage release or a legacy replacement. The [separate static browser demo](HOSTED_PREVIEW.md) is deployed on Vercel. No real customer email/appointment, operational production deployment, DNS change or legacy scheduler cutover has been performed.
 
 The current evidence includes the deterministic proposal/approval/send/reply/booking journey, meaningful blocked paths, all 32 catalog definitions, five-slot guided teams, nine saved preparations, opportunities/initiatives, timeline, scenarios, cost distinctions and an isolated public demo. See [TEST_EVIDENCE.md](TEST_EVIDENCE.md) for the exact run timestamps and all 40 acceptance cases. New hosted SQL/workflow code is not considered proven merely because TypeScript and fixture tests pass.

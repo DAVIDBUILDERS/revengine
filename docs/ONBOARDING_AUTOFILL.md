@@ -1,5 +1,7 @@
 # Prepared onboarding: implementation plan and handoff
 
+**September 11 hosted update:** Real Supabase-backed onboarding is deployed separately from the synthetic preview. Both database projects, all 21 migrations, scoped runtime roles, and hosted onboarding/isolation checks are now verified. Signup email remains limited to Supabase organization members until custom SMTP is configured; agent execution remains disabled. [Current targets, evidence and remaining setup](OPERATIONAL_ONBOARDING.md). Earlier status entries below are historical unless explicitly reconfirmed.
+
 September 11, 2026. User approved reducing manual intake to website/objective, selected account access, review, and first work.
 
 ## Plan

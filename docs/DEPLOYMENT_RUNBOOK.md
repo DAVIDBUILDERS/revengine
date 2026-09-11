@@ -1,5 +1,7 @@
 # Deployment runbook
 
+**September 11 hosted update:** Real Supabase-backed onboarding is deployed separately from the synthetic preview. Both database projects, all 21 migrations, scoped runtime roles, and hosted onboarding/isolation checks are now verified. Signup email remains limited to Supabase organization members until custom SMTP is configured; agent execution remains disabled. [Current targets, evidence and remaining setup](OPERATIONAL_ONBOARDING.md). Earlier status entries below are historical unless explicitly reconfirmed.
+
 Status: the private `DAVIDBUILDERS/revengine` GitHub repository and the `davidai/revengine` Vercel project were created for the separate browser demo. See [HOSTED_PREVIEW.md](HOSTED_PREVIEW.md) for deployment and Git integration status. Operational Supabase, provider authorization, migration, seed, restore and DNS cutover remain outstanding. This runbook is the concrete setup and verification path for the completed source tree. Local evidence is in [TEST_EVIDENCE.md](TEST_EVIDENCE.md); release decisions are separate in [RELEASE_READINESS.md](RELEASE_READINESS.md).
 
 ## Project and region record

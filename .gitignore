@@ -17,3 +17,6 @@ artifacts/
 
 # Static browser demo export
 /apps/preview/out/
+
+# Supabase CLI local project metadata
+/supabase/.temp/

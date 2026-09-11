@@ -1,6 +1,13 @@
 begin;
 do $$ begin if not exists(select 1 from pg_roles where rolname='david_oauth') then create role david_oauth nologin noinherit nobypassrls; end if; end $$;
-alter role david_oauth nobypassrls nosuperuser nocreatedb nocreaterole;
+alter role david_oauth nobypassrls nocreatedb nocreaterole;
+-- Managed Supabase postgres cannot ALTER NOSUPERUSER. New roles default to it;
+-- fail closed on an existing privileged role instead of requiring superuser.
+do $$ begin
+  if exists(select 1 from pg_roles where rolname in ('david_oauth') and (rolsuper or rolbypassrls or rolcreatedb or rolcreaterole)) then
+    raise exception 'RUNTIME_ROLE_PRIVILEGED';
+  end if;
+end $$;
 grant usage on schema private to david_oauth;
 create table private.allowed_oauth_redirects (redirect_uri text primary key check(redirect_uri ~ '^https://'));
 alter table private.oauth_states add column completed_at timestamptz;

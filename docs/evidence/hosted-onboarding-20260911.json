@@ -1,0 +1,48 @@
+{
+  "at": "2026-09-11T23:11:12.828Z",
+  "origin": "https://revengine-test.vercel.app",
+  "project": "wnuajhvzklxgdorlpkrt",
+  "marker": "174b605e-2d52-486f-b77f-d044384dccfe",
+  "evidence": [
+    {
+      "check": "Authenticated a created a private workspace in the deployed app",
+      "result": "PASS"
+    },
+    {
+      "check": "Authenticated b created a private workspace in the deployed app",
+      "result": "PASS"
+    },
+    {
+      "check": "Cross-workspace read denied",
+      "result": "PASS"
+    },
+    {
+      "check": "Actual HTTPS website capture and selected document produced a saved cited setup",
+      "result": "PASS"
+    },
+    {
+      "check": "Saved answers and spending limit survive reload from Supabase",
+      "result": "PASS"
+    },
+    {
+      "check": "Reviewed setup applied while execution stays paused; source records are not simulated",
+      "result": "PASS"
+    },
+    {
+      "check": "Cross-workspace mutation denied",
+      "result": "PASS"
+    },
+    {
+      "check": "Cross-origin mutation denied",
+      "result": "PASS"
+    },
+    {
+      "check": "Signed-out session denied",
+      "result": "PASS"
+    }
+  ],
+  "limitations": [
+    "Test Auth users confirmed administratively; no email delivered.",
+    "No Google OAuth/model/provider execution tested."
+  ]
+}

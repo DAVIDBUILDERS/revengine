@@ -25,7 +25,8 @@
     "db:types": "tsx scripts/generate-types.ts",
     "dispatch:tick": "tsx scripts/dispatch-tick.ts",
     "test:db:concurrency": "tsx scripts/test-db-concurrency.ts",
-    "preview": "pnpm --filter @david/preview dev"
+    "preview": "pnpm --filter @david/preview dev",
+    "test:hosted-onboarding": "tsx scripts/verify-hosted-onboarding.ts"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",
