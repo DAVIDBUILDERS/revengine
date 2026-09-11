@@ -4,6 +4,10 @@ Vercel + hosted Supabase implementation of the complete v3 build brief. One modu
 
 **Current release:** [hosted browser demo](https://revengine-bay.vercel.app) and a local operational fixture demonstrator. Source: [private DAVIDBUILDERS/revengine repository](https://github.com/DAVIDBUILDERS/revengine). The hosted demo uses synthetic browser-session data; live Supabase, Google, model and workflow verification remain outstanding. See [hosted deployment and Git setup](docs/HOSTED_PREVIEW.md) and [release readiness](docs/RELEASE_READINESS.md).
 
+## Repeatable client onboarding
+
+[Open the onboarding preview](https://revengine-bay.vercel.app/?view=activation). Six resumable sections collect company context, team, sources, permissions, people and measurement, followed by evidence-based activation. The operator queue shares the same workspace record. See [implementation and exact remaining hosted setup](docs/ONBOARDING_IMPLEMENTATION.md). The preview remains synthetic; the Supabase-backed version requires the separate operational deployment.
+
 ## Start locally
 
 Use Node **24.21.0 LTS** and pnpm **10.33.2**. `.nvmrc` pins Node; run `nvm use` (or select that version with your Node manager) before pnpm. Vercel uses `package.json` engines; `.npmrc` must not contain `use-node-version`.

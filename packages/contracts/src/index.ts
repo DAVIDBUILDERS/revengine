@@ -1,3 +1,5 @@
+import { onboardingCommands, type OnboardingRecord } from './onboarding';
+export * from './onboarding';
 import { z } from 'zod';
 
 export const Id = z.uuid();
@@ -35,7 +37,7 @@ export const Metric = z.object({ key: z.string(), label: z.string(), value: z.nu
 export const BriefSnapshot = z.object({ id: Id, workspaceId: Id, asOf: Utc, metrics: z.array(Metric), evidence: z.array(EvidenceRef), limitations: z.array(z.string()), decisions: z.array(z.string()).max(3), commitments: z.array(z.string()), narrativeVersion: z.string(), narrative: z.string() }).strict();
 export const TeamRecommendation = z.object({ id: Id, workspaceId: Id, goal: z.string(), businessModel: BusinessModel, specialistIds: z.array(z.string()).max(5), rationale: z.record(z.string(), z.string()), dependencies: z.array(z.string()), limitations: z.array(z.string()) }).strict();
 export const Prerequisite = z.object({ key: z.string(), label: z.string(), provider: z.string(), owner: z.string(), unlocks: z.array(z.string()), state: z.enum(['missing', 'in_progress', 'verified', 'engineering_required']), evidence: z.string().nullable(), nextStep: z.string() }).strict();
-export const ActivationPlan = z.object({ id: Id, workspaceId: Id, selectedTeam: z.array(z.string()).max(5), step: z.number().int().min(1).max(6), prerequisites: z.array(Prerequisite), milestone: z.enum(['not_started', 'preparation_artifact', 'authorized_test_action', 'live_business_outcome']), confirmedFacts: z.boolean(), owner: z.string() }).strict();
+export const ActivationPlan = z.object({ id: Id, workspaceId: Id, selectedTeam: z.array(z.string()).max(32), step: z.number().int().min(1).max(6), prerequisites: z.array(Prerequisite), milestone: z.enum(['not_started', 'preparation_artifact', 'authorized_test_action', 'live_business_outcome']), confirmedFacts: z.boolean(), owner: z.string() }).strict();
 export const WorkOpportunity = z.object({ id: Id, workspaceId: Id, title: z.string(), affectedIds: z.array(Id), observedCondition: z.string(), evidence: z.array(EvidenceRef), hypothesis: z.string(), agentId: z.string(), effortMinutes: z.number().nonnegative(), costMinor: Money, owner: z.string(), evaluationRule: z.string(), status: z.enum(['proposed', 'approved', 'dismissed', 'reviewed']), alternatives: z.array(z.string()), baseline: z.string(), target: z.string(), reviewAt: Utc }).strict();
 export const PreparedArtifact = z.object({ id: Id, workspaceId: Id, agentId: z.string(), type: z.string(), sourceSnapshot: z.array(EvidenceRef), factualInputs: z.array(z.string()), title: z.string(), content: z.string(), reviewState: z.enum(['draft', 'reviewed', 'rejected']), capabilityVersion: z.string(), runId: Id, createdAt: Utc, limitation: z.string() }).strict();
 export const ForecastScenario = z.object({ id: Id, workspaceId: Id, version: z.number().int().positive(), name: z.string(), businessModel: BusinessModel, currency: Currency, horizonDays: z.number().int().min(1).max(730), volume: z.number().int().nonnegative().max(1000000), cohort: z.enum(['new_demand', 'recovery']), overlapResolved: z.boolean(), conversions: z.array(z.object({ label: z.string(), low: z.number().min(0).max(1), base: z.number().min(0).max(1), high: z.number().min(0).max(1) }).strict().refine(v => v.low <= v.base && v.base <= v.high)).min(1).max(8), capacity: z.number().int().nonnegative(), valueMinor: Money, spendMinor: Money, baselineWins: z.number().nonnegative().nullable(), counterfactual: z.string().nullable(), assumptions: z.array(z.string()), createdAt: Utc }).strict();
@@ -68,7 +70,8 @@ export type TimelineEntry = { id: string; workspaceId: string; opportunityId: st
 export type Initiative = { id: string; workspaceId: string; findingId: string; title: string; owner: string; baseline: string; target: string; reviewAt: string; status: 'active' | 'supported' | 'unsupported' | 'inconclusive'; assignments: string[] };
 export type UsageRecord = { id: string; workspaceId: string; category: 'setup' | 'recurring_support' | 'provider' | 'infrastructure' | 'research'; minutes: number; costMinor: number | null; note: string; at: string };
 export interface AppSnapshot {
-  workspace: { id: string; name: string; businessModel: z.infer<typeof BusinessModel>; timeZone: string; mode: z.infer<typeof Mode>; paused: boolean; subscriptionMinor: number; currency: string };
+  onboarding?: OnboardingRecord;
+  workspace: { entitlement?: number; id: string; name: string; businessModel: z.infer<typeof BusinessModel>; timeZone: string; mode: z.infer<typeof Mode>; paused: boolean; subscriptionMinor: number; currency: string };
   asOf: string; context: WorkspaceContext; contacts: ContactRecord[]; opportunities: OpportunityRecord[]; proposals: ProposalRecord[];
   catalog: AgentDefinition[]; installations: AgentInstallation[]; recommendation: TeamRecommendation; activation: ActivationPlan;
   readiness: ReadinessResult; connections: ConnectionCapability[]; actions: ActionProposal[]; approvals: Approval[]; receipts: ActionReceipt[];
@@ -76,6 +79,7 @@ export interface AppSnapshot {
   initiatives: Initiative[]; scenarios: ForecastScenario[]; health: RuntimeHealth[]; usage: UsageRecord[]; brief: BriefSnapshot | null;
 }
 export const Command = z.discriminatedUnion('type', [
+  ...onboardingCommands,
   z.object({type: z.literal('record_outcome'), proposalId: Id, stage: z.enum(['attended','signed','completed','invoiced','paid']), value: Money, currency: Currency.nullable(), reference: z.string().min(3).max(500), observedAt: Utc}).strict(),
   z.object({type: z.literal('draft'), proposalId: Id}).strict(),
   z.object({type: z.literal('approve'), actionId: Id}).strict(),
@@ -86,7 +90,7 @@ export const Command = z.discriminatedUnion('type', [
   z.object({type: z.literal('book'), proposalId: Id, startAt: Utc, timeZone: TimeZone}).strict(),
   z.object({type: z.literal('pause'), paused: z.boolean()}).strict(),
   z.object({type: z.literal('takeover'), contactId: Id, enabled: z.boolean()}).strict(),
-  z.object({type: z.literal('select_team'), agentIds: z.array(z.string()).max(5)}).strict(),
+  z.object({type: z.literal('select_team'), agentIds: z.array(z.string()).max(32)}).strict(),
   z.object({type: z.literal('recommend_team'), goal: z.string().min(3).max(300), businessModel: BusinessModel}).strict(),
   z.object({type: z.literal('activation'), step: z.number().int().min(1).max(6), confirmedFacts: z.boolean()}).strict(),
   z.object({type: z.literal('prepare'), agentId: z.string()}).strict(),
@@ -99,4 +103,4 @@ export const Command = z.discriminatedUnion('type', [
   z.object({type: z.literal('reset')}).strict()
 ]);
 export type Command = z.infer<typeof Command>;
-export type CommandResult = { snapshot: AppSnapshot; message: string; preview?: { valid: number; errors: {row: number; message: string}[]; rows: Record<string,string>[] } };
+export type CommandResult = { snapshot: AppSnapshot; message: string; invitationUrl?: string; preview?: { valid: number; errors: {row: number; message: string}[]; rows: Record<string,string>[] } };

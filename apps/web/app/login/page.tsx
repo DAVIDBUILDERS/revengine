@@ -3,6 +3,7 @@ import { useState, type FormEvent } from "react";
 export default function Login() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [mode, setMode] = useState<'login'|'register'|'recover'>('login');
   const [factor, setFactor] = useState("");
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -11,19 +12,20 @@ export default function Login() {
     const data = new FormData(event.currentTarget);
     try {
       const result = await fetch(
-        factor ? "/api/auth/verify-mfa" : "/api/auth/login",
+        factor ? "/api/auth/verify-mfa" : mode === "login" ? "/api/auth/login" : "/api/onboarding/access",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(
             factor
               ? { factorId: factor, code: data.get("code") }
-              : { email: data.get("email"), password: data.get("password") },
+              : mode === "login" ? { email: data.get("email"), password: data.get("password") } : mode === "recover" ? {type:"recover",email:data.get("email")} : {type:"register",email:data.get("email"),password:data.get("password")},
           ),
         },
       );
       const body = await result.json();
       if (!result.ok) throw new Error(body.message);
+      if (mode !== "login") { setMessage(body.message); return; }
       if (!factor) {
         const factors = await fetch("/api/auth/factors");
         const list = await factors.json();
@@ -33,7 +35,7 @@ export default function Login() {
           return;
         }
       }
-      window.location.assign("/");
+      window.location.assign(sessionStorage.getItem("david.pendingInvitation") ? "/join" : "/?view=activation");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to sign in.");
     } finally {
@@ -46,7 +48,7 @@ export default function Login() {
         <span className="brand-wordmark" role="img" aria-label="David Engine" />
       </a>
       <h1>Welcome back.</h1>
-      <p>Sign in with your invited workspace account.</p>
+      <p>{mode === "login" ? "Sign in to your workspace." : mode === "register" ? "Create an account, then confirm your email before setting up or joining a workspace." : "Request a password recovery email."}</p>
       <form onSubmit={submit} style={{ display: "grid", gap: 16 }}>
         {factor ? (
           <label className="field">
@@ -74,28 +76,26 @@ export default function Login() {
                 required
               />
             </label>
-            <label className="field">
+            {mode !== "recover" && <label className="field">
               Password
               <input
                 className="input"
                 name="password"
                 type="password"
-                minLength={8}
-                autoComplete="current-password"
+                minLength={mode === "register" ? 12 : 8}
+                autoComplete={mode === "register" ? "new-password" : "current-password"}
                 required
               />
-            </label>
+            </label>}
           </>
         )}
         <button className="btn btn-primary" type="submit" disabled={busy}>
-          {busy ? "Verifying…" : factor ? "Verify identity" : "Sign in"}
+          {busy ? "Verifying…" : factor ? "Verify identity" : mode === "register" ? "Create account" : mode === "recover" ? "Send recovery email" : "Sign in"}
         </button>
         {message && <p role="status">{message}</p>}
       </form>
-      <p style={{ fontSize: 14, marginTop: 24 }}>
-        Access is by invitation. Contact your workspace owner for account or
-        authenticator recovery.
-      </p>
+      {!factor && <div className="flex wrap" style={{marginTop:24}}>{(['login','register','recover'] as const).filter(item=>item!==mode).map(item=><button className="link-button" key={item} onClick={()=>{setMode(item);setMessage('');}}>{item==='login'?'Sign in':item==='register'?'Create an account':'Forgot password?'}</button>)}</div>}
+      <p><a href="/start">Set up a new company</a></p>
     </main>
   );
 }

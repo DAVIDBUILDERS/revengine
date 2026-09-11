@@ -35,6 +35,7 @@ import type {
   ForecastScenario,
   UsageRecord,
 } from "@david/contracts";
+import { onboardingFor } from '@david/domain/onboarding';
 import { forecastCases, deliveryEconomics } from "@david/domain/scenarios";
 import { money, words } from "@david/ui";
 import { PageHeading, type ScreenProps } from "./app-shell";
@@ -52,12 +53,14 @@ export function Team(props: ScreenProps) {
   const { state, act, busy, navigate } = props;
   const [goal, setGoal] = useState(state.recommendation.goal);
   const [model, setModel] = useState(state.workspace.businessModel);
-  const [selected, setSelected] = useState(state.activation.selectedTeam);
+  const setup = onboardingFor(state);
+  const savedTeam = setup.revision ? setup.answers.team : state.activation.selectedTeam;
+  const [selected, setSelected] = useState(savedTeam);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All specialists");
   const [agent, setAgent] = useState<AgentDefinition | null>(null);
-  const selectedKey = state.activation.selectedTeam.join(",");
-  useEffect(() => setSelected(state.activation.selectedTeam), [selectedKey]);
+  const selectedKey = savedTeam.join(",");
+  useEffect(() => setSelected(savedTeam), [selectedKey]);
   const categories = [
     "All specialists",
     ...new Set(state.catalog.map((item) => item.category)),
@@ -73,7 +76,7 @@ export function Team(props: ScreenProps) {
     setSelected((current) =>
       current.includes(id)
         ? current.filter((value) => value !== id)
-        : current.length < 5
+        : current.length < (state.workspace.entitlement ?? 5)
           ? [...current, id]
           : current,
     );
@@ -82,7 +85,7 @@ export function Team(props: ScreenProps) {
       <PageHeading
         eyebrow="People set direction. Agents do bounded work."
         title="Your team"
-        description="Inspect each agent’s work, sources and permissions. Choose up to five specialists around your business goal."
+        description="Inspect each agent’s work, sources and permissions. Choose responsibilities within your workspace allowance."
         action={
           <Button variant="primary" onClick={() => navigate("activation")}>
             Continue activation
@@ -175,7 +178,7 @@ export function Team(props: ScreenProps) {
         <div className="section-heading">
           <h2>Your selected team</h2>
           <span>
-            {selected.length} / 5 specialist slots ·{" "}
+            {selected.length} / {state.workspace.entitlement ?? 5} specialist slots ·{" "}
             {money(state.workspace.subscriptionMinor)} / month
           </span>
         </div>
@@ -203,20 +206,20 @@ export function Team(props: ScreenProps) {
             ))}
             {!selected.length && (
               <p className="small muted">
-                Select up to five specialists from the catalog.
+                Select specialists within your workspace allowance.
               </p>
             )}
           </div>
           <div className="between" style={{ marginTop: 20 }}>
             <p className="help">
               Shared foundations consume no specialist slots. Changing the team
-              preserves unfinished work and validates handoffs.
+              pauses execution. Apply the reviewed setup in Activation to install the team and validate handoffs.
             </p>
             <Button
               variant="primary"
               disabled={busy || selectedKey === selected.join(",")}
               onClick={() =>
-                void act({ type: "select_team", agentIds: selected })
+                void act({ type: "save_onboarding", expectedRevision: setup.revision, answers: {...setup.answers, team: selected} })
               }
             >
               Save team
@@ -313,7 +316,7 @@ export function Team(props: ScreenProps) {
                   </button>
                   <Button
                     className="btn-small"
-                    disabled={!picked && (selected.length >= 5 || !applicable)}
+                    disabled={!picked && (selected.length >= (state.workspace.entitlement ?? 5) || !applicable)}
                     onClick={() => toggle(item.id)}
                   >
                     {picked ? <Check size={13} /> : <Plus size={13} />}{" "}
@@ -331,322 +334,6 @@ export function Team(props: ScreenProps) {
         )}
       </section>
       <AgentWorkspace {...props} agent={agent} onClose={() => setAgent(null)} />
-    </div>
-  );
-}
-
-const steps = [
-  "Company & goal",
-  "Your specialists",
-  "Prerequisites",
-  "Validate sources",
-  "Operating boundaries",
-  "First workflow",
-];
-export function Activation({ state, act, busy, navigate }: ScreenProps) {
-  const [facts, setFacts] = useState(state.activation.confirmedFacts);
-  const step = state.activation.step;
-  return (
-    <div className="stack">
-      <PageHeading
-        eyebrow="Guided activation"
-        title="Activate your workspace"
-        description="Access, current facts and clear ownership come before execution. Progress is saved so your team can pick up where you left off."
-        action={
-          <Badge status={state.activation.milestone}>
-            {words(state.activation.milestone)}
-          </Badge>
-        }
-      />
-      <div className="card card-body">
-        <div className="between">
-          <div>
-            <span className="eyebrow">Your activation</span>
-            <h2 style={{ fontSize: 20, marginTop: 8 }}>
-              Step {step} of 6 · {steps[step - 1]}
-            </h2>
-          </div>
-          <span className="small muted">Owner: {state.activation.owner}</span>
-        </div>
-        <nav className="stepper" aria-label="Activation steps">
-          {steps.map((label, index) => (
-            <button
-              key={label}
-              className={`step ${step === index + 1 ? "active" : step > index + 1 ? "done" : ""}`}
-              aria-current={step === index + 1 ? "step" : undefined}
-              onClick={() =>
-                void act({
-                  type: "activation",
-                  step: index + 1,
-                  confirmedFacts: facts,
-                })
-              }
-              disabled={busy}
-            >
-              <span className="step-number">0{index + 1}</span>
-              {label}
-            </button>
-          ))}
-        </nav>
-        {step === 1 && (
-          <div className="stack">
-            <div className="grid-two">
-              <div className="card card-body">
-                <span className="eyebrow">Company facts</span>
-                <p className="small" style={{ marginTop: 12 }}>
-                  {state.workspace.name}
-                  <br />
-                  {words(state.workspace.businessModel)}
-                  <br />
-                  {state.workspace.timeZone}
-                </p>
-              </div>
-              <div className="card card-body">
-                <span className="eyebrow">Goal</span>
-                <p className="small" style={{ marginTop: 12 }}>
-                  {state.recommendation.goal}
-                </p>
-                <button
-                  className="link-button"
-                  style={{ marginTop: 12 }}
-                  onClick={() => navigate("team")}
-                >
-                  Adjust goal & recommendation
-                  <ArrowRight size={12} />
-                </button>
-              </div>
-            </div>
-            <div className="notice notice-warning">
-              <AlertCircle size={18} />
-              <div>
-                {state.workspace.mode === "fixture"
-                  ? "These are synthetic company facts for local evaluation. Confirming them cannot authorize real communication."
-                  : "Website suggestions require confirmation from the business owner. Verify approved offers, forbidden claims and contact constraints."}
-              </div>
-            </div>
-            <label className="check-row">
-              <input
-                type="checkbox"
-                checked={facts}
-                onChange={(e) => setFacts(e.target.checked)}
-              />
-              I reviewed the business model, company facts and operating
-              constraints for this{" "}
-              {state.workspace.mode === "fixture" ? "fixture" : "workspace"}.
-            </label>
-          </div>
-        )}
-        {step === 2 && (
-          <div className="stack-small">
-            <p className="small muted">
-              Your selected team shares one customer journey. Preparation-only
-              and planned capabilities retain their boundaries.
-            </p>
-            {state.activation.selectedTeam.map((id) => (
-              <div className="between prerequisite" key={id}>
-                <div>
-                  <strong className="small">
-                    {state.catalog.find((item) => item.id === id)?.name ?? id}
-                  </strong>
-                  <p className="help">
-                    {state.recommendation.rationale[id] ??
-                      state.catalog.find((item) => item.id === id)
-                        ?.responsibility}
-                  </p>
-                </div>
-                <Badge
-                  status={
-                    state.installations.find((item) => item.agentId === id)
-                      ?.status ?? "selected"
-                  }
-                />
-              </div>
-            ))}
-            <Button onClick={() => navigate("team")}>
-              Review or adjust your team
-              <ArrowRight size={14} />
-            </Button>
-          </div>
-        )}
-        {step === 3 && (
-          <div>
-            {state.activation.prerequisites.map((item) => (
-              <div className="prerequisite" key={item.key}>
-                <div className="between">
-                  <h3 style={{ fontSize: 14 }}>{item.label}</h3>
-                  <Badge status={item.state} />
-                </div>
-                <p className="small muted" style={{ marginTop: 8 }}>
-                  {item.provider} · Owner: {item.owner}
-                </p>
-                <p className="help">
-                  Unlocks: {item.unlocks.map(words).join(", ")}
-                </p>
-                <p className="small" style={{ marginTop: 8 }}>
-                  {item.nextStep}
-                </p>
-                {item.evidence && (
-                  <p className="help">Verification: {item.evidence}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-        {step === 4 && (
-          <div className="stack">
-            <div className="notice">
-              <FileText size={18} />
-              <div>
-                Inspect representative current records and validate their stable
-                IDs, status, owner and scope. CSV imports require row-level
-                preview before saving.
-              </div>
-            </div>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Record</th>
-                    <th>Authoritative status</th>
-                    <th>Owner</th>
-                    <th>Fact verified</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {state.proposals.slice(0, 5).map((item) => (
-                    <tr key={item.id}>
-                      <td>{item.reference}</td>
-                      <td>
-                        <Badge status={item.status} />
-                      </td>
-                      <td>{item.owner}</td>
-                      <td>{dateTime(item.sourceVerifiedAt)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <Button onClick={() => navigate("opportunities")}>
-              <Upload size={14} />
-              Inspect records & import CSV
-            </Button>
-          </div>
-        )}
-        {step === 5 && (
-          <div className="stack">
-            <div className="grid-two">
-              <div className="card card-body">
-                <h3 style={{ fontSize: 15 }}>Communication boundaries</h3>
-                <p className="small muted" style={{ marginTop: 12 }}>
-                  Existing, eligible and explicitly enrolled proposals only.
-                  Approved factual scope; no new prices, discounts, terms or
-                  commitments. Every pilot action requires exact-content review
-                  unless a separately granted mandate applies.
-                </p>
-              </div>
-              <div className="card card-body">
-                <h3 style={{ fontSize: 15 }}>Shared ownership</h3>
-                <p className="small muted" style={{ marginTop: 12 }}>
-                  Any reply stops follow-up. Pause, opt-out and human takeover
-                  apply across specialists. Calendar selection, working hours,
-                  capacity, sender and exception ownership must be verified
-                  before live activation.
-                </p>
-              </div>
-            </div>
-            {state.connections
-              .filter((c) =>
-                c.operations.some((op) => /send|calendar|book/.test(op)),
-              )
-              .map((c) => (
-                <div className="between" key={c.id}>
-                  <div className="small">
-                    <strong>{c.identity}</strong>
-                    <p className="muted">
-                      {c.resource} · Owner: {c.owner}
-                    </p>
-                  </div>
-                  <Badge status={c.health} />
-                </div>
-              ))}
-            <div className="notice notice-warning">
-              <ShieldCheck size={18} />
-              <div>
-                This view does not grant a standing mandate. Broader authority
-                requires a reviewed, versioned authorization. Missing live
-                sender, cohort or operator remains a hard gate.
-              </div>
-            </div>
-          </div>
-        )}
-        {step === 6 && (
-          <div className="stack">
-            <h3 style={{ fontSize: 18 }}>Verify the first permitted result</h3>
-            <p className="small muted">
-              Your current milestone:{" "}
-              <strong>{words(state.activation.milestone)}</strong>. Connected
-              accounts alone do not establish a working business process.
-            </p>
-            <div className="readiness-grid">
-              {[
-                ["Integration", state.readiness.integration],
-                ["Action", state.readiness.action],
-                ["Measurement", state.readiness.measurement],
-              ].map(([label, ready]) => (
-                <div key={String(label)} className="card readiness-card">
-                  <p className="small" style={{ marginBottom: 12 }}>
-                    {label} readiness
-                  </p>
-                  <Badge status={ready ? "verified" : "blocked"} />
-                </div>
-              ))}
-            </div>
-            <Button variant="primary" onClick={() => navigate("opportunities")}>
-              Run the first proposal journey
-              <ArrowRight size={14} />
-            </Button>
-            <p className="help">
-              A fixture action is a demonstrator milestone. Live business use
-              requires provider verification and a workspace release record.
-            </p>
-          </div>
-        )}
-        <div
-          className="between"
-          style={{
-            borderTop: "1px solid var(--border)",
-            marginTop: 28,
-            paddingTop: 20,
-          }}
-        >
-          <Button
-            onClick={() =>
-              void act({
-                type: "activation",
-                step: Math.max(1, step - 1),
-                confirmedFacts: facts,
-              })
-            }
-            disabled={busy || step === 1}
-          >
-            Back
-          </Button>
-          <Button
-            variant="primary"
-            onClick={() =>
-              void act({
-                type: "activation",
-                step: Math.min(6, step + 1),
-                confirmedFacts: facts,
-              })
-            }
-            disabled={busy || (step === 1 && !facts)}
-          >
-            {step === 6 ? "Save current milestone" : "Save & continue"}
-            <ArrowRight size={14} />
-          </Button>
-        </div>
-      </div>
     </div>
   );
 }

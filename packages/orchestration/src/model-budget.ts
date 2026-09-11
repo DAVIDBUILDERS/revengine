@@ -26,7 +26,7 @@ export type PreparationStorePort={
 };
 export function preparationSourceSignature(company:WebsiteContext,agentId:string) {
   // Capture timestamp alone cannot justify paying for the same repeated document.
-  const source={version:'preparation.v1',agentId,companyName:company.companyName,offers:company.offers,customerTypes:company.customerTypes,locations:company.locations,confirmed:company.confirmed,pages:company.pages.map(({url,title,description,text})=>({url,title,description,text})).sort((a,b)=>a.url.localeCompare(b.url))};
+  const source={version:'preparation.v1',agentId,...(company.operatingGuidance?{operatingGuidance:company.operatingGuidance}:{}),companyName:company.companyName,offers:company.offers,customerTypes:company.customerTypes,locations:company.locations,confirmed:company.confirmed,pages:company.pages.map(({url,title,description,text})=>({url,title,description,text})).sort((a,b)=>a.url.localeCompare(b.url))};
   return createHash('sha256').update(JSON.stringify(source)).digest('hex');
 }
 export async function runPreparation(input:PreparedRunInput,store:PreparationStorePort,model?:PreparationModelPort){

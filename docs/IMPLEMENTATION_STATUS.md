@@ -1,6 +1,8 @@
 # DAVID Engine implementation status
 
-Updated 2026-09-11 after the product design revision and browser-demo deployment. Branch: `codex/david-engine-v3`. Full 539-line brief retained in [BUILD_BRIEF_v3.md](BUILD_BRIEF_v3.md). The repository started with only `.git`; no commits, remote, source, migrations, assets, environment files, Sites metadata or applicable AGENTS.md were present. No legacy source reuse is claimed and no existing deployment was modified.
+Updated 2026-09-11 after repeatable onboarding implementation. Branch: `codex/david-engine-v3`. Full 539-line brief retained in [BUILD_BRIEF_v3.md](BUILD_BRIEF_v3.md). The repository started with only `.git`; no commits, remote, source, migrations, assets, environment files, Sites metadata or applicable AGENTS.md were present. No legacy source reuse is claimed and no existing deployment was modified.
+
+See [repeatable onboarding](ONBOARDING_IMPLEMENTATION.md): six saved sections, per-workspace revision history, invitations, source/rule invalidation, operator requests, configurable allowance and evidence-based readiness for all 32 agents. Migration 018 and hosted Auth paths are implemented but not externally verified.
 
 The September 11 interface revision integrates the supplied house wordmark, a decision-first Today, shared inspectable agent workspaces and responsive/keyboard fixes. See [DESIGN_REVISION.md](DESIGN_REVISION.md) for decisions, screenshots and exact verification.
 

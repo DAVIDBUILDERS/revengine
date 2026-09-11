@@ -13,7 +13,7 @@ Created September 11, 2026 at the user's request.
 
 ## What is deployed
 
-The full shared customer/operator interface, the supplied DAVID wordmark, activation, agent workspaces, proposals, decisions, journey, scenarios and fixture operator controls. The application loads deterministic synthetic workspaces and runs the existing pure domain fixture engine entirely inside the browser. A validated, bounded command journal in sessionStorage survives refresh, separates workspaces and resets only the selected workspace. Storage failure rejects a change rather than claiming it was saved. Separate browser contexts have independent data. Browser duplication/restoration may copy sessionStorage according to the browser's own behavior.
+The full shared customer/operator interface, the supplied DAVID wordmark, six-section resumable onboarding and operator setup queue, agent workspaces, proposals, decisions, journey, scenarios and fixture operator controls. The application loads deterministic synthetic workspaces and runs the existing pure domain fixture engine entirely inside the browser. A validated, bounded command journal in sessionStorage survives refresh, separates workspaces and resets only the selected workspace. Storage failure rejects a change rather than claiming it was saved. Separate browser contexts have independent data. Browser duplication/restoration may copy sessionStorage according to the browser's own behavior.
 
 A persistent **Browser demo** banner says to use sample data only and identifies the simulation. There is no deployed operational API, authentication service, database, OAuth, workflow, model inference, email or calendar write. Real source capture and connection setup remain disabled with their existing fixture explanations. This is a shareable interface demonstration, not a hosted live product release.
 
@@ -21,9 +21,9 @@ Project environment-variable inspection returned an empty list. `.vercelignore` 
 
 ## Verification
 
-- 173 unit tests, module-boundary lint and TypeScript passed.
+- 186 unit tests, module-boundary lint and TypeScript passed.
 - All three production apps built locally; the preview also built successfully in Vercel on Node 24.x.
-- All 13 Chromium tests passed locally, including the new preview test.
+- All 14 Chromium tests passed locally, including the new preview test.
 - The same Chromium preview test passed against the public Vercel domain (3.2 seconds), including all nine mobile screens, preparation/pause/reload and independent browser state. It is reusable with `PREVIEW_URL` (command below).
 - Public HTTP checks verify application/activation/logo availability, security headers, and 404 responses for operational state and workflow routes.
 

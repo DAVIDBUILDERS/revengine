@@ -362,12 +362,9 @@ test("activation resumes and preparation leads to a bounded reviewed initiative"
   page,
 }) => {
   await page.goto("/?view=activation");
-  await page.getByRole("button", { name: /03.*Prerequisites/ }).click();
-  await expect(page.getByRole("status")).toContainText("progress saved");
+  await page.getByRole("button", { name: /3\. Systems & sources/ }).click();
   await page.reload();
-  await expect(
-    page.getByRole("heading", { name: "Step 3 of 6 · Prerequisites" }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Systems & sources", exact: true })).toBeVisible();
   await page.getByRole("link", { name: "Your team", exact: true }).click();
   await page
     .locator(".agent-card")

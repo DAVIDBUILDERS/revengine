@@ -60,11 +60,11 @@ export function SourceSetup({ state }: { state: AppSnapshot }) {
     text: string;
     error: boolean;
   } | null>(null);
-  const [url, setUrl] = useState("");
+  const [url, setUrl] = useState(state.onboarding?.answers.company.website ?? "");
   const [capture, setCapture] = useState<Capture | null>(null);
-  const [name, setName] = useState("");
-  const [offers, setOffers] = useState("");
-  const [customers, setCustomers] = useState("");
+  const [name, setName] = useState(state.onboarding?.answers.company.name ?? "");
+  const [offers, setOffers] = useState(state.onboarding?.answers.company.offers.join("\n") ?? "");
+  const [customers, setCustomers] = useState(state.onboarding?.answers.company.customers.join("\n") ?? "");
   const [locations, setLocations] = useState("");
   const [reviewed, setReviewed] = useState(false);
   const [confirmed, setConfirmed] = useState(false);

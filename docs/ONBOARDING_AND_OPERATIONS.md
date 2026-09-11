@@ -2,13 +2,15 @@
 
 Current product: the local customer/operator console is usable with labeled fixtures. The hosted paths are implemented but need the actual projects, authorized sources, deployment and retained test evidence. Do not describe selected specialists, a connected OAuth account, an empty scheduler or a fixture receipt as a live working team.
 
+See [repeatable onboarding implementation](ONBOARDING_IMPLEMENTATION.md) for the six-section product flow, persistence, invitations, editable rules, operator queue and exact remaining platform setup.
+
 ## Responsibilities and first workflow
 
 An owner chooses a goal and receives a five-slot recommendation from the 32-entry catalog. The recommendation explains applicability and shared prerequisites; choosing it does not make planned integrations work. Save the selection. Swapping a specialist with unfinished work requires a controlled handoff; historical artifacts, actions and ownership remain.
 
 Capture the approved public company pages, review their evidence and explicitly confirm offers, customer types and operating context. Captured text is untrusted; models cannot promote it into authority. Use Connections to name each Google source/resource owner, exact Sheet file/range/column mapping, authorized sender and owned calendar. Resource checks are real read operations; the connection remains unconfigured until they pass. CSV is a validated bootstrap and never enrolls a person.
 
-Assign an operator, provision capacity and reviewed policy using [PROVISIONING_RECORDS.md](PROVISIONING_RECORDS.md). Grant only the selected responsibilities. Configure model/provider and both model spending limits for generated preparation. Technical SEO's bounded snapshot checks do not require model inference. Shadow resume allows useful internal preparation with approved sources and capacity while outbound remains disabled.
+Assign a registered operator and apply capacity, budgets and reviewed policy in Activation. Grant only the selected responsibilities. Configure model/provider and both model spending limits for generated preparation. Technical SEO's bounded snapshot checks do not require model inference. Shadow resume allows useful internal preparation with approved sources and capacity while outbound remains disabled.
 
 The activation UI preserves progress, but its first-workflow milestone comes from saved artifacts/receipts/outcomes. Source-backed preparation, an authorized action receipt and an observed business outcome are distinct milestones. A wizard checkbox cannot create a verified provider result.
 

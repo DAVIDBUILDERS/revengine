@@ -8,6 +8,7 @@ import type {
   EvidenceRef,
 } from "@david/contracts";
 import { money, words } from "@david/ui";
+import { Onboarding, OnboardingOperator } from "./onboarding";
 import { Today } from "./today";
 import { activeApprovals } from "./approval-state";
 import {
@@ -42,7 +43,6 @@ import {
   FeedbackContext,
 } from "./ui";
 import {
-  Activation,
   Connections,
   CustomerJourney,
   Decisions,
@@ -326,6 +326,7 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
               {!browserDemo && <a href="/login" className="btn btn-primary">
                 Sign in to DAVID
               </a>}
+              {!browserDemo && <a href="/start" className="btn">Set up a new company</a>}
             </div>
           ) : (
             <LoaderCircle size={22} aria-hidden />
@@ -632,13 +633,13 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
                 />
               )}
               {page === "team" && <Team {...props} />}
-              {page === "activation" && <Activation {...props} />}
+              {page === "activation" && <Onboarding key={state.workspace.id} {...props} />}
               {page === "opportunities" && <Opportunities {...props} />}
               {page === "decisions" && <Decisions {...props} />}
               {page === "journey" && <CustomerJourney {...props} />}
               {page === "scenarios" && <Scenarios {...props} />}
               {page === "connections" && <Connections {...props} />}
-              {page === "operator" && <Operator {...props} />}
+              {page === "operator" && <div className="stack"><OnboardingOperator {...props} /><Operator {...props} /></div>}
               <footer className="footer">
                 <span>
                   DAVID Engine <span style={{ margin: "0 7px" }}>·</span>{" "}
