@@ -121,3 +121,7 @@ After the final source-removal and unsaved-edit guards, all 203 unit tests, lint
 The four published preview/onboarding tests passed against `https://revengine-bay.vercel.app` in 11.5 seconds. Production HTTP checks preserve the browser-only boundary. All three production builds passed after the final guards. Deployment IDs and manual Git-deployment status are in HOSTED_PREVIEW.md.
 
 The final stale-draft-save regression passed with both prepared-setup browser journeys (8.7 seconds), lint and TypeScript. Regeneration is required before stale local edits can be saved.
+
+Final deployed code `47cce0ed408f0ece6eb2f16bd393a7358fef77a1`: all four published Chromium checks passed with zero failures, flakes or skips. The operational Next production build also passed after the final stale-save guard; the localhost fixture server was restored from that build.
+
+GitHub Actions independently passed final code commit `47cce0ed408f0ece6eb2f16bd393a7358fef77a1`: [Application checks 34655433090](https://github.com/DAVIDBUILDERS/revengine/actions/runs/34655433090), including lint, TypeScript, 203 unit tests, all three production builds and the complete 16-test browser suite (job duration 4m13s).

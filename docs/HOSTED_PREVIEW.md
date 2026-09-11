@@ -76,3 +76,7 @@ Commit `f76f4ef8b06f24a05b25e62dc15cbb05379e14a1` is pushed to GitHub `main` and
 The public sample journey requires one typed field (the spending limit), plus the user's objective, review and start/accept choices. Actual clients may need to correct missing facts, choose resources or name a responsible person when identity data is unavailable. This is not a universal one-field claim. Real Supabase storage, selected document processing, website/account discovery and provider output need the separately configured operational deployment and migration 020.
 
 This deployment used the authorized CLI. Read-only Vercel inspection still reports Git `link: null`, root `apps/preview`; the existing GitHub installation access requirement remains unresolved.
+
+Final code commit `47cce0ed408f0ece6eb2f16bd393a7358fef77a1` adds the stale-save guard and is deployed to the same alias. Deployment `J4Dq6V2zhUUDGmKpzCovK24Ep71w` / `revengine-2ojhnp08n-davidai.vercel.app` passed its Vercel build. All four published preview/onboarding tests passed again (zero failed, flaky or skipped tests).
+
+GitHub Actions independently passed final code commit `47cce0ed408f0ece6eb2f16bd393a7358fef77a1`: [Application checks 34655433090](https://github.com/DAVIDBUILDERS/revengine/actions/runs/34655433090), including lint, TypeScript, 203 unit tests, all three production builds and the complete 16-test browser suite (job duration 4m13s).
