@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./product-design.css";
 
 export const metadata: Metadata = {
-  title: "DAVID Engine — Your business, moving forward",
+  title: "David Engine — Workspace",
   description:
     "A shared operating workspace for your specialist team, decisions and source-linked results.",
 };

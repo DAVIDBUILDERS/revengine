@@ -2,35 +2,35 @@
 
 ## Implementation and authority
 
-The operational Next.js app lives in `apps/web`; the independent anonymous sales demonstration lives in `apps/demo`. No verified v13 source, font, logo asset or official design tokens were available. These implementations use the proposed v3 defaults, not a claimed migration of an existing interface.
+The operational Next.js app lives in `apps/web`; the independent anonymous sales demonstration lives in `apps/demo`. No verified v13 source, font or official design tokens were available during the initial build. On September 11 the user supplied `/Users/jakob/Downloads/DAVIDENGINE.png` and requested a more deliberate business interface and transparent agent interaction. Its first house wordmark is now used in both apps and sign-in. The original image is preserved; CSS displays the first treatment and increases presentation contrast to blend its paper background. See [DESIGN_REVISION.md](DESIGN_REVISION.md). No legacy interface migration is claimed.
 
 The operational browser reads `GET /api/state` and sends the shared validated `Command` contract to `POST /api/command`. A successful mutation replaces the view with the server's returned snapshot. Thirty-second reconciliation and manual Refresh retrieve authoritative state. A mutation epoch prevents a previously started read from overwriting a newer command result. No operational UI produces optimistic business outcomes. API failure displays the actual safe error and a retry/sign-in path; it never substitutes an invented dashboard.
 
 Operational navigation is URL-backed (`?view=today`, `team`, `activation`, `opportunities`, `decisions`, `journey`, `scenarios`, `connections`, `operator`). Browser back/forward restores the current surface. Navigation moves focus to the main region without unexpectedly scrolling fixed navigation into view.
 
-An explicit `?workspace=` selection is preserved through navigation and sent on every read and command. Hosted requests bind to the returned workspace UUID; local fixtures retain their synthetic workspace key. A browser test opens the `northstar` fixture, creates work, navigates and verifies that `david` remains unchanged. The desktop header and mobile navigation offer an assigned-workspace picker backed by `GET /api/workspaces`. Hosted listing verifies claims, current memberships and operator MFA, then reads names through the request-scoped RLS client; no administrative key or synthetic fallback is used. Listing is capped at 100 assignments with an explicit coverage message. Switching preserves the current view and performs a full navigation, clearing the previous workspace state. Local fixture listing exposes only the two known synthetic keys.
+An explicit `?workspace=` selection is preserved through navigation and sent on every read and command. Hosted requests bind to the returned workspace UUID; local fixtures retain their synthetic workspace key. A browser test opens the `northstar` fixture, creates work, navigates and verifies that `david` remains unchanged. The desktop sidebar and mobile navigation offer an assigned-workspace picker backed by `GET /api/workspaces`. Hosted listing verifies claims, current memberships and operator MFA, then reads names through the request-scoped RLS client; no administrative key or synthetic fallback is used. Listing is capped at 100 assignments with an explicit coverage message. Switching preserves the current view and performs a full navigation, clearing the previous workspace state. Local fixture listing exposes only the two known synthetic keys.
 
 ## Shared visual system
 
 Shared styles and tokens live in `packages/ui/src/theme.css`; pure money/label formatting lives in `packages/ui/src/index.ts`. Common operational Button, Badge, Empty, Drawer and Evidence primitives live in `apps/web/components/ui.tsx`. Tailwind v4 is configured for both apps; the named component classes make shared spacing, status and interaction decisions explicit.
 
-| Token | Proposed default |
+| Token | Current implementation |
 |---|---|
-| Canvas | `#F5F6F8` |
+| Canvas | `#FFFFFF` |
 | Surface | `#FFFFFF` |
 | Primary text | `#18191C` |
-| Secondary text | `#626873` |
-| Border | `#E0E4EB` |
+| Secondary text | `#616463` |
+| Border | `#E3E3E0` |
 | Accent | `#C42B2F` |
-| Navigation charcoal | `#191A1D` |
+| Navigation surface | `#F3F3F1` |
 | Positive text / background | `#227354` / `#EDF6F0` |
 | Warning text / background | `#87580B` / `#FCF6E9` |
 | Information text / background | `#3C638C` / `#EFF4FA` |
 | Spacing | 4, 8, 12, 16, 24, 32 px |
 
-System sans-serif typography uses a 16px root, 24–32px operational page titles, 14–18px section titles and compact secondary/metadata text. Numeric fields and metrics use tabular numerals. Red indicates primary decisions and controlled actions; it does not animate a claim of activity. All statuses carry words and icons, not color alone.
+System sans-serif typography uses a 16px root, with 32–46px system-serif page titles echoing the supplied wordmark, 14–18px section titles and compact secondary/metadata text. Shared tokens remain in `packages/ui/src/theme.css`; operational composition is in `apps/web/app/product-design.css`, loaded after existing base styles. Numeric fields and metrics use tabular numerals. Red indicates primary decisions and controlled actions; it does not animate a claim of activity. All statuses carry words and icons, not color alone.
 
-Calculated WCAG contrast ratios for the central text pairs: primary/white 17.58:1; secondary/white 5.60:1; secondary/canvas 5.18:1; white/accent 5.62:1; positive badge 5.22:1; warning badge 5.68:1; information badge 5.66:1; sidebar navigation 8.38:1; sidebar secondary text 6.23:1. These calculations cover the named central pairs, not a claim of a completed independent accessibility certification.
+Calculated WCAG contrast ratios for the revision’s central text pairs: primary/white 17.58:1; secondary/white 5.98:1; navigation text/navigation surface 6.55:1; accent/white 5.62:1; fixture disclosure/background 5.92:1. These calculations cover the named token pairs; they are not a claim of a complete accessibility certification.
 
 ## Operational surfaces
 
@@ -100,3 +100,11 @@ Public URL analysis is unavailable, with a clear explanation and useful preset f
 `pnpm typecheck` and targeted frontend ESLint ran successfully during implementation. The Playwright suite in `tests/e2e/frontend.spec.ts` exercises the full proposal-to-booking journey, terminal/takeover/pause gates, saved scenario versions, catalog coverage, evidence keyboard focus, mobile operator controls and public-session reset/isolation. Refer to the final `docs/TEST_EVIDENCE.md` for the authoritative final run and environment. Screenshots are written to `test-results/screenshots` and remain local generated artifacts.
 
 Remaining hosted verification: actual Supabase roles/Auth/MFA, Google consent/account binding and operations, Vercel durable workflows and private evidence downloads. UI availability and local browser tests do not establish those integrations as live-ready.
+
+## September 11 revision
+
+Today retains the four required Results, Work underway, Decisions needed and Blockers sections, with decisions first. At most three priority items appear in the queue; remaining items link to the complete decisions surface. Exact-action previews retain recipient, subject, full body and appointment timing. The review control passes the proposal ID in the URL and opens that customer record. Recommendations remain proposals, with source evidence and explicit owner/commitment. Outcome rows use the existing shared metric read model; unavailable figures remain labeled. Blockers expand to all recorded owners and next steps.
+
+Installed-agent rows on Today and Your team open the same `AgentWorkspace`. Three views expose work and handoffs, inputs and access, and rules and limits. Content derives from catalog definitions, current installations, saved artifacts, findings, actions and receipts. Declared capabilities/tools never masquerade as proof of granted access or executed tool calls. Actual preparation and whole-workspace pause use the existing command service. Customer controls link to the original exact-approval and takeover flows. This is not a conversational agent chat, complete historical audit export or display of model-internal reasoning.
+
+Mobile navigation becomes inert and aria-hidden while closed. The mobile header retains the supplied wordmark. The new browser tests verify output provenance, pause behavior, workspace switching and exact-proposal navigation. Original provider, hosted readiness and fixture boundaries remain unchanged.

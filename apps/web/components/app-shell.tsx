@@ -6,35 +6,28 @@ import type {
   Command,
   CommandResult,
   EvidenceRef,
-  Metric,
 } from "@david/contracts";
 import { money, words } from "@david/ui";
+import { Today } from "./today";
 import { activeApprovals } from "./approval-state";
 import {
-  Activity,
   AlertCircle,
-  ArrowRight,
-  ArrowUpRight,
   BarChart3,
   BriefcaseBusiness,
   Check,
-  ChevronDown,
   ChevronRight,
   CircleHelp,
-  FileText,
   FlaskConical,
   LayoutDashboard,
   ListChecks,
   LoaderCircle,
   Menu,
   Pause,
-  Play,
   Plug,
   RefreshCw,
   Route,
   Settings2,
   ShieldCheck,
-  Sparkles,
   Target,
   Users,
   X,
@@ -44,7 +37,6 @@ import {
   Button,
   dateTime,
   Drawer,
-  Empty,
   Evidence,
   EvidenceAccessContext,
   FeedbackContext,
@@ -74,7 +66,7 @@ export type ScreenProps = {
   state: AppSnapshot;
   act: (command: Command) => Promise<CommandResult | undefined>;
   busy: boolean;
-  navigate: (page: PageId) => void;
+  navigate: (page: PageId, focus?: { proposal?: string }) => void;
   inspect: (
     title: string,
     description: string,
@@ -102,6 +94,14 @@ export function AppShell() {
   const [loadError, setLoadError] = useState("");
   const [busy, setBusy] = useState(false);
   const [menu, setMenu] = useState(false);
+  const [mobile, setMobile] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 760px)");
+    const sync = () => setMobile(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
   const [notice, setNotice] = useState<{ text: string; error: boolean } | null>(
     null,
   );
@@ -211,11 +211,13 @@ export function AppShell() {
     window.addEventListener("popstate", sync);
     return () => window.removeEventListener("popstate", sync);
   }, []);
-  const navigate = (next: PageId) => {
+  const navigate = (next: PageId, focus?: { proposal?: string }) => {
     setPage(next);
     setMenu(false);
     const query = new URLSearchParams(window.location.search);
     query.set("view", next);
+    query.delete("proposal");
+    if (focus?.proposal) query.set("proposal", focus.proposal);
     if (workspaceKey.current) query.set("workspace", workspaceKey.current);
     window.history.pushState({}, "", `?${query}`);
     document.getElementById("main-content")?.focus({ preventScroll: true });
@@ -286,7 +288,11 @@ export function AppShell() {
       <div className="loading-screen">
         <div className="card stack">
           <div className="brand" style={{ color: "var(--text)", padding: 0 }}>
-            <span className="brand-mark">D</span>DAVID
+            <span
+              className="brand-wordmark"
+              role="img"
+              aria-label="David Engine"
+            />
           </div>
           <h1 style={{ fontSize: 24 }}>
             {loadError
@@ -337,18 +343,31 @@ export function AppShell() {
           <aside
             className={`sidebar ${menu ? "open" : ""}`}
             aria-label="Main navigation"
+            inert={mobile && !menu}
+            aria-hidden={mobile && !menu ? true : undefined}
           >
-            <div className="brand">
-              <span className="brand-mark">D</span>
-              <div>
-                DAVID
-                <div className="brand-subtitle">BUSINESS, MOVING FORWARD</div>
-              </div>
-            </div>
+            <a
+              className="brand"
+              href="?view=today"
+              aria-label="David Engine home"
+              onClick={(event) => {
+                event.preventDefault();
+                navigate("today");
+              }}
+            >
+              <span
+                className="brand-wordmark"
+                role="img"
+                aria-label="David Engine"
+              />
+            </a>
             <div className="workspace-chip">
               <span className="workspace-avatar">DA</span>
               <div style={{ flex: 1 }}>
-                <strong style={{ fontWeight: 500 }}>
+                <strong
+                  className="mobile-workspace-name"
+                  style={{ fontWeight: 500 }}
+                >
                   {state.workspace.name}
                 </strong>
                 <div
@@ -357,6 +376,34 @@ export function AppShell() {
                 >
                   Your workspace
                 </div>
+                <select
+                  className="workspace-picker desktop-workspace-picker"
+                  aria-label="Active workspace"
+                  disabled={busy || !workspaces.length}
+                  value={
+                    state.workspace.mode === "fixture"
+                      ? (workspaceKey.current ?? "david")
+                      : state.workspace.id
+                  }
+                  onChange={(event) => switchWorkspace(event.target.value)}
+                >
+                  {!workspaces.length && (
+                    <option
+                      value={
+                        state.workspace.mode === "fixture"
+                          ? (workspaceKey.current ?? "david")
+                          : state.workspace.id
+                      }
+                    >
+                      {state.workspace.name}
+                    </option>
+                  )}
+                  {workspaces.map((workspace) => (
+                    <option key={workspace.id} value={workspace.id}>
+                      {workspace.name}
+                    </option>
+                  ))}
+                </select>
                 <select
                   aria-label="Switch workspace"
                   className="mobile-workspace-picker"
@@ -386,7 +433,6 @@ export function AppShell() {
                   ))}
                 </select>
               </div>
-              <ChevronDown size={13} />
             </div>
             <div className="nav-label">Workspace</div>
             <nav className="nav">
@@ -427,10 +473,11 @@ export function AppShell() {
               <div className="sidebar-help">
                 <div className="flex" style={{ gap: 7 }}>
                   <ShieldCheck size={14} />
-                  Your business. Your control.
+                  Work you can inspect.
                 </div>
                 <span>
-                  Every action stays within the boundaries you approve.
+                  Sources, saved work and operating limits are visible for every
+                  agent.
                 </span>
               </div>
               <div className="profile">
@@ -465,35 +512,13 @@ export function AppShell() {
                 >
                   <Menu size={18} />
                 </button>
+                <span
+                  className="brand-wordmark mobile-brand"
+                  role="img"
+                  aria-label="David Engine"
+                />
                 <div className="breadcrumb">
-                  <select
-                    className="breadcrumb-root workspace-picker"
-                    aria-label="Active workspace"
-                    disabled={busy || !workspaces.length}
-                    value={
-                      state.workspace.mode === "fixture"
-                        ? (workspaceKey.current ?? "david")
-                        : state.workspace.id
-                    }
-                    onChange={(event) => switchWorkspace(event.target.value)}
-                  >
-                    {!workspaces.length && (
-                      <option
-                        value={
-                          state.workspace.mode === "fixture"
-                            ? (workspaceKey.current ?? "david")
-                            : state.workspace.id
-                        }
-                      >
-                        {state.workspace.name}
-                      </option>
-                    )}
-                    {workspaces.map((workspace) => (
-                      <option key={workspace.id} value={workspace.id}>
-                        {workspace.name}
-                      </option>
-                    ))}
-                  </select>{" "}
+                  <span className="breadcrumb-root">Workspace</span>
                   <ChevronRight size={12} />
                   <b>{currentLabel}</b>
                 </div>
@@ -545,9 +570,8 @@ export function AppShell() {
                 <div className="fixture-banner">
                   <FlaskConical size={14} />
                   <span>
-                    <strong>Local demonstrator.</strong> People, source records,
-                    messages and outcomes are synthetic. No messages are sent
-                    and no real calendar is connected.
+                    <strong>Local demonstrator.</strong> Synthetic records and
+                    outcomes. No real messages are sent or appointments booked.
                   </span>
                 </div>
               )}
@@ -600,8 +624,8 @@ export function AppShell() {
               {page === "operator" && <Operator {...props} />}
               <footer className="footer">
                 <span>
-                  DAVID Engine <span style={{ margin: "0 7px" }}>·</span> Shared
-                  context. Clear decisions. Accountable work.
+                  DAVID Engine <span style={{ margin: "0 7px" }}>·</span>{" "}
+                  {state.workspace.name}
                 </span>
                 <span>
                   {state.workspace.timeZone}{" "}
@@ -698,353 +722,6 @@ export function PageHeading({
         <p>{description}</p>
       </div>
       {action}
-    </div>
-  );
-}
-
-function Today(props: ScreenProps & { showBrief: () => Promise<void> }) {
-  const { state, navigate, inspect, busy, act } = props;
-  const pending = activeApprovals(state);
-  const allEvidence = [
-    ...state.proposals.flatMap((p) => p.evidence),
-    ...state.outcomes.flatMap((o) => o.evidence),
-    ...state.receipts.flatMap((r) => r.evidence),
-  ];
-  const inspectMetric = (metric: Metric) =>
-    inspect(
-      metric.label,
-      `${metric.stage} · ${metric.unit} · As of ${dateTime(state.asOf)}. ${metric.limitation ?? "Based on the recorded source evidence."}`,
-      allEvidence.filter((e) => metric.evidenceIds.includes(e.id)),
-    );
-  const metrics = state.metrics.slice(0, 4);
-  const date = new Intl.DateTimeFormat("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    timeZone: state.workspace.timeZone,
-  }).format(new Date(state.asOf));
-  return (
-    <div className="stack">
-      <PageHeading
-        eyebrow={date}
-        title="A clear view of what comes next."
-        description="Your team’s work, the results behind it, and the decisions that need you."
-        action={
-          <Button onClick={() => void props.showBrief()} disabled={busy}>
-            <FileText size={14} />
-            View weekly brief
-            <ArrowUpRight size={13} />
-          </Button>
-        }
-      />
-      <section aria-labelledby="results-heading">
-        <div className="section-heading">
-          <h2 id="results-heading">Results</h2>
-          <span>
-            {state.workspace.mode === "fixture"
-              ? "Illustrative fixture records"
-              : "Recorded outcomes"}{" "}
-            · Source-linked
-          </span>
-        </div>
-        <div className="metric-grid">
-          {metrics.map((metric, index) => (
-            <button
-              key={metric.key}
-              className="card metric-card"
-              onClick={() => inspectMetric(metric)}
-            >
-              <div className="metric-top">
-                <span>{metric.label}</span>
-                {index === 0 ? (
-                  <Target size={15} />
-                ) : index === 1 ? (
-                  <Route size={15} />
-                ) : index === 2 ? (
-                  <BarChart3 size={15} />
-                ) : (
-                  <Activity size={15} />
-                )}
-              </div>
-              <div
-                className={`metric-value numeric ${metric.value === null ? "unavailable" : ""}`}
-              >
-                {metric.value === null
-                  ? "Unavailable"
-                  : metric.unit.includes("minor")
-                    ? money(metric.value, state.workspace.currency)
-                    : new Intl.NumberFormat("en-US").format(metric.value)}
-              </div>
-              <div className="metric-foot">
-                {metric.limitation ?? `${words(metric.stage)} · view evidence`}{" "}
-                <ArrowUpRight size={10} style={{ display: "inline" }} />
-              </div>
-            </button>
-          ))}
-        </div>
-      </section>
-      <div className="overview-grid">
-        <section className="card" aria-labelledby="work-heading">
-          <div className="card-head">
-            <h2 id="work-heading">Work underway</h2>
-            <button className="link-button" onClick={() => navigate("team")}>
-              Your team <ArrowRight size={13} />
-            </button>
-          </div>
-          {state.installations.length ? (
-            state.installations.slice(0, 5).map((installation, index) => {
-              const definition = state.catalog.find(
-                (item) => item.id === installation.agentId,
-              );
-              return (
-                <div className="work-row" key={installation.id}>
-                  <div
-                    className={`agent-symbol ${["red", "blue", "green", "", ""][index]}`}
-                  >
-                    {index === 0 ? (
-                      <Route size={18} />
-                    ) : index === 1 ? (
-                      <Users size={18} />
-                    ) : (
-                      <Sparkles size={18} />
-                    )}
-                  </div>
-                  <div className="work-copy">
-                    <div className="between">
-                      <h3>{definition?.name ?? installation.agentId}</h3>
-                      <ChevronRight size={14} className="row-arrow" />
-                    </div>
-                    <p>
-                      {installation.blockers[0] ?? definition?.responsibility}
-                    </p>
-                    <Badge
-                      status={
-                        state.workspace.paused ? "paused" : installation.status
-                      }
-                    />
-                    <p style={{ marginTop: 8 }}>
-                      Preparation:{" "}
-                      {installation.lastPreparationAt
-                        ? dateTime(installation.lastPreparationAt)
-                        : "No completed result"}{" "}
-                      · Business action:{" "}
-                      {installation.lastBusinessActionAt
-                        ? dateTime(installation.lastBusinessActionAt)
-                        : "None verified"}
-                    </p>
-                  </div>
-                </div>
-              );
-            })
-          ) : (
-            <Empty
-              title="Your team starts here"
-              action={
-                <Button onClick={() => navigate("team")}>
-                  Choose specialists
-                </Button>
-              }
-            >
-              Select a team for your business goal.
-            </Empty>
-          )}
-          <div
-            style={{
-              padding: "15px 24px",
-              background: "#fafbfc",
-              borderRadius: "0 0 12px 12px",
-            }}
-            className="tiny muted"
-          >
-            <ShieldCheck
-              size={12}
-              style={{ display: "inline", marginRight: 6 }}
-            />
-            Preparation, execution and verified outcomes are tracked separately.
-          </div>
-        </section>
-        <section aria-labelledby="decisions-heading">
-          <div className="section-heading">
-            <h2 id="decisions-heading">Decisions needed</h2>
-            <span>
-              {pending.length +
-                state.findings.filter((f) => f.status === "proposed")
-                  .length}{" "}
-              to review
-            </span>
-          </div>
-          <div className="stack-small">
-            {pending.slice(0, 2).map((approval) => {
-              const action = state.actions.find(
-                (item) => item.id === approval.actionId,
-              );
-              return (
-                <article className="decision-card" key={approval.id}>
-                  <div className="between">
-                    <span className="eyebrow">Your approval</span>
-                    <Badge status="awaiting_approval" />
-                  </div>
-                  <h3 style={{ marginTop: 12 }}>
-                    {action?.type === "book_appointment"
-                      ? "Confirm a proposed appointment"
-                      : "Review a prepared follow-up"}
-                  </h3>
-                  <p>
-                    {action?.payload.subject ??
-                      "Review the exact action and its supporting evidence."}
-                  </p>
-                  <Button
-                    variant="primary"
-                    className="btn-small"
-                    onClick={() => navigate("opportunities")}
-                  >
-                    Review action
-                    <ArrowRight size={13} />
-                  </Button>
-                </article>
-              );
-            })}
-            {state.findings
-              .filter((f) => f.status === "proposed")
-              .slice(0, Math.max(0, 3 - pending.slice(0, 2).length))
-              .map((finding) => (
-                <article className="decision-card" key={finding.id}>
-                  <div className="between">
-                    <span className="eyebrow">Recommended next step</span>
-                    <Target size={15} color="#a4aab4" />
-                  </div>
-                  <h3 style={{ marginTop: 12 }}>{finding.title}</h3>
-                  <p>{finding.observedCondition}</p>
-                  <button
-                    className="link-button"
-                    onClick={() => navigate("decisions")}
-                  >
-                    Review recommendation
-                    <ArrowRight size={13} />
-                  </button>
-                  <div className="decision-footer">
-                    <span className="tiny muted">{finding.owner}</span>
-                    <span className="tiny muted">
-                      {finding.effortMinutes} min · {money(finding.costMinor)}
-                    </span>
-                  </div>
-                </article>
-              ))}
-            {!pending.length &&
-              !state.findings.some((f) => f.status === "proposed") && (
-                <div className="card">
-                  <Empty title="Nothing waiting on you">
-                    New decisions will appear here with the evidence and
-                    specific commitment required.
-                  </Empty>
-                </div>
-              )}
-          </div>
-        </section>
-      </div>
-      <section aria-labelledby="blockers-heading">
-        <div className="section-heading">
-          <h2 id="blockers-heading">Blockers</h2>
-          <button
-            className="link-button"
-            onClick={() => navigate("connections")}
-          >
-            Review readiness
-            <ArrowRight size={13} />
-          </button>
-        </div>
-        <div className="grid-two" style={{ gap: 12 }}>
-          {state.readiness.blockers.slice(0, 2).map((blocker) => (
-            <article className="blocker-strip" key={blocker.code}>
-              <AlertCircle size={17} />
-              <div style={{ flex: 1 }}>
-                <h3>{blocker.message}</h3>
-                <p>
-                  {blocker.owner} · {blocker.nextStep}
-                </p>
-                <button
-                  className="link-button"
-                  style={{ marginTop: 10, color: "#805b20" }}
-                  onClick={() => navigate("activation")}
-                >
-                  Resolve in activation
-                  <ArrowRight size={12} />
-                </button>
-              </div>
-            </article>
-          ))}
-          {!state.readiness.blockers.length && (
-            <div className="notice">
-              <ShieldCheck size={18} />
-              <div>
-                No current readiness blockers. Readiness is checked again before
-                every action.
-              </div>
-            </div>
-          )}
-        </div>
-      </section>
-      <section className="card">
-        <div className="card-head">
-          <h2>Recent activity</h2>
-          <button className="link-button" onClick={() => navigate("journey")}>
-            View customer journeys
-            <ArrowRight size={13} />
-          </button>
-        </div>
-        <div className="activity-list">
-          {state.timeline
-            .slice()
-            .sort((a, b) => b.at.localeCompare(a.at))
-            .slice(0, 4)
-            .map((event) => (
-              <div className="activity-row" key={event.id}>
-                <div className="activity-dot" />
-                <div className="activity-copy">
-                  <h3>{event.title}</h3>
-                  <p>
-                    {words(event.actor)} · {event.detail}
-                  </p>
-                </div>
-                <button
-                  className="link-button tiny"
-                  onClick={() =>
-                    inspect(event.title, event.detail, event.evidence)
-                  }
-                >
-                  Evidence
-                  <ArrowUpRight size={11} />
-                </button>
-                <span className="activity-time">{dateTime(event.at)}</span>
-              </div>
-            ))}
-          {!state.timeline.length && (
-            <Empty title="A clean starting point">
-              Import current proposal records to begin a source-linked journey.
-            </Empty>
-          )}
-        </div>
-      </section>
-      <div className="between">
-        <span className="tiny muted">
-          {state.contacts.length} source contacts · {state.proposals.length}{" "}
-          proposals · Financial measurement{" "}
-          {state.readiness.measurement ? "ready" : "incomplete"}
-        </span>
-        <Button
-          variant={state.workspace.paused ? "primary" : "quiet"}
-          className="btn-small"
-          onClick={() =>
-            void act({ type: "pause", paused: !state.workspace.paused })
-          }
-          disabled={busy}
-        >
-          {state.workspace.paused ? <Play size={13} /> : <Pause size={13} />}{" "}
-          {state.workspace.paused
-            ? "Check readiness & resume"
-            : "Pause workspace"}
-        </Button>
-      </div>
     </div>
   );
 }

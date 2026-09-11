@@ -1,5 +1,137 @@
 import { test, expect } from "@playwright/test";
 
+test("all operational screens fit a narrow viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  for (const view of [
+    "today",
+    "team",
+    "activation",
+    "opportunities",
+    "decisions",
+    "journey",
+    "scenarios",
+    "connections",
+    "operator",
+  ]) {
+    await page.goto(`/?view=${view}`);
+    await expect(page.locator(".page-heading h1")).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth > innerWidth,
+      ),
+      `${view} must not overflow the page`,
+    ).toBe(false);
+  }
+});
+
+test("Today previews prepared work and opens the exact customer record", async ({
+  page,
+}) => {
+  await page.goto("/?view=opportunities");
+  await page
+    .getByRole("row")
+    .filter({ hasText: "P-1001" })
+    .getByRole("button", { name: "Open", exact: true })
+    .click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Prepare follow-up", exact: true })
+    .click();
+  await expect(
+    page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Approve exact action" }),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.getByRole("link", { name: "Today", exact: true }).click();
+  await expect(page.locator(".message-preview")).toContainText(
+    "example.invalid",
+  );
+  await expect(page.locator(".message-preview")).toContainText("Subject");
+  expect(
+    await page.locator(".decision-queue > button[aria-pressed]").count(),
+  ).toBeLessThanOrEqual(3);
+  await page.getByRole("button", { name: "Review exact action" }).click();
+  await expect(page).toHaveURL(/view=opportunities.*proposal=/);
+  await expect(
+    page.getByRole("dialog").getByRole("heading", { level: 2 }),
+  ).toContainText("P-1001");
+  await expect(
+    page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Approve exact action" }),
+  ).toBeVisible();
+});
+
+test("agent workspace exposes recorded outputs, sources, limits and working pause controls", async ({
+  page,
+}) => {
+  await page.goto("/?view=today");
+  const opener = page.getByRole("button", {
+    name: "Open Account Intelligence workspace",
+  });
+  await opener.click();
+  const dialog = page.getByRole("dialog");
+  await expect(
+    dialog.getByText("None verified", { exact: true }),
+  ).toBeVisible();
+  await dialog.getByRole("button", { name: "Run bounded preparation" }).click();
+  await expect(dialog.locator(".prose")).toContainText("ILLUSTRATIVE FIXTURE");
+  await dialog
+    .getByText("Factual inputs & provenance", { exact: true })
+    .click();
+  await expect(dialog.locator(".evidence").first()).toBeVisible();
+  await dialog.getByRole("button", { name: "Inputs & access" }).click();
+  await expect(
+    dialog.getByRole("heading", { name: "Declared tools" }),
+  ).toBeVisible();
+  await expect(
+    dialog.getByText("fixture-website", { exact: true }),
+  ).toBeVisible();
+  await dialog.getByRole("button", { name: "Rules & limits" }).click();
+  await expect(
+    dialog.getByRole("heading", { name: "Stop conditions" }),
+  ).toBeVisible();
+  await expect(
+    dialog.getByRole("heading", { name: "Failure & fallback" }),
+  ).toBeVisible();
+  await dialog
+    .getByRole("button", { name: "Pause workspace", exact: true })
+    .click();
+  await expect(
+    dialog.getByRole("button", { name: "Workspace paused", exact: true }),
+  ).toBeDisabled();
+  await dialog.getByRole("button", { name: "Work & handoffs" }).click();
+  await expect(
+    dialog.getByRole("button", { name: "Run bounded preparation" }),
+  ).toBeDisabled();
+  await page.keyboard.press("Escape");
+  await expect(opener).toBeFocused();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(
+    page
+      .getByRole("banner")
+      .getByRole("img", { name: "David Engine", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Your team", exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "Toggle navigation" }).click();
+  await expect(
+    page.getByRole("link", { name: "Your team", exact: true }),
+  ).toBeVisible();
+  await page.getByLabel("Switch workspace").selectOption("northstar");
+  await expect(page).toHaveURL(/workspace=northstar/);
+  await expect(
+    page.getByRole("heading", { name: "Today", exact: true }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth > innerWidth,
+    ),
+  ).toBe(false);
+});
+
 test("assigned workspace picker preserves isolation through navigation and commands", async ({
   page,
 }) => {
@@ -36,7 +168,7 @@ test("assigned workspace picker preserves isolation through navigation and comma
   await page.getByLabel("Active workspace").selectOption("david");
   await expect(page).toHaveURL(/workspace=david/);
   await expect(
-    page.getByRole("heading", { name: "A clear view of what comes next." }),
+    page.getByRole("heading", { name: "Today", exact: true }),
   ).toBeVisible();
   await expect(page.locator(".workspace-chip")).toContainText("DAVID AI");
 });
@@ -204,7 +336,7 @@ test("mobile navigation and operator forms remain usable", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: "A clear view of what comes next." }),
+    page.getByRole("heading", { name: "Today", exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Toggle navigation" }).click();
   await page.getByRole("link", { name: "Operator console" }).click();

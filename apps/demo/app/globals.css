@@ -19,6 +19,8 @@
   font-weight: 750;
   letter-spacing: 2px;
 }
+.demo-brand .brand-wordmark { width: 120px; }
+.demo-heading h1 { font-family: Georgia, 'Times New Roman', serif; font-weight: 400; }
 .demo-mark {
   display: grid;
   place-items: center;

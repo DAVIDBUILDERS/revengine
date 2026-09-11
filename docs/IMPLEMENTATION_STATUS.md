@@ -1,6 +1,8 @@
 # DAVID Engine implementation status
 
-Updated 2026-09-10 during final integration. Branch: `codex/david-engine-v3`. Full 539-line brief retained in [BUILD_BRIEF_v3.md](BUILD_BRIEF_v3.md). The repository started with only `.git`; no commits, remote, source, migrations, assets, environment files, Sites metadata or applicable AGENTS.md were present. No legacy source reuse is claimed and no existing deployment was modified.
+Updated 2026-09-11 after the product design revision. Branch: `codex/david-engine-v3`. Full 539-line brief retained in [BUILD_BRIEF_v3.md](BUILD_BRIEF_v3.md). The repository started with only `.git`; no commits, remote, source, migrations, assets, environment files, Sites metadata or applicable AGENTS.md were present. No legacy source reuse is claimed and no existing deployment was modified.
+
+The September 11 interface revision integrates the supplied house wordmark, a decision-first Today, shared inspectable agent workspaces and responsive/keyboard fixes. See [DESIGN_REVISION.md](DESIGN_REVISION.md) for decisions, screenshots and exact verification.
 
 ## Plan and checkpoints
 
@@ -27,7 +29,7 @@ Updated 2026-09-10 during final integration. Branch: `codex/david-engine-v3`. Fu
 
 ## Verification record
 
-The integrated local suite most recently passed **170 tests across 19 files**, including privacy, mandate/domain authority, workflow routing and concurrency-target guards. Module-boundary lint and TypeScript passed. Both Next production apps built successfully, and all nine Chromium end-to-end tests passed; the final evidence is retained in [TEST_EVIDENCE.md](TEST_EVIDENCE.md). SQL and PL/pgSQL static parsing is explicitly not database execution.
+The integrated local suite most recently passed **170 tests across 19 files**, including privacy, mandate/domain authority, workflow routing and concurrency-target guards. Module-boundary lint and TypeScript passed. Both Next production apps built successfully, and all 12 Chromium end-to-end tests passed; the final evidence is retained in [TEST_EVIDENCE.md](TEST_EVIDENCE.md). SQL and PL/pgSQL static parsing is explicitly not database execution.
 
 `pnpm run doctor` passed local fixture environment validation and returned BLOCKED (exit 2) for missing Vercel, Supabase, Google, model, region/email/alert configuration. `pnpm test:db` returned BLOCKED (exit 2) for missing hosted nonproduction project/credentials. No real message, appointment, model inference, deployment, migration or DNS change occurred.
 
@@ -35,4 +37,4 @@ The integrated local suite most recently passed **170 tests across 19 files**, i
 
 Read [RELEASE_READINESS.md](RELEASE_READINESS.md), [DEPLOYMENT_RUNBOOK.md](DEPLOYMENT_RUNBOOK.md), [PROVISIONING_RECORDS.md](PROVISIONING_RECORDS.md) and [TEST_EVIDENCE.md](TEST_EVIDENCE.md). Run the final offline commands first. Then supply the exact separately authorized cloud/Google/model targets and execute hosted verification. Repair any actual SQL/platform mismatch before enabling live work. Do not replace the existing experience until [LEGACY_MIGRATION.md](LEGACY_MIGRATION.md)'s independent replacement gate passes.
 
-External inputs still missing: actual v13 source/ref/schema/data/ownership ledger; referenced brand/best-practice assets; intended Vercel team and web/test/demo projects; distinct hosted Supabase projects/regions; Google consent audience/API grants, sender/calendar and actual source owner; operator/staffed coverage and approved cohort; model/provider/pricing/processing region; Auth email and tested alert destination; backup/restore plan; DNS owner and cutover authority. These are named release dependencies, not evidence of a live product.
+External inputs still missing: actual v13 source/ref/schema/data/ownership ledger; any additional official font/token/best-practice assets (the supplied logo is now integrated); intended Vercel team and web/test/demo projects; distinct hosted Supabase projects/regions; Google consent audience/API grants, sender/calendar and actual source owner; operator/staffed coverage and approved cohort; model/provider/pricing/processing region; Auth email and tested alert destination; backup/restore plan; DNS owner and cutover authority. These are named release dependencies, not evidence of a live product.

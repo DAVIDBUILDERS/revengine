@@ -14,7 +14,7 @@ import {
   Home,
   RotateCcw,
   ShieldCheck,
-  Sparkles,
+  ListChecks,
   Target,
   Users,
 } from "lucide-react";
@@ -251,10 +251,11 @@ export default function Demo() {
       </a>
       <header className="demo-header">
         <div className="demo-brand">
-          <span className="demo-mark">D</span>
-          <div>
-            DAVID<small>Your specialist team</small>
-          </div>
+          <span
+            className="brand-wordmark"
+            role="img"
+            aria-label="David Engine"
+          />
         </div>
         <nav className="demo-nav" aria-label="Demo sections">
           {(
@@ -593,7 +594,7 @@ export default function Demo() {
                     );
                   }}
                 >
-                  <Sparkles size={14} />
+                  <ListChecks size={14} />
                   Recommend my five
                 </button>
               </div>
@@ -660,7 +661,7 @@ export default function Demo() {
                   >
                     <div className="between">
                       <div className={`demo-icon ${selected ? "red" : ""}`}>
-                        <Sparkles size={18} />
+                        <ListChecks size={18} />
                       </div>
                       <span className="eyebrow" style={{ fontSize: 9 }}>
                         {agent.category}

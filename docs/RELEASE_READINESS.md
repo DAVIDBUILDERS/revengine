@@ -8,7 +8,7 @@ The current evidence includes the deterministic proposal/approval/send/reply/boo
 
 | Release tier | Assessment | Evidence still required |
 | --- | --- | --- |
-| Local internal demonstrator | Supported by domain/unit tests and final nine-test Chromium run | 170 unit tests, nine Chromium tests, lint, TypeScript, both production builds and retained screenshots passed; real deployment remains a separate tier |
+| Local internal demonstrator | Supported by domain/unit tests and final 12-test Chromium run | 170 unit tests, 12 Chromium tests, lint, TypeScript, both production builds and retained screenshots passed; real deployment remains a separate tier |
 | Internal deployed demonstrator | Not deployed/verified | Authorized Vercel test project + hosted Supabase test project, verified Auth/session roles, applied migrations, private files, real deployed workflow/cron trace with nonproduction data |
 | Bounded live DAVID AI pilot | **Blocked** | Current authoritative proposals, exact source mapping, Google consent/scopes/sender/reply/calendar coverage, explicitly enrolled cohort, operator/staffed hours, policy/approval record, enforced budgets, monitored exceptions, real receipts, all critical hosted failure tests |
 | Hosted product coverage | **Not yet verified** | Nine scheduled source-grounded preparations through persisted budget/cadence, actual configured model, SQL metric parity, guided owner/operator activation, real authenticated product mutation coverage, operational readiness/health evidence |

@@ -1,19 +1,19 @@
 :root {
-  --canvas: #f5f6f8;
+  --canvas: #fff;
   --surface: #fff;
   --text: #18191c;
-  --muted: #626873;
-  --border: #e0e4eb;
+  --muted: #616463;
+  --border: #e3e3e0;
   --accent: #c42b2f;
   --accent-soft: #fbefef;
-  --sidebar: #191a1d;
+  --sidebar: #f3f3f1;
   --positive: #227354;
   --positive-soft: #edf6f0;
   --warning: #87580b;
   --warning-soft: #fcf6e9;
   --info: #3c638c;
   --info-soft: #eff4fa;
-  --radius: 12px;
+  --radius: 5px;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -23,6 +23,19 @@
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: var(--text);
   font-size: 16px;
+}
+.brand-wordmark {
+  display: block;
+  flex-shrink: 0;
+  width: 166px;
+  aspect-ratio: 550 / 280;
+  background-image: url('/brand/david-engine-original.png');
+  /* Viewport onto treatment 01 of the supplied original; lettering is unchanged. */
+  background-size: 186.182% auto;
+  background-position: 50.633% 14.331%;
+  background-repeat: no-repeat;
+  mix-blend-mode: multiply;
+  filter: contrast(1.15);
 }
 * {
   box-sizing: border-box;
@@ -323,6 +336,7 @@ textarea.input {
   margin: 20px 0;
 }
 .table-wrap {
+  position: relative;
   width: 100%;
   overflow-x: auto;
 }
@@ -429,6 +443,7 @@ td strong {
   .card-body {
     padding: 18px;
   }
+  .card-head { flex-wrap: wrap; }
   .dialog {
     padding: 24px;
   }

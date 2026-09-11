@@ -1,0 +1,52 @@
+{
+  "at": "2026-09-11T13:51:11.901Z",
+  "mode": "production builds with synthetic local fixtures",
+  "screens": [
+    {
+      "view": "today",
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "view": "team",
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "view": "activation",
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "view": "opportunities",
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "view": "decisions",
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "view": "journey",
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "view": "scenarios",
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "view": "connections",
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "view": "operator",
+      "width": 390,
+      "overflow": false
+    }
+  ],
+  "errors": []
+}

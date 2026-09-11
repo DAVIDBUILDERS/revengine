@@ -2,16 +2,18 @@
 
 This report separates executable local evidence, browser evidence, authored hosted tests and external verification. Passing a synthetic HTTP fixture does not verify a Google permission; a JavaScript concurrency test does not establish PostgreSQL/RLS behavior. The 40 requirements below are from section 19 of `BUILD_BRIEF_v3.md`.
 
+September 11 design verification reran all 170 unit tests, TypeScript, lint, both production builds and 12 browser tests. The source-linked agent interface and all-screen mobile audit are recorded in [DESIGN_REVISION.md](DESIGN_REVISION.md); [production visual sweep](evidence/design-revision/visual-check.json) at `2026-09-11T13:51:11.901Z` passed without page overflow or uncaught browser errors. The original frozen unit report below remains retained as initial-build evidence.
+
 ## Final recorded executions
 
 | Command/check | Observed result | Scope / limitation |
 | --- | --- | --- |
 | `pnpm install --frozen-lockfile` | PASS | Pinned 12-project workspace; no database/container required. |
 | `pnpm exec vitest run --reporter=default --reporter=json --outputFile.json=docs/evidence/unit-tests.json` | **170 passed, 0 failed, 0 skipped; 19 files**, started `2026-09-11T01:21:50.522000Z` | Complete frozen [unit report](evidence/unit-tests.json). Domain, schemas, model ports, Google HTTP fixtures, SSRF, privacy guards, deployment guards, workflow version routing and approval display. No actual provider call. |
-| `pnpm lint` | PASS | ESLint and 73-source module boundary audit; raw provider writes restricted to the shared action service. |
+| `pnpm lint` | PASS | ESLint and 75-source module boundary audit; raw provider writes restricted to the shared action service. |
 | `pnpm typecheck` | PASS | Includes all apps, tools, privacy and independent-session concurrency harness. |
 | `pnpm build` | PASS | Both Next production applications; **17 Workflow steps / 4 workflows** compiled. No deployed workflow/Google verification. |
-| `pnpm test:e2e` | **9 Chromium tests passed**, final rerun 12.1s | Local web/demo: journey, terminal/takeover/pause blockers, catalog/scenarios/evidence keyboard flow, mobile operator, activation/preparation/initiative, CSV preview/unenrolled import, assigned-workspace isolation, source setup fixture guard, public session isolation. |
+| `pnpm test:e2e` | **12 Chromium tests passed**, September 11 production-server run 7.8s | Local web/demo: journey, terminal/takeover/pause blockers, catalog/scenarios/evidence keyboard flow, mobile operator, activation/preparation/initiative, CSV preview/unenrolled import, assigned-workspace isolation, source setup fixture guard, public session isolation; exact-customer review from Today; agent provenance/limits/preparation/pause; nine-screen 390px layout. |
 | SQL and PL/pgSQL static audit | PASS as reported by platform review; 17 migrations and hosted suite bodies parsed | Syntax only; actual Supabase catalog/runtime name resolution, grants and concurrency remain unverified. Node migration syntax parser is part of the 170-test result. |
 | `pnpm exec tsx scripts/export-contract-examples.ts` | PASS: 20 saved schema examples | Generated from a real fixture-domain command sequence; [examples](examples/contracts.v1.json). |
 | `pnpm run doctor` | Local fixture configuration PASS; cloud capabilities **BLOCKED**, exit 2 | Exact missing Vercel, Supabase, Google, model and operations settings printed without secrets. |

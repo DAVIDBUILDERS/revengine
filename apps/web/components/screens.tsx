@@ -1,4 +1,5 @@
 "use client";
+import { AgentRoster, AgentWorkspace } from "./agent-workspace";
 import { SourceSetup } from "./source-setup";
 import { activeApprovals } from "./approval-state";
 import { useEffect, useState } from "react";
@@ -21,7 +22,7 @@ import {
   Search,
   Send,
   ShieldCheck,
-  Sparkles,
+  ListChecks,
   Target,
   Upload,
   UserRound,
@@ -47,7 +48,8 @@ import {
   shortDate,
 } from "./ui";
 
-export function Team({ state, act, busy, navigate }: ScreenProps) {
+export function Team(props: ScreenProps) {
+  const { state, act, busy, navigate } = props;
   const [goal, setGoal] = useState(state.recommendation.goal);
   const [model, setModel] = useState(state.workspace.businessModel);
   const [selected, setSelected] = useState(state.activation.selectedTeam);
@@ -75,15 +77,12 @@ export function Team({ state, act, busy, navigate }: ScreenProps) {
           ? [...current, id]
           : current,
     );
-  const installation = state.installations.find(
-    (item) => item.agentId === agent?.id,
-  );
   return (
     <div className="stack">
       <PageHeading
-        eyebrow="A team built around your goal"
-        title="Five specialists. One shared direction."
-        description="Choose from 32 responsibilities. Every specialist shares context, reporting and coordination; its available operating mode stays explicit."
+        eyebrow="People set direction. Agents do bounded work."
+        title="Your team"
+        description="Inspect each agent’s work, sources and permissions. Choose up to five specialists around your business goal."
         action={
           <Button variant="primary" onClick={() => navigate("activation")}>
             Continue activation
@@ -91,6 +90,13 @@ export function Team({ state, act, busy, navigate }: ScreenProps) {
           </Button>
         }
       />
+      <section aria-label="Installed agents">
+        <div className="section-heading">
+          <h2>Installed agents</h2>
+          <span>Open a workspace to inspect or request work</span>
+        </div>
+        <AgentRoster state={state} onOpen={setAgent} />
+      </section>
       <section className="card card-body stack">
         <div className="between">
           <div>
@@ -100,7 +106,7 @@ export function Team({ state, act, busy, navigate }: ScreenProps) {
               the capabilities implemented today.
             </p>
           </div>
-          <Sparkles size={23} color="var(--accent)" />
+          <ListChecks size={23} color="var(--accent)" />
         </div>
         <div className="grid-two">
           <label className="field">
@@ -150,7 +156,7 @@ export function Team({ state, act, busy, navigate }: ScreenProps) {
               }
               disabled={busy}
             >
-              <Sparkles size={14} />
+              <ListChecks size={14} />
               Recommend my five
             </Button>
             <Button
@@ -257,7 +263,7 @@ export function Team({ state, act, busy, navigate }: ScreenProps) {
           </label>
         </div>
         <div className="catalog-grid">
-          {filtered.map((item, index) => {
+          {filtered.map((item) => {
             const installed = state.installations.find(
               (value) => value.agentId === item.id,
             );
@@ -272,10 +278,8 @@ export function Team({ state, act, busy, navigate }: ScreenProps) {
                 key={item.id}
               >
                 <div className="between">
-                  <div
-                    className={`agent-symbol ${index % 3 === 0 ? "red" : index % 3 === 1 ? "blue" : "green"}`}
-                  >
-                    <Sparkles size={18} />
+                  <div className="agent-symbol">
+                    <ListChecks size={18} />
                   </div>
                   {recommended ? (
                     <Badge tone="info">Recommended</Badge>
@@ -326,104 +330,7 @@ export function Team({ state, act, busy, navigate }: ScreenProps) {
           </Empty>
         )}
       </section>
-      <Drawer
-        open={!!agent}
-        onClose={() => setAgent(null)}
-        title={agent?.name ?? ""}
-        description={agent?.responsibility ?? ""}
-      >
-        {agent && (
-          <div className="stack">
-            <div className="flex wrap">
-              <Badge status={agent.releaseStatus} />
-              {agent.modes.map((mode) => (
-                <Badge key={mode}>{words(mode)}</Badge>
-              ))}
-            </div>
-            {state.recommendation.rationale[agent.id] && (
-              <div className="notice">
-                <Sparkles size={18} />
-                <p>{state.recommendation.rationale[agent.id]}</p>
-              </div>
-            )}
-            <div>
-              <h3 style={{ fontSize: 14 }}>Prerequisites & dependencies</h3>
-              <ul className="small muted">
-                {[...agent.prerequisites, ...agent.dependencies].map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h3 style={{ fontSize: 14 }}>Allowed work</h3>
-              <ul className="small muted">
-                {agent.allowedTasks.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </div>
-            <div className="notice notice-warning">
-              <ShieldCheck size={18} />
-              <div>
-                <strong>Boundaries</strong>
-                {agent.stopConditions.map((item) => (
-                  <p key={item}>{item}</p>
-                ))}
-              </div>
-            </div>
-            <div className="small muted">
-              Last completed preparation:{" "}
-              {dateTime(installation?.lastPreparationAt ?? null)}
-              <br />
-              Last successful business action:{" "}
-              {dateTime(installation?.lastBusinessActionAt ?? null)}
-            </div>
-            {agent.releaseStatus !== "planned" &&
-              agent.modes.includes("preparation") && (
-                <Button
-                  variant="primary"
-                  onClick={() =>
-                    void act({ type: "prepare", agentId: agent.id })
-                  }
-                  disabled={busy || state.workspace.paused || !installation}
-                >
-                  <Play size={14} />
-                  Run bounded preparation
-                </Button>
-              )}
-            {!installation && (
-              <p className="help">
-                Select and save this specialist before preparing work.
-              </p>
-            )}
-            <h3 style={{ fontSize: 15 }}>Saved preparation artifacts</h3>
-            {state.artifacts
-              .filter((item) => item.agentId === agent.id)
-              .map((item) => (
-                <div key={item.id} className="card card-body">
-                  <Badge status={item.reviewState} />
-                  <h3 style={{ fontSize: 16, margin: "12px 0" }}>
-                    {item.title}
-                  </h3>
-                  <div className="prose">{item.content}</div>
-                  <p
-                    className="notice notice-warning"
-                    style={{ marginTop: 16 }}
-                  >
-                    {item.limitation}
-                  </p>
-                  <Evidence items={item.sourceSnapshot} />
-                </div>
-              ))}
-            {!state.artifacts.some((item) => item.agentId === agent.id) && (
-              <p className="small muted">
-                No saved preparation yet. Missing source or model access will
-                produce an explicit blocker.
-              </p>
-            )}
-          </div>
-        )}
-      </Drawer>
+      <AgentWorkspace {...props} agent={agent} onClose={() => setAgent(null)} />
     </div>
   );
 }
@@ -443,7 +350,7 @@ export function Activation({ state, act, busy, navigate }: ScreenProps) {
     <div className="stack">
       <PageHeading
         eyebrow="Guided activation"
-        title="Make the first workflow count."
+        title="Activate your workspace"
         description="Access, current facts and clear ownership come before execution. Progress is saved so your team can pick up where you left off."
         action={
           <Badge status={state.activation.milestone}>
@@ -747,14 +654,18 @@ export function Activation({ state, act, busy, navigate }: ScreenProps) {
 export function Opportunities(props: ScreenProps) {
   const { state, act, busy, navigate, inspect } = props;
   const [tab, setTab] = useState<"sales" | "findings">("sales");
-  const [proposalId, setProposalId] = useState<string | null>(null);
+  const [proposalId, setProposalId] = useState<string | null>(() =>
+    typeof window === "undefined"
+      ? null
+      : new URLSearchParams(window.location.search).get("proposal"),
+  );
   const [importOpen, setImportOpen] = useState(false);
   const proposal = state.proposals.find((item) => item.id === proposalId);
   return (
     <div className="stack">
       <PageHeading
         eyebrow="Focus on the next useful action"
-        title="Opportunity, with context."
+        title="Opportunities"
         description="Sales records track customer opportunities. The work inbox holds evidence-backed findings your team can investigate; it never adds to pipeline totals."
         action={
           <Button onClick={() => setImportOpen(true)}>
@@ -1087,28 +998,31 @@ function ProposalDetail({
                 </code>
               </p>
               <div className="flex wrap">
-                {approval && activeApprovals(state).some((item) => item.id === approval.id) && (
-                  <>
-                    <Button
-                      variant="primary"
-                      disabled={busy}
-                      onClick={() =>
-                        void act({ type: "approve", actionId: action.id })
-                      }
-                    >
-                      <Check size={13} />
-                      Approve exact action
-                    </Button>
-                    <Button
-                      disabled={busy}
-                      onClick={() =>
-                        void act({ type: "reject", actionId: action.id })
-                      }
-                    >
-                      Reject
-                    </Button>
-                  </>
-                )}
+                {approval &&
+                  activeApprovals(state).some(
+                    (item) => item.id === approval.id,
+                  ) && (
+                    <>
+                      <Button
+                        variant="primary"
+                        disabled={busy}
+                        onClick={() =>
+                          void act({ type: "approve", actionId: action.id })
+                        }
+                      >
+                        <Check size={13} />
+                        Approve exact action
+                      </Button>
+                      <Button
+                        disabled={busy}
+                        onClick={() =>
+                          void act({ type: "reject", actionId: action.id })
+                        }
+                      >
+                        Reject
+                      </Button>
+                    </>
+                  )}
                 {approval?.status === "approved" &&
                   action.status === "not_attempted" && (
                     <Button
