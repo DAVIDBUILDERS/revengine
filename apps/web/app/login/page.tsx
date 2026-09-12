@@ -29,13 +29,26 @@ export default function Login() {
       if (!factor) {
         const factors = await fetch("/api/auth/factors");
         const list = await factors.json();
+        if (!factors.ok) throw new Error(list.message ?? "Could not verify account access. Try again.");
         if (list.factorId) {
           setFactor(list.factorId);
           setMessage("Enter the current code from your authenticator.");
           return;
         }
       }
-      window.location.assign(sessionStorage.getItem("david.pendingInvitation") ? "/join" : "/?view=activation");
+      if (sessionStorage.getItem("david.pendingInvitation")) {
+        window.location.assign("/join");
+        return;
+      }
+      const assignments = await fetch("/api/workspaces", {cache:"no-store",credentials:"same-origin"});
+      const access = await assignments.json();
+      if (!assignments.ok) throw new Error(access.message ?? "Could not load your workspaces. Try again.");
+      if (!Array.isArray(access.workspaces) || !access.workspaces.every((item: {id?: unknown} | null) => item && typeof item.id === "string"))
+        throw new Error("Could not validate your workspaces. Try again.");
+      if (access.requiresOperatorMfa) throw new Error("Complete multi-factor authentication to access your operator workspace.");
+      window.location.assign(access.workspaces.length
+        ? `/?view=activation&workspace=${encodeURIComponent(access.workspaces[0].id)}`
+        : "/start");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to sign in.");
     } finally {

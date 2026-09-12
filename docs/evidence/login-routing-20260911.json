@@ -1,0 +1,61 @@
+{
+  "at": "2026-09-12T00:33:47.169Z",
+  "scope": "login and workspace routing",
+  "origin": "https://revengine-test.vercel.app",
+  "project": "wnuajhvzklxgdorlpkrt",
+  "marker": "f33c0298-efd8-4a87-9c2d-56f4b182f4cc",
+  "evidence": [
+    {
+      "check": "New account a is routed from login directly to company setup",
+      "result": "PASS"
+    },
+    {
+      "check": "Account a without a workspace is routed from the dashboard to setup",
+      "result": "PASS"
+    },
+    {
+      "check": "Authenticated a created a private workspace in the deployed app",
+      "result": "PASS"
+    },
+    {
+      "check": "Returning account a opens its existing workspace",
+      "result": "PASS"
+    },
+    {
+      "check": "New account b is routed from login directly to company setup",
+      "result": "PASS"
+    },
+    {
+      "check": "Account b without a workspace is routed from the dashboard to setup",
+      "result": "PASS"
+    },
+    {
+      "check": "Authenticated b created a private workspace in the deployed app",
+      "result": "PASS"
+    },
+    {
+      "check": "Returning account b opens its existing workspace",
+      "result": "PASS"
+    },
+    {
+      "check": "Cross-workspace read denied",
+      "result": "PASS"
+    },
+    {
+      "check": "Cross-workspace mutation denied",
+      "result": "PASS"
+    },
+    {
+      "check": "Cross-origin mutation denied",
+      "result": "PASS"
+    },
+    {
+      "check": "Signed-out session denied",
+      "result": "PASS"
+    }
+  ],
+  "limitations": [
+    "Test Auth users confirmed administratively; no email delivered.",
+    "No Google OAuth/model/provider execution tested."
+  ]
+}

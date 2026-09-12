@@ -173,7 +173,7 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
       const requested =
         workspaceKey.current ??
         new URLSearchParams(window.location.search).get("workspace");
-      const snapshot: AppSnapshot = browserDemo ? await browserDemo.read(requested) : await (async () => {
+      const snapshot: AppSnapshot | null = browserDemo ? await browserDemo.read(requested) : await (async () => {
         const response = await fetch(
           `/api/state${requested ? `?${new URLSearchParams({ workspace: requested })}` : ""}`,
           {
@@ -182,13 +182,18 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
           },
         );
         const result = await response.json();
+        if (!requested && response.status === 403 && result.error === "WORKSPACE_UNASSIGNED") {
+          if (!mutating.current && epoch === mutationEpoch.current)
+            window.location.replace(sessionStorage.getItem("david.pendingInvitation") ? "/join" : "/start");
+          return null;
+        }
         if (!response.ok)
           throw new Error(
             result.message ?? result.error ?? "Unable to load this workspace.",
           );
         return result.snapshot ?? result;
       })();
-      if (mutating.current || epoch !== mutationEpoch.current) return;
+      if (!snapshot || mutating.current || epoch !== mutationEpoch.current) return;
       workspaceKey.current =
         snapshot.workspace.mode === "fixture"
           ? requested
@@ -335,7 +340,7 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
           <p className="tiny muted">
             {browserDemo
               ? "Browser demo. Allow session storage to explore synthetic workspaces. Use sample data only."
-              : "For the local demonstrator, start the server with DAVID_MODE=fixture. Deployed workspaces require an invited account."}
+              : "Setting up your own company? Create a workspace. Joining an existing company? Use the invitation from its owner."}
           </p>
         </div>
       </div>
