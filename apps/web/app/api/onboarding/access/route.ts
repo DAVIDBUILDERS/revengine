@@ -6,7 +6,7 @@ import { BusinessModel, TimeZone } from '@david/contracts';
 import { environment } from '../../../../../../packages/orchestration/src/environment';
 
 const Input=z.discriminatedUnion('type',[
- z.object({type:z.literal('create_workspace'),name:z.string().trim().min(1).max(200),businessModel:BusinessModel,timeZone:TimeZone}).strict(),
+ z.object({type:z.literal('create_workspace'),requestId:z.uuid().optional(),name:z.string().trim().min(1).max(200),businessModel:BusinessModel,timeZone:TimeZone}).strict(),
  z.object({type:z.literal('accept_invitation'),token:z.string().regex(/^[a-f0-9]{64}$/)}).strict(),
  z.object({type:z.literal('register'),email:z.email(),password:z.string().min(12).max(256)}).strict(),
  z.object({type:z.literal('recover'),email:z.email()}).strict(),
@@ -30,7 +30,7 @@ export async function POST(request:Request){try{
   const {error}=await client.auth.updateUser({password:input.password});if(error)throw new HttpError(409,'PASSWORD_UPDATE_FAILED','Password could not be updated. Use a fresh recovery link or complete MFA.');return json({message:'Password updated. You can return to your workspace.'});
  }
  const {data,error}=input.type==='create_workspace'
- ?await client.rpc('create_onboarding_workspace',{p_name:input.name,p_business_model:input.businessModel,p_time_zone:input.timeZone})
+ ?await client.rpc(input.requestId?'create_onboarding_workspace_once':'create_onboarding_workspace',{...(input.requestId?{p_request:input.requestId}:{}),p_name:input.name,p_business_model:input.businessModel,p_time_zone:input.timeZone})
  :await client.rpc('accept_workspace_invitation',{p_token_hash:createHash('sha256').update(input.token).digest('hex')});
  if(error)throw new HttpError(409,'SETUP_BLOCKED',error.message.slice(0,500));
  return json({workspaceId:data});

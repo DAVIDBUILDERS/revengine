@@ -19,3 +19,12 @@ describe('production preparation orchestration through offline ports',()=>{
   it('missing confirmation, fixture context and a denied capacity claim prevent inference',async()=>{const {input,store,model}=setup();await expect(runPreparation({...input,company:{...input.company,confirmed:false}},store,model)).rejects.toThrow('COMPANY_CONFIRMATION_REQUIRED');await expect(runPreparation({...input,company:{...input.company,fixture:true}},store,model)).rejects.toThrow('FIXTURE_DATA');await expect(runPreparation({...input,company:{...input.company,evidence:input.company.evidence.map(item=>({...item,quality:'fixture' as const}))}},store,model)).rejects.toThrow('FIXTURE_DATA');vi.mocked(store.claim).mockRejectedValueOnce(new Error('PREPARATION_DAILY_CAPACITY'));await expect(runPreparation(input,store,model)).rejects.toThrow('DAILY_CAPACITY');expect(model.prepare).not.toHaveBeenCalled();});
   it('requires explicit per-job spending configuration instead of inventing a model budget',()=>{expect(()=>preparationModelConfig({AI_GATEWAY_API_KEY:'SYNTHETIC_KEY',AI_MODEL_ID:'synthetic-model',AI_ALLOWED_PROVIDER:'openai'})).toThrow();expect(()=>preparationModelConfig({AI_GATEWAY_API_KEY:'SYNTHETIC_KEY',AI_MODEL_ID:'synthetic-model',AI_ALLOWED_PROVIDER:'openai',AI_MAX_JOB_COST_MINOR:'0'})).toThrow();expect(preparationModelConfig({AI_GATEWAY_API_KEY:'SYNTHETIC_KEY',AI_MODEL_ID:'synthetic-model',AI_ALLOWED_PROVIDER:'openai',AI_MAX_JOB_COST_MINOR:'5'}).maxCostMinor).toBe(5);});
 });
+
+it('reviewed objective and visitor action affect the retained output and its reuse signature',async()=>{
+ const {input,store,model,saved}=setup('landing-page-optimizer');
+ const original=preparationSourceSignature(input.company,input.agentId);
+ input.company.operatingGuidance={brand:'',forbiddenClaims:'',objective:'Qualified inquiries',desiredAction:'Request a consultation'};
+ expect(preparationSourceSignature(input.company,input.agentId)).not.toBe(original);
+ await runPreparation(input,store,model);const artifact=[...saved.values()][0].artifact;
+ expect(artifact.content).toContain('CTA: Request a consultation');expect(artifact.factualInputs).toContain('Owner-selected objective: Qualified inquiries');
+});

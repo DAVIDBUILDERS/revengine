@@ -7,6 +7,7 @@ import {parseCsvImport,forecastCases} from '../../../packages/domain/src/index';
 import {authClient,authorize} from './auth';
 import {HttpError} from './http';
 import {environment} from '../../../packages/orchestration/src/environment';
+import {preparationModelConfig} from '../../../packages/orchestration/src/model-budget';
 
 type Row=Record<string,unknown>;
 const text=(r:Row,k:string)=>String(r[k]??'');
@@ -41,12 +42,13 @@ export async function operationalSnapshot(requested:string|null):Promise<C.AppSn
  if(setupSourceError)throw new HttpError(503,'SETUP_DISCOVERY_UNAVAILABLE','Prepared setup storage is unavailable.');
  state.setupDocuments=(setupSources??[]).filter(r=>r.kind==='setup_document').map(r=>C.SetupDocument.parse(r.payload));
  const prepared=(setupSources??[]).find(r=>r.kind==='prepared_setup');if(prepared)state.preparedSetup=C.PreparedSetup.parse(prepared.payload);
- if(context.role==='workspace_owner'){const {data}=await client.auth.getUser();if(data.user?.email&&data.user.email_confirmed_at)state.setupIdentity={email:data.user.email,name:String(data.user.user_metadata?.full_name??data.user.email).slice(0,200)};}
+ if(context.role==='workspace_owner'){const {data}=await client.auth.getUser();if(data.user?.email&&data.user.email_confirmed_at)state.setupIdentity={email:data.user.email,name:String(data.user.user_metadata?.full_name??data.user.user_metadata?.name??'').slice(0,200)};}
  state.activation.selectedTeam=installations.filter(i=>i.status!=='paused').map(i=>i.agentId).slice(0,32);
  const {data:latestCapture}=await client.from('product_records').select('payload').eq('workspace_id',workspaceId).eq('kind','company_context').order('created_at',{ascending:false}).limit(1).maybeSingle();
- const capture=latestCapture?.payload as {id:string;sourceHash:string;context:{fixture:boolean;pages:NonNullable<C.AppSnapshot['onboardingCapture']>['pages']}}|undefined;
- if(capture)state.onboardingCapture={id:capture.id,sourceHash:capture.sourceHash,fixture:capture.context.fixture,pages:capture.context.pages};
- state.activation.confirmedFacts=rows.product_records.some(r=>r.kind==='company_context'&&(r.payload as {context?:{confirmed?:boolean}})?.context?.confirmed===true);
+ const capture=latestCapture?.payload as {requestId?:string;id:string;sourceHash:string;context:{evidence:C.EvidenceRef[];confirmed:boolean;fixture:boolean;pages:NonNullable<C.AppSnapshot['onboardingCapture']>['pages']}}|undefined;
+ if(capture)state.onboardingCapture={evidence:capture.context.evidence,requestId:capture.requestId,id:capture.id,sourceHash:capture.sourceHash,fixture:capture.context.fixture,pages:capture.context.pages};
+ state.currentPreparationArtifactIds=rows.prepared_artifacts.filter(r=>Array.isArray(r.source_snapshot)&&r.source_snapshot.length>0&&r.source_snapshot.every((proof:{id:string})=>rows.evidence.some(e=>e.id===proof.id&&e.content_hash===capture?.sourceHash&&!['fixture','unknown'].includes(String(e.quality))))).map(r=>text(r,'id'));
+ state.activation.confirmedFacts=capture?.context.confirmed===true;
  state.activation.milestone=state.outcomes.some(o=>o.quality==='provider_verified'&&['booked','attended','signed','completed','paid'].includes(o.stage))?'live_business_outcome':state.receipts.some(r=>r.provider!=='fixture'&&['provider_accepted','confirmed'].includes(r.status))?'authorized_test_action':state.artifacts.length?'preparation_artifact':'not_started';
  const {data:authoritativeMetrics,error:metricsError}=await client.rpc('read_workspace_metrics',{p_workspace:workspaceId});
  if(metricsError)throw new HttpError(503,'METRICS_UNAVAILABLE','Apply the current metrics migration before displaying workspace totals.');
@@ -63,6 +65,11 @@ export async function operationalSnapshot(requested:string|null):Promise<C.AppSn
  for(const [name,records]of pairs)if(records.length>200)blockers.push({code:`coverage_${name}`,message:`${name} display is limited to the first 201 records.`,owner:'DAVID operator',nextStep:'Use the authorized complete export for full reconciliation; numeric totals use the full database.',dimension:'measurement'});
  state.readiness.action=state.readiness.action&&!blockers.some(b=>b.dimension==='action');
  state.readiness.measurement=state.readiness.measurement&&!blockers.some(b=>b.dimension==='measurement');
+ const {data:modelSetup,error:modelSetupError}=await client.rpc('read_preparation_setup',{p_workspace:workspaceId});
+ if(modelSetupError)throw new HttpError(503,'BRIEFING_SCHEMA_UNAVAILABLE','Apply the conversational briefing migration before using this release.');
+ let providerConfigured=false;try{preparationModelConfig(process.env);providerConfigured=true;}catch{/* Configuration errors are administrative; never expose credentials in validation output. */}
+ state.preparationRuntime={configured:providerConfigured&&modelSetup?.globalConfigured===true,message:!providerConfigured?'Model provider and per-job spending setup must be completed by the DAVID administrator. Your briefing is saved.':'The application model budget must be approved by the DAVID administrator. Your workspace budget does not authorize application-wide spending.'};
+ state.preparationRequests=rows.runs.filter(r=>rows.installations.some(i=>i.id===r.installation_id&&i.mode==='preparation')).map(r=>({id:text(r,'id'),agentId:String(rows.installations.find(i=>i.id===r.installation_id)?.agent_id??''),status:text(r,'status'),createdAt:date(r,'created_at')!}));
  state.health=z.array(C.RuntimeHealth).parse(health);
  return state;
 }
