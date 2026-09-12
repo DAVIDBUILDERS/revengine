@@ -47,7 +47,7 @@ export default function Login() {
         throw new Error("Could not validate your workspaces. Try again.");
       if (access.requiresOperatorMfa) throw new Error("Complete multi-factor authentication to access your operator workspace.");
       window.location.assign(access.workspaces.length
-        ? `/?view=activation&workspace=${encodeURIComponent(access.workspaces[0].id)}`
+        ? `/?workspace=${encodeURIComponent(access.workspaces.find((w:{id:string})=>w.id===sessionStorage.getItem("david.resumeWorkspace"))?.id??access.workspaces[0].id)}`
         : "/start");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to sign in.");

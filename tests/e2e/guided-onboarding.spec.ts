@@ -1,66 +1,58 @@
-import {test,expect} from '@playwright/test';
+import {test,expect,type Page} from '@playwright/test';
 const origin=process.env.PREVIEW_URL??'http://localhost:3002';
-test('prepared setup needs only a budget and review, then retains first work across reload',async({page},testInfo)=>{
- const errors:string[]=[],apiCalls:string[]=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(new URL(r.url()).pathname.startsWith('/api/'))apiCalls.push(r.url());});
+async function start(page:Page,manual=false){
  await page.goto(`${origin}/?view=activation`);
- await expect(page.getByRole('heading',{name:'What should DAVID help you accomplish?'})).toBeVisible();
- await page.getByRole('radio',{name:/Create qualified demand/}).check();
- await page.getByRole('button',{name:'Prepare a sample setup',exact:true}).click();
- await expect(page.getByRole('heading',{name:'Connect what’s useful now.'})).toBeVisible();
- await page.getByRole('button',{name:'Review my prepared setup',exact:true}).click();
- await expect(page.getByRole('heading',{name:'Here’s the setup we prepared.'})).toBeVisible();
- await expect(page.locator('.setup-summary').first()).toContainText('Example Advisory');
- await expect(page.getByLabel('Company name',{exact:true})).toHaveCount(0);
- await expect(page.getByLabel('Approver email',{exact:true})).toHaveCount(0);
- await expect(page.getByRole('button',{name:'Approve this setup',exact:true})).toBeDisabled();
- await expect(page.getByLabel('Daily AI spending limit')).toHaveValue('');
- await page.getByText('Review baseline values and sources',{exact:true}).click();
- await expect(page.getByText('Unknown',{exact:true}).first()).toBeVisible();
- await page.getByText('Review baseline values and sources',{exact:true}).click();
- await page.getByLabel('Daily AI spending limit').fill('5');
- await page.getByLabel('I reviewed the company facts, team, responsibilities and operating limits shown here.').check();
- await page.evaluate(()=>window.scrollTo(0,0));
- await page.screenshot({path:testInfo.outputPath('prepared-review-desktop.png'),fullPage:true});
- await page.getByRole('button',{name:'Approve this setup',exact:true}).click();
- await expect(page.getByRole('heading',{name:'Start with a preparation you can review.'})).toBeVisible();
- await page.getByRole('button',{name:'Start Account Intelligence',exact:true}).click();
- await expect(page.locator('.onboarding-template').first()).toContainText('Example Advisory');
- await page.getByRole('button',{name:'Accept this output',exact:true}).click();
- await expect(page.getByText('Company positioning profile · reviewed')).toBeVisible();
- await page.reload();await expect(page.getByText('Company positioning profile · reviewed')).toBeVisible();
- await page.setViewportSize({width:390,height:844});
- for(let i=0;i<4;i++){await page.locator('nav[aria-label="Prepared setup stages"] button').nth(i).click();expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),`stage ${i}`).toBe(false);}
- await page.locator('nav[aria-label="Prepared setup stages"] button').nth(2).click();await page.screenshot({path:testInfo.outputPath('prepared-review-mobile.png'),fullPage:true});
- await page.getByRole('button',{name:'Edit company details'}).click();await page.getByLabel('Company name',{exact:true}).fill('Unsaved correction');
- await page.locator('nav[aria-label="Prepared setup stages"] button').nth(3).click();await expect(page.getByRole('button',{name:'Start Account Intelligence',exact:true})).toBeDisabled();
- await page.locator('nav[aria-label="Prepared setup stages"] button').first().click();await page.getByText('Add an existing company brief (optional)',{exact:true}).click();await page.getByRole('button',{name:'Use a sample company brief',exact:true}).click();
- await page.locator('nav[aria-label="Prepared setup stages"] button').nth(2).click();await expect(page.getByRole('button',{name:'Save progress for later',exact:true})).toBeDisabled();await expect(page.getByText(/Sources or saved answers changed/)).toBeVisible();
- await page.goto(`${origin}/?view=activation&workspace=northstar`);await expect(page.getByRole('button',{name:'Prepare a sample setup'})).toBeVisible();await expect(page.getByText('Company positioning profile · reviewed')).toHaveCount(0);
- expect(errors).toEqual([]);expect(apiCalls).toEqual([]);
+ await expect(page.getByRole('heading',{name:/Let’s find a useful first step/})).toBeVisible();
+ await expect(page.getByRole('navigation',{name:'Main navigation'})).toHaveCount(0);
+ await page.getByRole('button',{name:'Let’s begin'}).click();
+ if(manual){await page.getByRole('button',{name:'I don’t have a website'}).click();await page.getByLabel('Business description').fill('We help independent studios improve sales operations.');await page.getByRole('button',{name:'Continue',exact:false}).click();}
+ else {await page.getByLabel('Company website',{exact:true}).fill('example.com');await page.getByLabel('Company website',{exact:true}).press('Enter');}
+ if(await page.getByLabel('Your name',{exact:true}).isVisible()){await page.getByLabel('Your name',{exact:true}).fill('Alex');await page.getByRole('button',{name:'Continue',exact:false}).click();}
+ await expect(page.getByRole('heading',{name:'What would make the biggest difference right now?'})).toBeVisible();
+}
+async function facts(page:Page,manual=false){
+ await page.getByRole('button',{name:'Continue',exact:false}).click();
+ await expect(page.getByRole('heading',{name:manual?'Let’s fill in just the essentials.':'Here’s what we can learn from your website.'})).toBeVisible();
+ await page.getByRole('button',{name:manual?'Continue with my own answers':'Review what we found'}).click();
+ if(await page.getByLabel('Main offer',{exact:true}).isVisible()){await page.getByLabel('Main offer',{exact:true}).fill('Sales operations consulting');await page.getByRole('button',{name:'Continue',exact:false}).click();}
+ if(await page.getByLabel('Ideal customers',{exact:true}).isVisible()){await page.getByLabel('Ideal customers',{exact:true}).fill('Independent studios');await page.getByRole('button',{name:'Continue',exact:false}).click();}
+ await expect(page.getByRole('heading',{name:'Here’s what we learned about your business.'})).toBeVisible();
+ await page.getByRole('button',{name:'That’s right'}).click();
+}
+test('website briefing, explicit permission and source-backed synthetic output work on desktop and mobile',async({page},info)=>{
+ const errors:string[]=[],calls:string[]=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(new URL(r.url()).pathname.startsWith('/api/'))calls.push(r.url());});
+ await start(page);await page.keyboard.press('1');await expect(page.getByRole('radio',{name:/Get more qualified leads/})).toBeChecked();
+ await expect(page.getByText('Saved to this workspace',{exact:true})).toBeVisible();await page.screenshot({path:info.outputPath('briefing-goal-desktop.png'),fullPage:true});
+ await facts(page);
+ await expect(page.getByRole('heading',{name:'A content brief for your ideal customer'})).toBeVisible();
+ await page.getByRole('button',{name:'Start with this task'}).click();
+ await page.getByRole('button',{name:'Confirm this source'}).click();
+ await expect(page.getByRole('button',{name:'Continue',exact:false})).toBeDisabled();
+ await page.getByLabel('Daily model budget (USD)').fill('5');await page.getByRole('button',{name:'Continue',exact:false}).click();
+ await expect(page.getByRole('button',{name:'Approve this preparation setup'})).toBeDisabled();
+ await page.getByLabel(/I approve this internal preparation limit/).check();
+ await page.getByRole('button',{name:'Approve this preparation setup'}).click();
+ await page.getByRole('button',{name:'Prepare sample output'}).click();
+ await expect(page.getByRole('heading',{name:'Source-grounded content brief'})).toBeVisible();
+ await page.getByRole('button',{name:'Mark output reviewed'}).click();
+ await page.reload();await expect(page.getByRole('heading',{name:'Source-grounded content brief'})).toBeVisible();
+ await page.screenshot({path:info.outputPath('briefing-finish-desktop.png'),fullPage:true});
+ await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
+ await page.screenshot({path:info.outputPath('briefing-finish-mobile.png'),fullPage:true});
+ await page.getByRole('button',{name:'Open my workspace'}).click();await expect(page.getByRole('region',{name:'Your starting plan'})).toContainText('A content brief for your ideal customer');
+ expect(errors).toEqual([]);expect(calls).toEqual([]);
 });
-test('selected briefs, correction persistence, source mapping and administrator blockers share one setup',async({page})=>{
- await page.goto(`${origin}/?view=activation`);
- await page.getByText('Add an existing company brief (optional)',{exact:true}).click();
- await page.getByRole('button',{name:'Use a sample company brief',exact:true}).click();
- await expect(page.getByRole('button',{name:'Remove Example Advisory company brief.md'})).toBeVisible();
- await page.getByRole('radio',{name:/Recover open proposals/}).check();
- await page.getByRole('button',{name:'Prepare a sample setup',exact:true}).click();
- await page.getByRole('button',{name:'Ask an administrator for access',exact:true}).click();
- await expect(page.getByText(/Administrator assistance requested in the operator queue/)).toBeVisible();
- await page.getByText('Try sample spreadsheet discovery',{exact:true}).click();
- await page.getByRole('button',{name:'Load sample spreadsheet headers'}).click();
- await expect(page.getByText(/17 of 17 required fields matched/)).toBeVisible();
- await page.getByLabel('I reviewed this resource, owner and mapping and authorize its bounded read check.').check();
- await page.getByRole('button',{name:'Use this source and check access'}).click();
- await expect(page.getByText(/Sample source selection saved/)).toBeVisible();
- await page.getByRole('button',{name:'Review my prepared setup',exact:true}).click();
- await page.getByText(/^Sources behind this setup/).click();await expect(page.getByText(/Selected document, line/).first()).toBeVisible();
- await page.getByRole('button',{name:'Edit company details'}).click();await page.getByLabel('Company name',{exact:true}).fill('Reviewed sample company');
- await page.getByLabel('Daily AI spending limit').fill('2.50');
- await page.getByRole('button',{name:'Save progress for later',exact:true}).click();
- await page.reload();await page.getByRole('button',{name:'Edit company details'}).click();
- await expect(page.getByLabel('Company name',{exact:true})).toHaveValue('Reviewed sample company');await expect(page.getByLabel('Daily AI spending limit')).toHaveValue('2.5');
- await page.getByLabel('I reviewed the company facts, team, responsibilities and operating limits shown here.').check();
- await page.getByRole('button',{name:'Approve this setup',exact:true}).click();
- await page.getByRole('button',{name:'Start Account Intelligence',exact:true}).click();await expect(page.locator('.onboarding-template').first()).toContainText('Reviewed sample company');
+test('manual fallback, backtracking and refresh preserve answers without claiming execution',async({page},info)=>{
+ await page.setViewportSize({width:390,height:844});await start(page,true);
+ await page.getByRole('radio',{name:/Follow up on open proposals/}).check();await facts(page,true);
+ await page.getByLabel('Proposal system').fill('Our CRM');await page.getByRole('button',{name:'Continue',exact:false}).click();
+ await expect(page.getByText(/Automatic proposal follow-up is a separate pilot/)).toBeVisible();
+ await page.getByRole('button',{name:'Back',exact:false}).click();await expect(page.getByLabel('Proposal system')).toHaveValue('Our CRM');
+ await page.reload();await expect(page.getByLabel('Proposal system')).toHaveValue('Our CRM');
+ await page.getByRole('button',{name:'Continue',exact:false}).click();await page.getByRole('button',{name:'Start with this task'}).click();
+ await page.getByRole('button',{name:'Save briefing for later'}).click();
+ await expect(page.getByText(/Manual context is saved/)).toBeVisible();await expect(page.getByRole('button',{name:'Prepare sample output'})).toHaveCount(0);
+ await page.screenshot({path:info.outputPath('briefing-manual-mobile.png'),fullPage:true});
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
+ await page.goto(`${origin}/?view=activation&workspace=northstar`);await expect(page.getByRole('heading',{name:/Let’s find a useful first step/})).toBeVisible();await expect(page.getByText('Our CRM')).toHaveCount(0);
 });

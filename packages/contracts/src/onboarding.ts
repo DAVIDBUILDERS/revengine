@@ -1,7 +1,17 @@
 import { z } from 'zod';
 const text = z.string().trim().max(4000);
 const list = z.preprocess(value => Array.isArray(value) ? value.map(v=>typeof v==='string'?v.trim():v).filter(v=>v!=='') : value, z.array(z.string().min(1).max(500)).max(100));
+export const Briefing = z.object({
+ version:z.literal(1),
+ step:z.enum(['welcome','website','description','name','goal','other-goal','research','company-name','offer','customers','summary','proposal-source','conversion-action','recommendation','access','budget','review','finish']),
+ name:text.default(''), goal:z.enum(['','demand','conversion','recover','other']).default(''), otherGoal:text.default(''),
+ description:text.default(''), websiteInput:text.default(''), proposalSource:text.default(''), conversionAction:text.default(''),
+ researchId:z.union([z.literal(''),z.uuid()]).default(''), noWebsite:z.boolean().default(false),
+ reviewedFacts:z.string().max(16000).default(''), task:z.string().max(100).default(''), finished:z.boolean().default(false),
+}).strict();
+export type Briefing = z.infer<typeof Briefing>;
 export const OnboardingAnswers = z.object({
+  briefing:Briefing.optional(),
   company: z.object({name:text,website:z.union([z.literal(''),z.url()]),businessModel:z.enum(['b2b_services','home_services','commerce']),timeZone:z.string().refine(v=>{try{new Intl.DateTimeFormat('en',{timeZone:v});return true;}catch{return false;}},'Use an IANA time zone'),offers:list,customers:list,priorities:list,successDefinition:text,brandGuidance:text,forbiddenClaims:text}).strict(),
   team:z.array(z.string().min(1).max(100)).max(32).refine(v=>new Set(v).size===v.length,'Select distinct agents'),
   systems:z.array(z.object({id:z.string().min(1).max(100),kind:z.enum(['website','proposals','mail','calendar','drive','advertising','social','analytics','calls','payments','commerce','local','rfp','other']),tool:text,availability:z.enum(['available','not_available','admin_needed']),resource:text,owner:text,mapping:text,connectionId:z.union([z.literal(''),z.uuid()])}).strict()).max(40).refine(v=>new Set(v.map(s=>s.id)).size===v.length,'System IDs must be distinct'),

@@ -10,6 +10,8 @@ import type {
 import { money, words } from "@david/ui";
 import { OnboardingOperator } from "./onboarding";
 import { PreparedOnboarding } from "./prepared-onboarding";
+import {briefingFinished} from "@david/domain/briefing";
+import {BriefingHandoff} from "./briefing/handoff";
 import { Today } from "./today";
 import { activeApprovals } from "./approval-state";
 import {
@@ -198,6 +200,9 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
         snapshot.workspace.mode === "fixture"
           ? requested
           : snapshot.workspace.id;
+      if (!browserDemo && snapshot.workspace.mode !== "fixture" && !new URLSearchParams(window.location.search).has("view") && snapshot.onboarding && !snapshot.onboarding.appliedRevision && snapshot.activation.milestone === "not_started" && !briefingFinished(snapshot.onboarding.answers) && ["workspace_owner","david_operator"].includes(snapshot.context.role)) {
+        setPage("activation");
+      }
       setState(snapshot);
       setLoadError("");
     } catch (error) {
@@ -346,6 +351,7 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
       </div>
     );
   const props: ScreenProps = { state, act, busy, navigate, inspect };
+  if(page === "activation" && !(state.onboarding?.appliedRevision&&!state.onboarding.answers.briefing) && new URLSearchParams(window.location.search).get("mode") !== "profile") return <FeedbackContext.Provider value={notice}><PreparedOnboarding key={state.workspace.id} {...props}/></FeedbackContext.Provider>;
   return (
     <FeedbackContext.Provider value={notice}>
       <EvidenceAccessContext.Provider
@@ -629,6 +635,7 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
                   </div>
                 </div>
               )}
+              {page === "today" && <BriefingHandoff {...props}/> }
               {page === "today" && (
                 <Today
                   {...props}

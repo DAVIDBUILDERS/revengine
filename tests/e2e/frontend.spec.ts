@@ -14,7 +14,7 @@ test("all operational screens fit a narrow viewport", async ({ page }) => {
     "operator",
   ]) {
     await page.goto(`/?view=${view}`);
-    await expect(page.locator(".page-heading h1")).toBeVisible();
+    await expect(page.locator(".page-heading h1, .briefing-question h1")).toBeVisible();
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth > innerWidth,
