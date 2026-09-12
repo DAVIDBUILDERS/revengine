@@ -1,6 +1,6 @@
 # Conversational onboarding implementation
 
-Branch: `codex/conversational-onboarding`. Delivery is a draft PR; no production merge or deployment is authorized.
+Originally delivered on `codex/conversational-onboarding` as draft PR #1. The user subsequently authorized merge and deployment; it is now released. See the [release record](OPERATIONAL_ONBOARDING.md#conversational-briefing-release--september-12-utc--september-11-denver). Historical implementation and pre-release verification notes follow.
 
 ## Plan
 

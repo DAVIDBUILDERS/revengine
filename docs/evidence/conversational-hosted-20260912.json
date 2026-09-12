@@ -1,0 +1,73 @@
+{
+  "at": "2026-09-12T02:57:47.798Z",
+  "scope": "complete onboarding",
+  "origin": "https://revengine-test.vercel.app",
+  "project": "wnuajhvzklxgdorlpkrt",
+  "marker": "fb577b6c-e5f4-48c0-a404-818f65ad8a80",
+  "evidence": [
+    {
+      "check": "New account a is routed from login directly to company setup",
+      "result": "PASS"
+    },
+    {
+      "check": "Account a without a workspace is routed from the dashboard to setup",
+      "result": "PASS"
+    },
+    {
+      "check": "Authenticated a created a private workspace in the deployed app",
+      "result": "PASS"
+    },
+    {
+      "check": "Returning account a opens its existing workspace",
+      "result": "PASS"
+    },
+    {
+      "check": "New account b is routed from login directly to company setup",
+      "result": "PASS"
+    },
+    {
+      "check": "Account b without a workspace is routed from the dashboard to setup",
+      "result": "PASS"
+    },
+    {
+      "check": "Authenticated b created a private workspace in the deployed app",
+      "result": "PASS"
+    },
+    {
+      "check": "Returning account b opens its existing workspace",
+      "result": "PASS"
+    },
+    {
+      "check": "Cross-workspace read denied",
+      "result": "PASS"
+    },
+    {
+      "check": "Actual HTTPS capture supports a reviewed company summary; owner supplied missing facts",
+      "result": "PASS"
+    },
+    {
+      "check": "Model-free recommendation skips spending questions and resumes from Supabase",
+      "result": "PASS"
+    },
+    {
+      "check": "Explicitly reviewed preparation setup applied with execution paused and spending disabled",
+      "result": "PASS"
+    },
+    {
+      "check": "Cross-workspace mutation denied",
+      "result": "PASS"
+    },
+    {
+      "check": "Cross-origin mutation denied",
+      "result": "PASS"
+    },
+    {
+      "check": "Signed-out session denied",
+      "result": "PASS"
+    }
+  ],
+  "limitations": [
+    "Test Auth users confirmed administratively; no email delivered.",
+    "No Google OAuth/model/provider execution tested."
+  ]
+}

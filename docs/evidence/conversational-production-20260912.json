@@ -1,0 +1,29 @@
+{
+  "at": "2026-09-12T02:58:50.414344+00:00",
+  "origin": "https://revengine-production.vercel.app",
+  "deployment": "EmpRUCZB7LMJ582bvAs8QiQUeJcY",
+  "checks": [
+    {
+      "path": "/login",
+      "status": 200
+    },
+    {
+      "path": "/start",
+      "status": 200
+    },
+    {
+      "path": "/api/workspaces",
+      "status": 401
+    },
+    {
+      "path": "/api/state",
+      "status": 401
+    },
+    {
+      "path": "/api/cron",
+      "status": 401
+    }
+  ],
+  "briefingBundleVerified": true,
+  "productionUsersCreated": false
+}
