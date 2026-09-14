@@ -1,6 +1,6 @@
 # Google access and verification record
 
-Real Google HTTP adapters are implemented. Local tests inject synthetic HTTP responses and never contact Google. No OAuth client, account permissions, Gmail message, Calendar event, Google Sheet read or live outcome has been verified in this repository's build environment.
+Real Google HTTP adapters are implemented. Local tests inject synthetic HTTP responses and never contact Google. Production OAuth app credentials and the exact callback were configured on September 14 (see the dated record below). Account consent, a Gmail message, Calendar event, Google Sheet read and live outcomes still require verification.
 
 ## Operations and grants
 
@@ -55,3 +55,13 @@ The owner must provide the Google Cloud organization/project and consent audienc
 The final freshness guard compares all material Sheet columns against an immutable action source snapshot, including edits that failed to increment the source version. Required mapped canonical columns are `proposal_id`, `status`, `version`, `source_verified_at`, `email`, `owner`, `scope_summary`, `valid_until`, `currency`, `amount_minor`, `value_kind`, and `issued_at`. Dates must have explicit ISO timestamps and amounts must be integer minor units; ambiguous human-formatted money/dates need mapping/owner review. Two fresh reads bracket reservation, followed by the final transactional pause/policy check. An inbound message after proposal issuance stops follow-up even when it arrived before the draft. Gmail system-labeled sent messages and drafts are not counted as inbound; an untrusted From header cannot suppress a received reply.
 
 The source-check workflow can import normalized selected-Sheet rows through `private.ingest_sheet_rows`; this shares the validated CSV ingestion core. Bound ranges must contain at most 500 data rows (larger sources need checkpointed range partitioning before activation). Optional `gmail_thread_id` establishes the original proposal-thread metadata used by the first action draft. The contact remains unenrolled until the reviewed live activation. Missing thread metadata leaves reply coverage explicitly blocked. Reimport preserves IDs and does not delete omitted records. A proposal already owned by CSV requires an explicit reviewed source-authority mapping before moving to Sheet authority.
+
+## September 14: production OAuth configuration
+
+Configured the owner-supplied Google Web application client in Vercel project `revengine-production` (`prj_8M62jHiM3TiL1uqrAmxAddA1iVLB`) using production-only `GOOGLE_CLIENT_ID`, sensitive `GOOGLE_CLIENT_SECRET`, and `GOOGLE_REDIRECT_URI`. The secret was submitted directly to Vercel and was not written to a repository file. Test and public demo projects do not receive the production Google credentials.
+
+Exact production callback: `https://revengine.getdavid.ai/api/google/callback`. Added this one URL to `private.allowed_oauth_redirects` in Supabase production `zjdhsbzngfvoeqzhkssi`; the `david_oauth` role was verified to allow login without superuser, bypass-RLS, create-role or create-database privileges. The new `scripts/configure-google-oauth.ts preview|apply <https-origin>` command performs target-bound, idempotent administrative callback registration without granting any Google account access.
+
+Successful authorization now returns to Connections for the same workspace, avoiding the previous return into conversational activation. The browser available to this session was signed out of DAVID; owner account consent and live Google source verification remain pending. These configuration checks do not establish a connected account or operational agent.
+
+Remaining Google-side setup must be confirmed in the owner's Google Cloud project: the exact authorized redirect, consent branding/audience/test users, enabled APIs and any required scope verification. Customers select and authorize their own accounts; app credential setup is a DAVID administrative task.
