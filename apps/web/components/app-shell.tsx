@@ -31,7 +31,6 @@ import {
   RefreshCw,
   Route,
   Settings2,
-  ShieldCheck,
   Target,
   Users,
   X,
@@ -40,6 +39,7 @@ import {
   Badge,
   Button,
   dateTime,
+  DavidSilhouette,
   Drawer,
   Evidence,
   EvidenceAccessContext,
@@ -514,10 +514,8 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
                 </nav>
               )}
               <div className="sidebar-help">
-                <div className="flex" style={{ gap: 7 }}>
-                  <ShieldCheck size={14} />
-                  Work you can inspect.
-                </div>
+                <DavidSilhouette className="sidebar-david" />
+                <div>Work you can inspect.</div>
                 <span>
                   Sources, saved work and operating limits are visible for every
                   agent.

@@ -12,7 +12,7 @@ import {
   type CompanySystemCoverage,
   type SystemKind,
 } from "@david/domain/company-connections";
-import { Button } from "./ui";
+import { Button, DavidSilhouette } from "./ui";
 import "./company-connection-map.css";
 
 export type CompanyConnectionMapProps = {
@@ -98,6 +98,7 @@ export function CompanyConnectionMap({ state, onSetup, onChooseTeam, onManageSys
   return (
     <div className="company-connection-map">
       <section className="company-map-mission" aria-labelledby="company-map-heading">
+        <DavidSilhouette className="company-map-david" />
         <div className="company-map-mission-copy">
           <span className="company-map-kicker">{companyName.toUpperCase()} / SHARED COMPANY SOURCES</span>
           <h2 id="company-map-heading">Connect once.<br />{allowance === 5 ? "Choose any five." : "Shape your team."}</h2>

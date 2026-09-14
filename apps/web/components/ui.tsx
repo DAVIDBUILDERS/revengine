@@ -30,6 +30,10 @@ export const EvidenceAccessContext = createContext<{
   mode: string;
 } | null>(null);
 
+export function DavidSilhouette({ className = "" }: { className?: string }) {
+  return <span className={`david-silhouette ${className}`.trim()} aria-hidden="true" />;
+}
+
 export function Button({
   children,
   variant = "",

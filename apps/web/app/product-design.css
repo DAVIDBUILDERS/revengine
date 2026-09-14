@@ -74,6 +74,12 @@ body:has([role="dialog"]) .toast {
   color: #454a43;
   padding: 18px 10px 0;
 }
+.sidebar-david {
+  width: 34px;
+  height: auto;
+  color: #222925;
+  margin-bottom: 8px;
+}
 .sidebar-help span {
   color: var(--muted);
   display: block;
