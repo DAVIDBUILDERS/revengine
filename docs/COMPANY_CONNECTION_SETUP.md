@@ -33,3 +33,15 @@ Progress, verification and release evidence will be recorded here as implementat
 The browser/SQL fixtures are labeled test data. These checks do not claim a real Google consent grant, mail delivery, booking or finished implementation of planned agents.
 
 Final local checks: 251 unit tests, all 46 browser scenarios (one stale CSS selector corrected and rerun), TypeScript, lint/module boundaries, and builds for the operational app and both demo variants passed. No Google provider credentials were copied into the test project.
+
+## Hosted release verification
+
+- Test app: `revengine-test-6sxfddca0-davidai.vercel.app`, deployment `4Zj5NxMswqxddpuV8v5tvZuYv7Eq`.
+- Both migrations 023 and 024 applied to test, then production after all 15 rollback SQL suites passed.
+- Deployed test harness created two isolated, labeled test accounts/workspaces and verified login, creation, returning sessions, shared inventory and operator requests, first selection and swapping five, preserved configuration stamps, cross-workspace/cross-origin denial and sign-out. All seven studio pages fit desktop and mobile.
+- The missing Firecrawl key in test correctly returned an explicit configuration error; no simulated capture was reported as live. Production credentials remain separate.
+- Evidence: `artifacts/hosted-onboarding-evidence.json` and `artifacts/hosted-studio-*-{desktop,mobile}.png` (ignored local artifacts). Test account credentials are kept only in ignored local files.
+- Application commits: `c3c679a` (shared setup and swaps) and `fbd0298` (revision-zero preservation).
+- Production: `revengine-production-nm0c443ky-davidai.vercel.app`, deployment `2Qayj3ymj2ZyHfHHibyoEbMrcwYA`, aliased to `https://revengine.getdavid.ai`.
+- Vercel deployment file comparison confirms all 254 uploaded application/source files match between test and production; documentation and environment-specific build outputs are excluded. Evidence: `artifacts/company-deployment-parity.json`.
+- Production smoke checks: login/start render, unauthenticated workspace access is rejected, auth callback returns to the canonical domain, and malformed login is rejected by validation. No real customer agent was activated or external message sent during release.
