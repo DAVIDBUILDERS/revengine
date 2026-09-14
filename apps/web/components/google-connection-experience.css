@@ -1,0 +1,126 @@
+.google-experience { max-width: 1400px; margin: 0 auto; color: #252e27; }
+.google-experience *, .google-experience *::before, .google-experience *::after { box-sizing: border-box; }
+.google-experience .google-experience-kicker { font: 500 10px/1.65 ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: 1.8px; color: #6b7766; }
+.google-experience-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 6px 0 25px; }
+.google-experience-header > .btn { font-size: 12px; }
+.google-experience-stage { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, 1fr); gap: 16px 38px; padding: 46px 46px 0; border-radius: 23px; color: #f6f7f0; background: #222b25; overflow: hidden; position: relative; isolation: isolate; }
+.google-experience-stage::before { content: ""; position: absolute; inset: 0; z-index: -1; opacity: .1; background-image: linear-gradient(90deg, transparent 99%, #cbd5bd 99%); background-size: 72px 100%; pointer-events: none; mask-image: linear-gradient(90deg, transparent 45%, #000); }
+.google-experience-stage .google-experience-kicker { color: #bdcbb0; }
+.google-experience-intro { min-width: 0; padding: 8px 0 24px; }
+.google-experience-intro h1 { margin: 17px 0 22px; font: 400 clamp(39px, 4.6vw, 68px)/1.04 Georgia, serif; letter-spacing: -2px; color: #f5f6ee; }
+.google-experience-intro h1:focus { outline: none; }
+.google-experience-intro > p { max-width: 505px; font-size: 14px; line-height: 1.85; color: #c4cdc0; margin: 0; }
+.google-experience-status { display: inline-flex; align-items: center; gap: 8px; margin-top: 23px; padding: 9px 12px; border: 1px solid #56634f; border-radius: 20px; color: #d2dfc7; font-size: 10px; letter-spacing: .25px; }
+.google-experience-status > svg { flex-shrink: 0; }
+.google-experience.needs-attention .google-experience-status { color: #eddccb; border-color: #77634e; }
+.google-experience-bridge { display: grid; grid-template-columns: minmax(72px, 1fr) minmax(66px, 1fr) minmax(72px, 1fr); align-items: center; align-self: center; padding: 30px 2px 20px; gap: 0; min-width: 0; }
+.google-experience-endpoint { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+.google-experience-monogram, .google-experience-google { display: grid; place-items: center; width: clamp(70px, 7.5vw, 106px); height: clamp(70px, 7.5vw, 106px); border: 1px solid #738267; border-radius: 50%; background: #2d392d; box-shadow: 0 0 0 9px #35413155, 0 0 0 10px #74856a33; margin-bottom: 14px; color: #e4edd7; }
+.google-experience-monogram { font: 400 clamp(47px, 5vw, 72px)/1 Georgia, serif; padding-bottom: 4px; }
+.google-experience-google { font: 500 clamp(37px, 3.8vw, 56px)/1 system-ui, sans-serif; color: #f5f6ef; background: #344033; }
+.google-experience-endpoint > strong { font-size: 14px; font-weight: 500; letter-spacing: .5px; }
+.google-experience-endpoint > small { font-size: 10px; color: #c0cdb5; }
+.google-experience-link { display: flex; align-items: center; gap: 10px; margin: -45px 6px 0; color: #c1d2ad; }
+.google-experience-link > span { height: 1px; flex: 1; background: #80916a; }
+.google-experience-link > svg { flex-shrink: 0; }
+.google-experience-bridge > p { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; gap: 7px; margin: 35px 0 0; color: #bccbb0; font-size: 10px; }
+.google-experience-bridge.is-preparing .google-experience-link > svg { animation: google-handoff-breathe 2s ease-in-out infinite; }
+.google-experience-steps { grid-column: 1 / -1; list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 15px -46px 0; padding: 0 46px; border-top: 1px solid #4d5a474d; background: #1c241e80; }
+.google-experience-steps > li { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; min-width: 0; margin: 0; padding: 20px 14px; border-top: 2px solid transparent; color: #acbba2; font-size: 10px; }
+.google-experience-steps > li[aria-current="step"] { border-top-color: #bdd394; color: #edf3df; background: #c4d0b405; }
+.google-experience-steps > li > span { font: 400 10px ui-monospace, monospace; color: #b4c5a7; }
+.google-experience-steps strong { font-weight: 500; }
+.google-experience-steps small { margin-left: auto; color: #b5c2a9; font-size: 9px; }
+.google-experience-message { margin: 22px 0; padding: 18px 23px; border: 1px solid #d5cbbf; border-left: 3px solid #ae7757; border-radius: 12px; background: #faf6ef; }
+.google-experience-message p { color: #6b5947; font-size: 13px; line-height: 1.8; overflow-wrap: anywhere; margin: 8px 0 0; }
+.google-experience-account { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 23px 34px; padding: 27px 30px; border: 1px solid #dfe4d7; border-radius: 17px; background: #fff; margin-top: 24px; }
+.google-experience-account-title { display: flex; align-items: center; gap: 18px; min-width: 0; }
+.google-experience-account-title > div { min-width: 0; }
+.google-experience-account-icon { display: grid; place-items: center; flex: 0 0 54px; width: 54px; height: 54px; border-radius: 14px; color: #5d7050; background: #f0f3e8; }
+.google-experience-account h2 { font-size: 19px; line-height: 1.4; font-weight: 500; margin: 5px 0; overflow-wrap: anywhere; }
+.google-experience-account-title p { color: #68785b; font-size: 11px; margin: 0; }
+.google-experience.needs-attention .google-experience-account-title p { color: #825c3a; }
+.google-experience-account dl { display: grid; gap: 12px; margin: 0; padding-left: 26px; border-left: 1px solid #e3e8dd; font-size: 11px; }
+.google-experience-account dl > div { display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 13px; }
+.google-experience-account dt { color: #718068; }
+.google-experience-account dd { margin: 0; overflow-wrap: anywhere; line-height: 1.6; }
+.google-experience-account-note { grid-column: 1 / -1; padding-top: 17px; border-top: 1px solid #e4e8dc; font-size: 11px; line-height: 1.8; color: #6b7663; margin: 0; }
+.google-experience-raw-scopes { grid-column: 1 / -1; font-size: 11px; margin-top: -10px; color: #66765b; }
+.google-experience-raw-scopes summary { cursor: pointer; }
+.google-experience-raw-scopes ul { margin: 14px 0 0; padding: 15px 15px 15px 28px; border-radius: 9px; background: #f7f8f3; }
+.google-experience-raw-scopes li { padding: 5px; font: 10px/1.7 ui-monospace, monospace; overflow-wrap: anywhere; }
+.google-experience-raw-scopes p { line-height: 1.8; }
+.google-experience-access { margin-top: 35px; }
+.google-experience-access-heading { display: flex; justify-content: space-between; gap: 30px; align-items: flex-end; margin-bottom: 21px; }
+.google-experience-access-heading h2 { font: 400 clamp(25px, 2.7vw, 36px)/1.14 Georgia, serif; margin: 8px 0 0; letter-spacing: -.5px; }
+.google-experience-access-heading > p { max-width: 285px; margin: 0; color: #6d7b65; font-size: 11px; line-height: 1.8; }
+.google-experience-permissions { display: grid; grid-template-columns: repeat(auto-fit, minmax(245px, 1fr)); gap: 14px; }
+.google-experience-permission { display: flex; flex-direction: column; min-width: 0; padding: 24px; border: 1px solid #dce3d3; border-radius: 16px; background: #f7f9f2; }
+.google-experience-permission > header { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 20px; }
+.google-experience-permission-icon { color: #6a7b58; }
+.google-experience-permission-state { font-size: 10px; color: #6d7764; padding: 5px 8px; border: 1px solid #d9dfd0; background: #f1f4eb; border-radius: 16px; }
+.google-experience-permission[data-access="granted"] .google-experience-permission-state { color: #4c623a; border-color: #c6d7b0; background: #e8efdb; }
+.google-experience-permission h3 { font-size: 19px; font-weight: 550; line-height: 1.4; margin: 0 0 6px; }
+.google-experience-purpose { font-size: 12px; color: #6e7966; line-height: 1.8; margin: 0 0 23px; }
+.google-experience-grants { display: grid; gap: 18px; }
+.google-experience-grant { border-top: 1px solid #dde4d2; padding-top: 16px; }
+.google-experience-grant > div { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; justify-content: space-between; }
+.google-experience-grant strong { font-size: 11px; font-weight: 550; }
+.google-experience-grant > div > span { display: inline-flex; gap: 4px; align-items: center; font: 9px/1.5 ui-monospace, monospace; color: #6e7867; }
+.google-experience-grant .has-grant { color: #526b3e; }
+.google-experience-grant .missing-grant { color: #816343; }
+.google-experience-grant > p { font-size: 11px; line-height: 1.9; color: #69775e; margin: 9px 0 0; }
+.google-experience-permission-action { margin-top: auto; padding-top: 23px; }
+.google-experience-permission-action > .btn { justify-content: space-between; width: 100%; background: #fff; border-color: #c9d5bd; font-size: 12px; }
+.google-experience-permission-action > .btn:disabled { opacity: .65; }
+.google-experience-permission-action > p { font-size: 10px; line-height: 1.8; color: #717b69; margin: 12px 0 0; }
+.google-experience-text-action { display: inline-flex; gap: 6px; align-items: center; padding: 0; margin-top: 14px; background: transparent; border: 0; color: #a6272b; font-size: 11px; text-align: left; cursor: pointer; }
+.google-experience-text-action:disabled { opacity: .5; cursor: not-allowed; }
+.google-experience-no-permissions { padding: 22px; border: 1px dashed #ced8c3; border-radius: 12px; color: #69775d; font-size: 12px; line-height: 1.8; }
+.google-experience-footer { display: flex; align-items: center; justify-content: space-between; gap: 30px; border-top: 1px solid #e0e5d7; padding-top: 24px; margin-top: 29px; }
+.google-experience-footer > p { display: flex; align-items: flex-start; gap: 10px; max-width: 625px; color: #67765d; font-size: 11px; line-height: 1.85; margin: 0; }
+.google-experience-footer > p > svg { flex-shrink: 0; margin-top: 2px; }
+.google-experience-footer > div { flex-shrink: 0; }
+.google-experience button:focus-visible, .google-experience summary:focus-visible { outline: 2px solid #bd2b31; outline-offset: 4px; }
+@keyframes google-handoff-breathe { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+@media (max-width: 1000px) {
+  .google-experience-stage { padding: 33px 30px 0; gap: 15px; grid-template-columns: minmax(0, 1.1fr) minmax(250px, 1fr); }
+  .google-experience-intro h1 { font-size: 47px; }
+  .google-experience-intro > p { font-size: 12px; }
+  .google-experience-steps { margin-left: -30px; margin-right: -30px; padding: 0 22px; }
+  .google-experience-steps small { width: 100%; margin-left: 24px; }
+  .google-experience-account { grid-template-columns: 1fr; gap: 20px; }
+  .google-experience-account dl { border-left: 0; padding-left: 0; grid-template-columns: 1fr 1fr; }
+  .google-experience-account dl > div { grid-template-columns: 1fr; gap: 5px; }
+  .google-experience-permissions { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+}
+@media (max-width: 760px) {
+  .google-experience-header { gap: 14px; align-items: flex-start; }
+  .google-experience-header .google-experience-kicker { font-size: 9px; }
+  .google-experience-header > .btn { font-size: 10px; padding: 9px 10px; white-space: normal; }
+  .google-experience-stage { grid-template-columns: 1fr; padding: 29px 26px 0; }
+  .google-experience-intro { padding-bottom: 0; }
+  .google-experience-intro h1 { font-size: clamp(41px, 7vw, 54px); letter-spacing: -1.5px; }
+  .google-experience-intro > p { font-size: 13px; }
+  .google-experience-bridge { width: min(100%, 390px); justify-self: center; padding: 24px 10px 16px; }
+  .google-experience-monogram, .google-experience-google { width: 77px; height: 77px; }
+  .google-experience-monogram { font-size: 52px; }
+  .google-experience-google { font-size: 41px; }
+  .google-experience-steps { margin-left: -26px; margin-right: -26px; padding: 0 14px; }
+  .google-experience-steps > li { align-content: start; gap: 5px; padding: 16px 10px; font-size: 9px; }
+  .google-experience-steps strong { display: block; width: 100%; line-height: 1.7; }
+  .google-experience-steps small { margin: 0; font-size: 8px; }
+  .google-experience-account { padding: 24px; }
+  .google-experience-account-title { align-items: flex-start; gap: 13px; }
+  .google-experience-account-icon { width: 42px; height: 42px; flex-basis: 42px; }
+  .google-experience-account h2 { font-size: 16px; }
+  .google-experience-account .google-experience-kicker { font-size: 8px; }
+  .google-experience-access-heading { flex-direction: column; align-items: flex-start; gap: 14px; }
+  .google-experience-access-heading > p { max-width: none; }
+  .google-experience-permissions { grid-template-columns: 1fr; }
+  .google-experience-footer { flex-direction: column; align-items: flex-start; gap: 18px; }
+  .google-experience-footer > div, .google-experience-footer > div > .btn { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .google-experience-bridge.is-preparing .google-experience-link > svg { animation: none; }
+}

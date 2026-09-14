@@ -1,5 +1,7 @@
 # Google access and verification record
 
+**September 14 experience update:** [Custom DAVID handoff and return](GOOGLE_HANDOFF.md) documents the current callback outcomes, account review, recovery, resource preselection and verification boundaries. The callback outcome behavior in the earlier configuration-only release record below is historical.
+
 Real Google HTTP adapters are implemented. Local tests inject synthetic HTTP responses and never contact Google. Production OAuth app credentials and the exact callback were configured on September 14 (see the dated record below). Account consent, a Gmail message, Calendar event, Google Sheet read and live outcomes still require verification.
 
 ## Operations and grants

@@ -1,16 +1,20 @@
 "use client";
 
-import { useState } from "react";
-import type { AppSnapshot, EvidenceRef } from "@david/contracts";
+import { useEffect, useRef, useState } from "react";
+import type { AppSnapshot, ConnectionCapability, EvidenceRef } from "@david/contracts";
 import {
   AlertCircle,
   ArrowRight,
   Check,
+  Calendar,
+  FileSpreadsheet,
+  Mail,
   FileText,
   Globe,
   ShieldCheck,
 } from "lucide-react";
 import { Badge, Button, Drawer, Evidence, dateTime } from "./ui";
+import "./source-setup.css";
 
 type Capture = {
   id: string;
@@ -52,7 +56,26 @@ const lines = (value: string) =>
     .map((item) => item.trim())
     .filter(Boolean);
 
-export function SourceSetup({ state }: { state: AppSnapshot }) {
+type ResourceType = "sheet" | "calendar" | "mailbox";
+export type SourceSetupLaunch = { requestId: number; connectionId: string; resourceType: ResourceType };
+const resourceOptions = [
+  { type: "sheet", label: "Google Sheet", detail: "Proposal source records", Icon: FileSpreadsheet },
+  { type: "calendar", label: "Calendar", detail: "Owned booking calendar", Icon: Calendar },
+  { type: "mailbox", label: "Gmail", detail: "Sender and reply mailbox", Icon: Mail },
+] as const;
+const defaultMapping = () => JSON.stringify({ columns: Object.fromEntries(sourceColumns.map(column => [column, column])) }, null, 2);
+function supportsResource(connection: ConnectionCapability | undefined, type: ResourceType) {
+  if (!connection) return false;
+  const hasScope = (...scopes: string[]) => scopes.some(scope => connection.scopes.includes(`https://www.googleapis.com/auth/${scope}`));
+  if (type === "sheet") return connection.operations.includes("sheets.read") && hasScope("drive.file", "spreadsheets.readonly", "spreadsheets");
+  if (type === "calendar") return connection.operations.includes("calendar.freebusy") && connection.operations.includes("calendar.book") && hasScope("calendar.freebusy", "calendar.events.freebusy") && hasScope("calendar.events.owned", "calendar.events");
+  return connection.operations.includes("gmail.read") && connection.operations.includes("gmail.send") && hasScope("gmail.readonly") && hasScope("gmail.send");
+}
+function usableGoogle(connection: ConnectionCapability, workspaceId: string) {
+  return connection.workspaceId === workspaceId && connection.provider === "google" && (connection.health === "healthy" || connection.health === "unconfigured");
+}
+
+export function SourceSetup({ state, launch }: { state: AppSnapshot; launch?: SourceSetupLaunch }) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<"website" | "google">("website");
   const [busy, setBusy] = useState(false);
@@ -70,7 +93,7 @@ export function SourceSetup({ state }: { state: AppSnapshot }) {
   const [confirmed, setConfirmed] = useState(false);
   const [connectionId, setConnectionId] = useState(
     state.connections.find(
-      (item) => item.provider === "google" && item.health !== "revoked",
+      (item) => usableGoogle(item, state.workspace.id),
     )?.id ?? "",
   );
   const [resourceType, setResourceType] = useState<
@@ -79,28 +102,82 @@ export function SourceSetup({ state }: { state: AppSnapshot }) {
   const [resourceId, setResourceId] = useState("");
   const [range, setRange] = useState("");
   const [owner, setOwner] = useState("");
-  const [mapping, setMapping] = useState(
-    JSON.stringify(
-      {
-        columns: Object.fromEntries(
-          sourceColumns.map((column) => [column, column]),
-        ),
-      },
-      null,
-      2,
-    ),
-  );
+  const [mapping, setMapping] = useState(defaultMapping);
+  const handledLaunch = useRef<number | null>(null);
+  const sessionKey = `${state.workspace.id}:${state.context.actorId}`;
+  const activeSession = useRef(sessionKey);
+  const requestVersion = useRef(0);
   const fixture = state.workspace.mode === "fixture";
   const authorized =
     !fixture &&
-    ["workspace_owner", "david_operator"].includes(state.context.role);
+    ["workspace_owner", "david_operator"].includes(state.context.role) && state.context.workspaceId === state.workspace.id;
   const unavailable = fixture
     ? "Real source setup is unavailable in fixture mode. Bounded preparation uses the approved synthetic source already supplied. No website is fetched and no Google resource is bound."
     : !authorized
       ? "A workspace owner or assigned DAVID operator must approve sources and confirm company facts."
       : "";
+  const googleAccounts = state.connections.filter(item => item.provider === "google" && item.workspaceId === state.workspace.id);
+  const selectedAccount = googleAccounts.find(item => item.id === connectionId);
+  const accountUsable = !!selectedAccount && usableGoogle(selectedAccount, state.workspace.id);
+  const grantSupported = accountUsable && supportsResource(selectedAccount, resourceType);
+  const bindingAllowed = authorized && grantSupported;
+  const bindingMessage = !connectionId
+    ? "Choose an authorized Google account to select a resource."
+    : !selectedAccount
+      ? "This Google account is not available in the current workspace. Choose an account from this workspace."
+      : !accountUsable
+        ? `This connection is ${selectedAccount.health}. Reconnect the account before saving a source.`
+        : !grantSupported
+          ? `Google access for this resource was not granted. Reconnect this account with ${resourceType === "sheet" ? "Sheets access" : resourceType === "calendar" ? "calendar availability and owned events access" : "Gmail send and reply access"}, or choose a resource covered by its current permissions.`
+          : "";
+  function clearResource() {
+    requestVersion.current += 1;
+    setBusy(false);
+    setResourceId(""); setRange(""); setOwner(""); setMapping(defaultMapping()); setFeedback(null);
+  }
+  function chooseAccount(id: string) {
+    clearResource();
+    setConnectionId(id);
+  }
+  function chooseResource(type: ResourceType) {
+    clearResource();
+    setResourceType(type);
+  }
+  useEffect(() => {
+    if (activeSession.current === sessionKey) return;
+    activeSession.current = sessionKey;
+    handledLaunch.current = launch?.requestId ?? null;
+    requestVersion.current += 1;
+    setBusy(false); setOpen(false); setView("website"); setFeedback(null);
+    setConnectionId(""); setResourceId(""); setRange(""); setOwner(""); setMapping(defaultMapping());
+    setCapture(null); setReviewed(false); setConfirmed(false); setLocations("");
+    setUrl(state.onboarding?.answers.company.website ?? "");
+    setName(state.onboarding?.answers.company.name ?? "");
+    setOffers(state.onboarding?.answers.company.offers.join("\n") ?? "");
+    setCustomers(state.onboarding?.answers.company.customers.join("\n") ?? "");
+  }, [sessionKey, launch?.requestId, state.onboarding]);
+  useEffect(() => {
+    if (!launch || handledLaunch.current === launch.requestId) return;
+    handledLaunch.current = launch.requestId;
+    requestVersion.current += 1;
+    setBusy(false); setFeedback(null); setResourceId(""); setRange(""); setOwner(""); setMapping(defaultMapping());
+    const account = state.connections.find(item => item.id === launch.connectionId && usableGoogle(item, state.workspace.id));
+    if (!authorized || !account) {
+      setConnectionId("");
+      setFeedback({ text: !authorized ? unavailable : "The requested Google account is unavailable or needs to be reconnected. Choose a current account from this workspace.", error: true });
+      return;
+    }
+    setConnectionId(account.id); setResourceType(launch.resourceType); setView("google"); setOpen(true);
+  }, [launch, authorized, unavailable, state.connections, state.workspace.id]);
+  useEffect(() => {
+    if (authorized && grantSupported) return;
+    requestVersion.current += 1;
+    setBusy(false); setResourceId(""); setRange(""); setOwner(""); setFeedback(current => current?.error ? current : null);
+  }, [authorized, grantSupported]);
   async function post(path: string, body: Record<string, unknown>) {
     if (!authorized) return null;
+    const version = ++requestVersion.current;
+    const workspaceSession = activeSession.current;
     setBusy(true);
     setFeedback(null);
     try {
@@ -111,6 +188,7 @@ export function SourceSetup({ state }: { state: AppSnapshot }) {
         body: JSON.stringify({ workspaceId: state.workspace.id, ...body }),
       });
       const result = await response.json();
+      if (version !== requestVersion.current || workspaceSession !== activeSession.current) return null;
       if (!response.ok)
         throw new Error(
           result.message ?? result.error ?? "Source setup could not be saved.",
@@ -123,6 +201,7 @@ export function SourceSetup({ state }: { state: AppSnapshot }) {
       });
       return result;
     } catch (error) {
+      if (version !== requestVersion.current || workspaceSession !== activeSession.current) return null;
       setFeedback({
         text:
           error instanceof Error
@@ -132,7 +211,7 @@ export function SourceSetup({ state }: { state: AppSnapshot }) {
       });
       return null;
     } finally {
-      setBusy(false);
+      if (version === requestVersion.current && workspaceSession === activeSession.current) setBusy(false);
     }
   }
   async function captureWebsite(event: React.FormEvent) {
@@ -159,6 +238,7 @@ export function SourceSetup({ state }: { state: AppSnapshot }) {
   }
   async function bindResource(event: React.FormEvent) {
     event.preventDefault();
+    if (!bindingAllowed || busy) { setFeedback({ text: unavailable || bindingMessage || "Review this account’s permissions before saving a resource.", error: true }); return; }
     let parsed: Record<string, unknown> = {};
     if (resourceType === "sheet") {
       try {
@@ -214,7 +294,7 @@ export function SourceSetup({ state }: { state: AppSnapshot }) {
         title="Approved source setup"
         description="Source content supplies evidence, never instructions or permission. A saved binding queues verification; it cannot enable a sender or grant Google access."
       >
-        <div className="stack">
+        <div className="stack source-setup-workspace">
           <div className="pill-tabs" aria-label="Source setup type">
             <button
               aria-pressed={view === "website"}
@@ -421,8 +501,9 @@ export function SourceSetup({ state }: { state: AppSnapshot }) {
               </form>
             </>
           ) : (
-            <form className="stack-small" onSubmit={bindResource}>
-              <h3 style={{ fontSize: 16 }}>Bind one authorized resource</h3>
+            <form className="stack-small google-resource-setup" onSubmit={bindResource}>
+              <header className="source-resource-hero"><span className="source-resource-kicker">GOOGLE / APPROVED SOURCES</span><h3>Bind one authorized resource</h3><p>Select the exact source your team will use. Saving requests an access check.</p><div><ShieldCheck size={15}/><span>{selectedAccount ? selectedAccount.identity : "Choose your Google account"}</span>{selectedAccount && <Badge status={selectedAccount.health}/>}</div></header>
+              <div className="source-resource-section"><span className="source-resource-kicker">01 / ACCOUNT & ACCESS</span>
               <label className="field">
                 Connected Google account
                 <select
@@ -430,38 +511,38 @@ export function SourceSetup({ state }: { state: AppSnapshot }) {
                   required
                   disabled={!authorized || busy}
                   value={connectionId}
-                  onChange={(event) => setConnectionId(event.target.value)}
+                  onChange={(event) => chooseAccount(event.target.value)}
                 >
                   <option value="">Choose a connected account</option>
-                  {state.connections
-                    .filter(
-                      (item) =>
-                        item.provider === "google" && item.health !== "revoked",
-                    )
-                    .map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.identity} · {item.resource}
+                  {googleAccounts.map((item) => (
+                      <option key={item.id} value={item.id} disabled={!usableGoogle(item, state.workspace.id)}>
+                        {item.identity} · {item.health}
                       </option>
                     ))}
                 </select>
               </label>
-              <label className="field">
+              <div className="source-resource-types" aria-label="Granted resource access">{resourceOptions.map(({type,label,detail,Icon}) => {
+                const supported = accountUsable && supportsResource(selectedAccount, type);
+                return <button type="button" key={type} aria-pressed={resourceType === type} disabled={!authorized || busy || !supported} onClick={() => chooseResource(type)}><Icon size={19}/><strong>{label}</strong><span>{detail}</span><small>{supported ? "Access granted" : "Not granted"}</small></button>;
+              })}</div>
+              <label className="field source-resource-select">
                 Resource type
                 <select
                   className="input"
                   disabled={!authorized || busy}
                   value={resourceType}
-                  onChange={(event) =>
-                    setResourceType(event.target.value as typeof resourceType)
-                  }
+                  onChange={(event) => chooseResource(event.target.value as ResourceType)}
                 >
-                  <option value="sheet">Proposal source · Google Sheet</option>
-                  <option value="calendar">Approved booking calendar</option>
-                  <option value="mailbox">
+                  <option value="sheet" disabled={!accountUsable || !supportsResource(selectedAccount, "sheet")}>Proposal source · Google Sheet</option>
+                  <option value="calendar" disabled={!accountUsable || !supportsResource(selectedAccount, "calendar")}>Approved booking calendar</option>
+                  <option value="mailbox" disabled={!accountUsable || !supportsResource(selectedAccount, "mailbox")}>
                     Approved sender / reply mailbox
                   </option>
                 </select>
               </label>
+              {bindingMessage && <p className="notice notice-warning source-resource-message" role="status">{bindingMessage}</p>}
+              </div><div className="source-resource-section"><span className="source-resource-kicker">02 / EXACT RESOURCE</span>
+              <p className="help">{resourceType === "sheet" ? "Paste the spreadsheet ID from its URL and choose an exact tab or cell range. DAVID has not selected a file for you." : resourceType === "calendar" ? "Use the calendar ID from Google Calendar settings. The connected account must own or have the required access to it." : "Enter the mailbox identity covered by this Google account. A typed address does not authorize another sender."}</p>
               <label className="field">
                 {resourceType === "sheet"
                   ? "Selected spreadsheet file ID"
@@ -472,7 +553,7 @@ export function SourceSetup({ state }: { state: AppSnapshot }) {
                   className="input"
                   required
                   maxLength={512}
-                  disabled={!authorized || busy}
+                  disabled={!bindingAllowed || busy}
                   value={resourceId}
                   onChange={(event) => setResourceId(event.target.value)}
                   placeholder={
@@ -492,7 +573,7 @@ export function SourceSetup({ state }: { state: AppSnapshot }) {
                       className="input"
                       required
                       maxLength={200}
-                      disabled={!authorized || busy}
+                      disabled={!bindingAllowed || busy}
                       value={range}
                       onChange={(event) => setRange(event.target.value)}
                       placeholder="Proposals!A1:Q1000"
@@ -526,7 +607,7 @@ export function SourceSetup({ state }: { state: AppSnapshot }) {
                           fontFamily: "monospace",
                           fontSize: 12,
                         }}
-                        disabled={!authorized || busy}
+                        disabled={!bindingAllowed || busy}
                         value={mapping}
                         onChange={(event) => setMapping(event.target.value)}
                       />
@@ -540,12 +621,13 @@ export function SourceSetup({ state }: { state: AppSnapshot }) {
                   className="input"
                   required
                   maxLength={200}
-                  disabled={!authorized || busy}
+                  disabled={!bindingAllowed || busy}
                   value={owner}
                   onChange={(event) => setOwner(event.target.value)}
                   placeholder="Person accountable for current source facts"
                 />
               </label>
+              </div><div className="source-resource-next"><ShieldCheck size={20}/><div><h4>What happens next</h4><p>Saving queues source verification. It does not activate agents, approve contact, or send an email.</p></div></div>
               <div className="notice notice-warning">
                 <ShieldCheck size={18} />
                 <p>
@@ -559,7 +641,7 @@ export function SourceSetup({ state }: { state: AppSnapshot }) {
                 type="submit"
                 variant="primary"
                 disabled={
-                  !authorized ||
+                  !bindingAllowed ||
                   busy ||
                   !connectionId ||
                   !resourceId.trim() ||

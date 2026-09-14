@@ -238,6 +238,10 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
     setMenu(false);
     const query = new URLSearchParams(window.location.search);
     query.set("view", next);
+    if (next !== "connections") {
+      query.delete("google");
+      query.delete("connection");
+    }
     query.delete("proposal");
     if (focus?.proposal) query.set("proposal", focus.proposal);
     if (workspaceKey.current) query.set("workspace", workspaceKey.current);
@@ -250,6 +254,8 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
     const url = new URL(window.location.href);
     url.searchParams.set("workspace", id);
     url.searchParams.set("view", page);
+    url.searchParams.delete("google");
+    url.searchParams.delete("connection");
     window.location.assign(`${url.pathname}${url.search}`);
   };
   const act = async (command: Command): Promise<CommandResult | undefined> => {
@@ -651,7 +657,7 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
               {page === "decisions" && <Decisions {...props} />}
               {page === "journey" && <CustomerJourney {...props} />}
               {page === "scenarios" && <Scenarios {...props} />}
-              {page === "connections" && <Connections {...props} />}
+              {page === "connections" && <Connections key={state.workspace.id} {...props} />}
               {page === "operator" && <div className="stack"><OnboardingOperator {...props} /><Operator {...props} /></div>}
               <footer className="footer">
                 <span>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AlertCircle, ArrowRight, ArrowUpRight, Calendar, Check, CheckCircle2,
   FileSpreadsheet, FileText, Globe, LockKeyhole, Mail, Plus, ShieldCheck,
@@ -10,6 +10,7 @@ import { words } from "@david/ui";
 import type { ScreenProps } from "./app-shell";
 import { Badge, Button, dateTime, Drawer } from "./ui";
 import { SourceSetup } from "./source-setup";
+import { GoogleConnectionExperience, type GoogleCapability } from "./google-connection-experience";
 import "./connections-studio.css";
 
 const capabilities = [
@@ -17,6 +18,32 @@ const capabilities = [
   { id: "mail", label: "Gmail send & replies", description: "Approved senders and enrolled conversations.", Icon: Mail },
   { id: "calendar", label: "Owned calendars", description: "Availability and approved booking calendars.", Icon: Calendar },
 ] as const;
+
+type Handoff = {
+  phase: "preparing" | "redirecting" | "error" | "review" | "cancelled" | "expired" | "failed";
+  connectionId?: string;
+  message?: string;
+};
+type SourceLaunch = { requestId: number; connectionId: string; resourceType: "sheet" | "calendar" | "mailbox" };
+const intentKey = (workspaceId: string) => `david.google-intent.${workspaceId}`;
+function forgetIntent(workspaceId: string) {
+  try { window.sessionStorage.removeItem(intentKey(workspaceId)); } catch { /* Storage is optional. */ }
+}
+function savedCapabilities(workspaceId: string): GoogleCapability[] | null {
+  try {
+    const value = JSON.parse(window.sessionStorage.getItem(intentKey(workspaceId)) ?? "null");
+    if (!value || typeof value.at !== "number" || Date.now() - value.at > 3_600_000 || value.at > Date.now() || !Array.isArray(value.capabilities)) return null;
+    const valid = capabilities.map((item) => item.id);
+    if (!value.capabilities.length || !value.capabilities.every((item: GoogleCapability) => valid.includes(item))) return null;
+    return [...new Set<GoogleCapability>(value.capabilities)];
+  } catch { return null; }
+}
+function clearReturnHint() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete("google");
+  url.searchParams.delete("connection");
+  window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+}
 
 function connectionIcon(connection: ConnectionCapability) {
   if (connection.provider === "website") return Globe;
@@ -33,10 +60,16 @@ export function ConnectionsStudio({ state, navigate }: ScreenProps) {
   const [selected, setSelected] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [connectionMessage, setConnectionMessage] = useState("");
-  const [scopes, setScopes] = useState<Array<"sheets" | "mail" | "calendar">>(["sheets"]);
+  const [scopes, setScopes] = useState<GoogleCapability[]>(["sheets"]);
+  const [handoff, setHandoff] = useState<Handoff | null>(null);
+  const [sourceLaunch, setSourceLaunch] = useState<SourceLaunch>();
+  const pendingRequest = useRef<AbortController | null>(null);
+  const redirectFrame = useRef<number | null>(null);
+  const authorizationUrl = useRef<string | null>(null);
   const connection = state.connections.find((item) => item.id === selected);
   const fixture = state.workspace.mode === "fixture";
   const canConfigure = !fixture && ["workspace_owner", "david_operator"].includes(state.context.role);
+  const returnedConnection = state.connections.find((item) => item.id === handoff?.connectionId && item.workspaceId === state.workspace.id && item.provider === "google");
   const healthy = state.connections.filter((item) => item.health === "healthy" && !isStale(item, state.asOf)).length;
   const sourceOwners = new Set(state.connections.map((item) => item.owner).filter(Boolean)).size;
   const readiness = [
@@ -44,6 +77,69 @@ export function ConnectionsStudio({ state, navigate }: ScreenProps) {
     { label: "Action readiness", short: "Authority", value: state.readiness.action, description: "Current rules, facts and operating permission." },
     { label: "Measurement readiness", short: "Evidence", value: state.readiness.measurement, description: "Sources that verify the outcome." },
   ];
+
+  useEffect(() => {
+    function resume() {
+      if (fixture) return;
+      const query = new URLSearchParams(window.location.search);
+      const intent = savedCapabilities(state.workspace.id);
+      if (intent) setScopes(intent);
+      const outcome = query.get("google");
+      const matchingWorkspace = !query.get("workspace") || query.get("workspace") === state.workspace.id;
+      if (matchingWorkspace && outcome === "review") {
+        setHandoff({ phase: "review", connectionId: query.get("connection") ?? undefined });
+      } else if (matchingWorkspace && (outcome === "cancelled" || outcome === "expired" || outcome === "failed")) {
+        setHandoff({ phase: outcome });
+      } else if (intent) {
+        setHandoff({ phase: "cancelled", message: "You’re back in DAVID. Review the current account access in Connections, or start a new Google authorization." });
+      } else setHandoff(null);
+    }
+    function resetPending() {
+      pendingRequest.current?.abort();
+      pendingRequest.current = null;
+      authorizationUrl.current = null;
+      if (redirectFrame.current !== null) cancelAnimationFrame(redirectFrame.current);
+      setConnecting(false);
+      resume();
+    }
+    function onPageShow(event: PageTransitionEvent) {
+      if (event.persisted) resetPending();
+    }
+    resume();
+    window.addEventListener("pageshow", onPageShow);
+    window.addEventListener("popstate", resetPending);
+    return () => {
+      pendingRequest.current?.abort();
+      pendingRequest.current = null;
+      if (redirectFrame.current !== null) cancelAnimationFrame(redirectFrame.current);
+      window.removeEventListener("pageshow", onPageShow);
+      window.removeEventListener("popstate", resetPending);
+    };
+  }, [state.workspace.id, fixture]);
+
+  function closeHandoff(restoreFocus = true) {
+    pendingRequest.current?.abort();
+    pendingRequest.current = null;
+    authorizationUrl.current = null;
+    if (redirectFrame.current !== null) cancelAnimationFrame(redirectFrame.current);
+    setConnecting(false);
+    setHandoff(null);
+    setSourceLaunch(undefined);
+    forgetIntent(state.workspace.id);
+    clearReturnHint();
+    if (restoreFocus) requestAnimationFrame(() => document.getElementById("review-google-authorization")?.focus());
+  }
+
+  function chooseResource(resourceType: SourceLaunch["resourceType"]) {
+    if (!canConfigure || !returnedConnection || !["healthy", "unconfigured"].includes(returnedConnection.health)) return;
+    const connectionId = returnedConnection.id;
+    closeHandoff(false);
+    setSourceLaunch((current) => ({ requestId: (current?.requestId ?? 0) + 1, connectionId, resourceType }));
+  }
+
+  function continueToGoogle() {
+    if (authorizationUrl.current) window.location.assign(authorizationUrl.current);
+  }
 
   function openSetup() {
     const url = new URL(window.location.href);
@@ -53,29 +149,60 @@ export function ConnectionsStudio({ state, navigate }: ScreenProps) {
     navigate("activation");
   }
 
-  async function connect() {
-    if (!canConfigure || connecting || !scopes.length) return;
+  async function connect(requestedCapabilities = scopes) {
+    if (!canConfigure || connecting || pendingRequest.current || !requestedCapabilities.length) return;
+    const controller = new AbortController();
+    pendingRequest.current = controller;
+    setSelected(null);
+    setSourceLaunch(undefined);
+    setScopes(requestedCapabilities);
     setConnecting(true);
     setConnectionMessage("");
+    setHandoff({ phase: "preparing" });
+    clearReturnHint();
+    // Only non-secret selection intent survives navigation. Tokens and OAuth URLs do not.
+    try { window.sessionStorage.setItem(intentKey(state.workspace.id), JSON.stringify({ capabilities: requestedCapabilities, at: Date.now() })); } catch { /* OAuth does not depend on browser storage. */ }
     try {
       const response = await fetch("/api/google/connect", {
         method: "POST",
+        signal: AbortSignal.any([controller.signal, AbortSignal.timeout(30_000)]),
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ workspaceId: state.workspace.id, capabilities: scopes }),
+        body: JSON.stringify({ workspaceId: state.workspace.id, capabilities: requestedCapabilities }),
       });
       const result = await response.json();
+      if (controller.signal.aborted || pendingRequest.current !== controller) return;
       if (!response.ok) throw new Error(result.message ?? result.error ?? "Google authorization could not start.");
       const url = new URL(result.url);
       if (url.protocol !== "https:" || url.hostname !== "accounts.google.com") {
         throw new Error("An unexpected authorization destination was rejected.");
       }
-      window.location.assign(url.toString());
+      authorizationUrl.current = url.toString();
+      setHandoff({ phase: "redirecting" });
+      redirectFrame.current = requestAnimationFrame(() => {
+        if (!controller.signal.aborted && pendingRequest.current === controller) continueToGoogle();
+      });
     } catch (error) {
-      setConnectionMessage(error instanceof Error ? error.message : "Connection failed.");
+      if (controller.signal.aborted || pendingRequest.current !== controller) return;
+      setHandoff({ phase: "error", message: error instanceof Error && error.name === "TimeoutError" ? "Google authorization took too long to start. Please try again." : error instanceof Error ? error.message : "Google authorization could not start. Please try again." });
+      pendingRequest.current = null;
     } finally {
-      setConnecting(false);
+      if (!controller.signal.aborted) setConnecting(false);
     }
   }
+
+  if (handoff) return <GoogleConnectionExperience
+    phase={handoff.phase}
+    capabilities={scopes}
+    connection={returnedConnection}
+    message={handoff.message}
+    onClose={() => closeHandoff()}
+    onRetry={(capability) => void connect(capability ? [...new Set([...scopes, capability])] : scopes)}
+    onContinue={handoff.phase === "redirecting" ? continueToGoogle : undefined}
+    onChooseResource={chooseResource}
+    busy={connecting}
+    canConfigure={canConfigure}
+  />;
 
   async function disconnect() {
     if (!canConfigure || !connection || connecting) return;
@@ -165,12 +292,12 @@ export function ConnectionsStudio({ state, navigate }: ScreenProps) {
             </label>)}
           </fieldset>
           <p className="connections-consent-note"><LockKeyhole size={15} /><span>{fixture ? "Google authorization is disabled in fixture mode. Configure a hosted nonproduction project and authenticated operator before connecting a real account." : !canConfigure ? "A workspace owner or assigned DAVID operator must authorize connections. You can still inspect the access granted to this workspace." : "Sheets uses drive.file for selected files; Calendar supports owned calendars. Gmail reply reading requests mailbox-wide restricted access, even though DAVID processes only enrolled conversations. Review the actual Google consent grant."}</span></p>
-          <Button variant="primary" disabled={!canConfigure || connecting || !scopes.length} onClick={() => void connect()}>{connecting ? "Starting authorization…" : "Review Google authorization"}<ArrowRight size={15} /></Button>
+          <Button id="review-google-authorization" variant="primary" disabled={!canConfigure || connecting || !scopes.length} onClick={() => void connect()}>{connecting ? "Starting authorization…" : "Review Google authorization"}<ArrowRight size={15} /></Button>
           {connectionMessage && !connection && <p className="notice" role="status">{connectionMessage}</p>}
         </div>
       </section>
 
-      <div className="connections-source-setup"><SourceSetup state={state} /></div>
+      <div className="connections-source-setup"><SourceSetup state={state} launch={sourceLaunch} /></div>
 
       <section className="connections-next" aria-labelledby="connection-next-title">
         <div className="connections-section-heading"><div><span className="studio-kicker">THE NEXT CONNECTION</span><h2 id="connection-next-title">What needs attention</h2></div><span>{state.readiness.blockers.length} open requirement{state.readiness.blockers.length === 1 ? "" : "s"}</span></div>
