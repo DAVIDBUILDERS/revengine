@@ -1,46 +1,87 @@
 # DAVID Engine
 
-Real company setup: https://revengine-production.vercel.app/login. [Operational onboarding setup and current limitations](docs/OPERATIONAL_ONBOARDING.md). The original `revengine-bay` URL remains a synthetic preview.
+DAVID Engine gives a company a team of five specialized AI agents, chosen from a catalog of 32. The company connects its systems once, and the selected agents reuse that context to perform work—with visible inputs, outputs, permissions, approvals and results.
 
-Vercel + hosted Supabase implementation of the complete v3 build brief. One modular Next.js application, a separate credential-free sales demo, shared domain services, PostgreSQL migrations, Google adapters and versioned Vercel workflows. No Docker or AWS setup is required.
+**Connect your company → assemble your team → request work → review the results.**
 
-**Current release:** [hosted browser demo](https://revengine-bay.vercel.app) and a local operational fixture demonstrator. Source: [private DAVIDBUILDERS/revengine repository](https://github.com/DAVIDBUILDERS/revengine). The hosted demo uses synthetic browser-session data; live Supabase, Google, model and workflow verification remain outstanding. See [hosted deployment and Git setup](docs/HOSTED_PREVIEW.md) and [release readiness](docs/RELEASE_READINESS.md).
+The experience should work both independently and alongside a DAVID operator on a sales or setup call. Switching specialists should reuse the company's existing setup and show any additional requirements.
 
-## Repeatable client onboarding
+- **Live product:** [revengine.getdavid.ai](https://revengine.getdavid.ai)
+- **Company connections:** [Open Connections](https://revengine.getdavid.ai/?view=connections)
+- **Repository:** [DAVIDBUILDERS/revengine](https://github.com/DAVIDBUILDERS/revengine)
+- **Synthetic preview:** [revengine-bay.vercel.app](https://revengine-bay.vercel.app) — illustrative data, separate from customer workspaces.
 
-[Open the onboarding preview](https://revengine-bay.vercel.app/?view=activation). Prepared setup combines your website and objective, extracts cited facts from captured pages and selected text briefs, proposes a team and known responsibilities, and derives supported baselines. Clients correct exceptions and approve a spending limit and policy before first work. The complete six-section profile remains available for advanced settings. The operator queue shares the same workspace record. See [prepared setup and decisions](docs/ONBOARDING_AUTOFILL.md) and [exact remaining hosted setup](docs/ONBOARDING_IMPLEMENTATION.md). The preview remains synthetic; the Supabase-backed version requires the separate operational deployment.
+## Current state
+
+As of **September 14, 2026**, the operational application is deployed on **Vercel with hosted Supabase**. It uses Next.js, shared TypeScript services, PostgreSQL and versioned Vercel workflows. No Docker or AWS dependencies are required.
+
+The platform foundation is built; the 32 agents are at different stages of implementation.
+
+| Area | Current implementation |
+| --- | --- |
+| Company workspaces | Authentication, workspace isolation, resumable saved setup, invitations, revision history and operator setup requests. |
+| Shared sources | Firecrawl website capture and reviewed company facts; Google OAuth and selected Sheets, Gmail and Calendar resources; validated proposal CSV imports. Access and source checks remain explicit. |
+| Team selection | All 32 catalog roles, standard five-specialist allowance, recommendations, manual selection and direct swaps. Configured internal allowances are supported. |
+| Nine preparation capabilities | Bounded, source-backed preparation implementations. These do not imply full execution of each role, such as publishing content or managing ad campaigns. |
+| Two execution pilots | Deal Follow-up and Appointment Coordinator have provider-adapter and approval/workflow implementations. Live operation requires their own verified sources, permissions and readiness checks. |
+| Remaining 21 agents | Planned capabilities with explicit requirements and engineering gaps. Selecting one does not make it operational. |
+| Work visibility | Agent workspaces, saved outputs, opportunities, decisions, customer history, approvals, operating limits and evidence. |
+
+A connected account, imported file or selected agent is not proof of successful work. Fixtures are labeled, and missing integrations remain visible. See the [agent registry](docs/AGENT_REGISTRY.md) for the capability breakdown and [latest shared-setup release notes](docs/COMPANY_CONNECTION_SETUP.md) for verified behavior and limitations.
+
+## Product experience
+
+1. **Connect company systems once.** Set up the tools the company uses, select specific resources and identify their owners. Record unavailable systems or request administrator help. Source discovery and read checks can run before selecting agents.
+2. **Choose the five specialists.** Inspect the full catalog, see which inputs are already available and identify additional access or implementation requirements. Shared company services do not consume specialist slots.
+3. **Configure the work.** Review the selected agent's task, sources, approvals, capacity and budgets. Connecting systems does not automatically authorize sending, booking or other external actions.
+4. **Review actual outputs and results.** Inspect what the agent used, what it produced, what needs approval and what was verified. Keep projections, generated work and recorded business outcomes distinct.
+5. **Change the team when needed.** Saved company connections and unchanged source verification remain available. Changes to sources or operating rules require renewed checks; unfinished work still needs a controlled handoff.
+
+The design direction is a polished, futuristic DAVID workspace with clear agent interactions and minimal repetitive form filling. Company setup should support the work, rather than become a questionnaire clients must repeatedly complete. Advanced setup and permissions remain available when needed.
+
+**Scenarios** is an existing planning calculator inherited from the original brief. It models low/base/high cases from explicit assumptions. It is secondary to the core agent workflow; moving it out of the main navigation has been discussed but is not yet implemented.
+
+## Next phase: one agent at a time
+
+We are moving through the catalog **1/32 to 32/32**, completing and reviewing each agent's functionality and UI/UX before moving to the next.
+
+**First planned review: Account Intelligence (1/32).** Existing implementation does not count as approval under this new review process. No agent is marked signed off here yet.
+
+Use this checklist for every agent and retain its findings, evidence, unresolved items and approval in the repository:
+
+- [ ] **Purpose:** define the responsibility and useful result.
+- [ ] **Connections:** identify required systems, data, ownership and permissions; reuse company setup.
+- [ ] **Functionality:** demonstrate real inputs producing usable work at the agent's implemented mode.
+- [ ] **UI/UX:** review selection, configuration, requesting work, progress, output and approval flows.
+- [ ] **Failure handling:** test missing or expired access, incomplete data, errors, retries and recovery.
+- [ ] **Verification:** retain evidence of working behavior and clearly distinguish fixtures from live integrations.
+- [ ] **Owner sign-off:** Jakob tries and approves both functionality and experience before we move to the next agent.
+
+New direction from product review takes precedence over older implementation notes. The [original v3 brief](docs/BUILD_BRIEF_v3.md) remains useful background, but is not a claim that all its capabilities are finished.
 
 ## Start locally
 
-Use Node **24.21.0 LTS** and pnpm **10.33.2**. `.nvmrc` pins Node; run `nvm use` (or select that version with your Node manager) before pnpm. Vercel uses `package.json` engines; `.npmrc` must not contain `use-node-version`.
+Use Node **24.21.0** and pnpm **10.33.2**. `.nvmrc` pins Node; select that version before installing dependencies.
 
 ```sh
 pnpm install --frozen-lockfile
 pnpm fixture
 ```
 
-Open [the local engine](http://localhost:3000). No environment file or credentials are needed. Keep real credentials out of fixture mode. The persistent synthetic session uses an opaque browser cookie and local `.fixture/` files. The clock starts at 2026-09-10 16:00 UTC so stale-data cases are repeatable. Reset affects only that browser session/workspace.
+Open [localhost:3000](http://localhost:3000). This is a **synthetic operational demonstrator**: no credentials are needed, and real credentials must stay out of fixture mode. Sessions persist through an opaque browser cookie and local `.fixture/` files. A fixed fixture clock makes stale-data cases repeatable; reset affects only that session/workspace.
 
-In a second terminal:
+Other local demo options:
 
 ```sh
-pnpm demo
+pnpm demo       # http://localhost:3001 — separate sales demo
+pnpm preview    # http://localhost:3002 — full UI with browser-only fixture state
 ```
 
-Open [the separate sales demo](http://localhost:3001). Its synthetic planning state stays in sessionStorage. It has no operational API, Google, database, model or workflow credentials. Public website analysis is unavailable in this version; the UI offers labeled B2B and home-service presets.
+Both demo apps are separate from operational customer data and use synthetic session state. They have no operational API or credentials granting real provider actions. [fixtures/proposals.csv](fixtures/proposals.csv) supplies sample records for import testing; an import never grants sending permission.
 
-## Walk through the first journey
+For real Supabase/provider setup, follow the [deployment runbook](docs/DEPLOYMENT_RUNBOOK.md) and [development without Docker](docs/DEVELOPMENT_WITHOUT_DOCKER.md). Keep secrets in the appropriate environment or approved secret store, never in committed files. Test and production use the same application source with separate credentials and data.
 
-1. Open **Opportunities → Sales records**, inspect **P-1001 / Maya Chen** and its synthetic source.
-2. Prepare a follow-up, inspect the immutable recipient/message/version evidence, approve it and run the fixture send. The receipt means simulated provider acceptance, not delivery.
-3. Add the explicitly labeled fixture reply “Let’s schedule a meeting.” Further follow-up stops.
-4. Propose a precise time in the configured zone, approve the appointment action and run it. A fixture booking appears in the shared customer journey. Attendance and payment remain unknown unless separately confirmed with evidence.
-5. Try an accepted, declined, suppressed or stale proposal to see a real domain blocker. Pause execution or take human ownership; subsequent dispatch is denied. Use the uncertain-timeout control to inspect reconciliation without another send.
-6. Explore all 32 specialists, choose up to five, resume activation, save a scenario, approve a work finding, review an initiative, create a weekly brief and record delivery time. The nine preparation capabilities produce saved source-grounded artifacts; the internal evaluation runner tests all nine without granting customers extra slots.
-
-[fixtures/proposals.csv](fixtures/proposals.csv) exercises import preview, identity, status and version validation. CSV bootstrap never grants a live sending mandate.
-
-## Verification commands
+## Verification
 
 ```sh
 pnpm lint
@@ -52,34 +93,44 @@ pnpm build
 pnpm run doctor
 ```
 
-`pnpm run doctor` intentionally exits **2 (BLOCKED)** when required external setup is missing. Use `pnpm run doctor`, because `pnpm doctor` is pnpm's own command. Unit tests run offline. Browser installation needs a download once. The production build compiles all three apps and Workflow entrypoints without a local database.
+Unit tests run offline. Browser tests include explicit fixture flows. `pnpm build` builds all three apps and the Workflow entrypoints. `pnpm run doctor` reports **BLOCKED** when external setup is missing; use `pnpm run doctor`, because `pnpm doctor` is a different pnpm command.
 
-These commands require an explicitly approved hosted nonproduction project. Put tool-only values in an untracked root `.env.tools.local` or the shell, never in Vercel runtime configuration:
+Hosted database checks require an explicitly configured target and the environment bindings documented in the runbook:
 
 ```sh
 pnpm db:preview
 pnpm db:apply
-pnpm db:seed
-pnpm db:types
 pnpm test:db
 pnpm test:db:concurrency
-pnpm dispatch:tick
 pnpm run doctor --remote
 ```
 
-See [development without Docker](docs/DEVELOPMENT_WITHOUT_DOCKER.md) for exact variables. Hosted tests do not silently substitute a mock database. Missing access returns BLOCKED, not PASS.
+**Latest recorded shared-setup release:** 251 unit tests, 46 browser scenarios, 15 hosted SQL suites, lint, TypeScript and all three builds passed. Hosted testing covered two independent companies, saved inventory and administrator requests, team changes, isolation and access denial. Migrations 023 and 024 were applied to test and production. Uploaded application source hashes matched across both deployments.
 
-## Project map and continuation
+Those results verify the tested flows; they do not establish live success for all 32 agents. Actual Google consent, provider actions and each agent's output quality need their own evidence. See [release verification](docs/COMPANY_CONNECTION_SETUP.md).
 
-- `apps/web`: customer/operator UI, Supabase SSR Auth, protected API routes, Workflow entrypoints and Cron dispatch.
-- `apps/demo`: separate anonymous sales demo, with its own Vercel project configuration.
-- `apps/preview`: full customer/operator browser demo, sharing the product UI and pure domain fixtures; static export, sessionStorage, no operational API. See [hosted preview](docs/HOSTED_PREVIEW.md).
-- `packages/contracts`, `domain`, `agents`: shared executable schemas, deterministic rules, catalog, preparations, read models and fixture engine.
-- `packages/db`, `connectors`, `orchestration`, `ai`, `ui`, `observability`: tenant SQL access, real provider adapters, checked external writes, model boundary, theme and redaction.
-- `supabase/migrations`, `supabase/tests`: tenant-aware database definitions, exact checked mutations and hosted tests.
-- `docs/IMPLEMENTATION_STATUS.md`: current progress, decisions, verification, blockers and next executable steps.
-- `docs/PRODUCT_ALIGNMENT.md`, `docs/TEST_EVIDENCE.md`: requirement and evidence matrices.
+## Project map
 
-The repository began empty on `codex/david-engine-v3`. No v13 source, existing schema, brand assets or remote was available to verify reuse. The supplied DAVIDENGINE house wordmark was integrated on September 11 alongside the [product design revision](docs/DESIGN_REVISION.md). The legacy system has not been replaced. [Legacy migration](docs/LEGACY_MIGRATION.md) defines the handoff and cutover gate.
+| Location | Purpose |
+| --- | --- |
+| `apps/web` | Operational customer/operator UI, Supabase Auth, protected APIs, workflows and dispatch. |
+| `apps/demo` | Separate anonymous sales demonstration. |
+| `apps/preview` | Full product UI using browser-only synthetic state; no operational API. |
+| `packages/contracts`, `domain`, `agents` | Schemas, business rules, agent catalog, preparations and fixture engine. |
+| `packages/db`, `connectors`, `orchestration`, `ai` | Database access, provider adapters, checked actions, workflows and model boundary. |
+| `packages/ui`, `observability` | Shared UI helpers, instrumentation and redaction. |
+| `supabase/migrations`, `supabase/tests` | Database definitions, controlled mutations and hosted regression tests. |
+| `tests` | Unit, integration-boundary and browser tests. |
 
-Verified locally: **173 unit tests, 13 Chromium tests, lint, TypeScript and all three production builds pass**. The [evidence matrix](docs/TEST_EVIDENCE.md) distinguishes these results from blocked hosted checks. [Deployment/setup](docs/DEPLOYMENT_RUNBOOK.md), [reviewed operating records](docs/PROVISIONING_RECORDS.md), [privacy operations](docs/PRIVACY_OPERATIONS.md) and [current implementation status](docs/IMPLEMENTATION_STATUS.md) provide the continuation path.
+## Documentation and continuation
+
+Start with this README and the latest feature/release notes:
+
+- [Shared company setup and release evidence](docs/COMPANY_CONNECTION_SETUP.md)
+- [Agent registry and implemented modes](docs/AGENT_REGISTRY.md)
+- [Team studio](docs/TEAM_STUDIO.md) and [workspace design](docs/WORKSPACE_STUDIO.md)
+- [Google authorization handoff](docs/GOOGLE_HANDOFF.md) and [Firecrawl activation](docs/FIRECRAWL_ACTIVATION.md)
+- [Architecture](docs/ARCHITECTURE.md), [security boundaries](docs/SECURITY_AND_THREAT_MODEL.md) and [privacy operations](docs/PRIVACY_OPERATIONS.md)
+- [Deployment runbook](docs/DEPLOYMENT_RUNBOOK.md) and [provisioning records](docs/PROVISIONING_RECORDS.md)
+
+Earlier [implementation status](docs/IMPLEMENTATION_STATUS.md), [test evidence](docs/TEST_EVIDENCE.md) and onboarding documents contain historical snapshots. Check their dates against the latest release notes and executable code; older “blocked” or “complete” statements may have been superseded. This platform has not established a verified legacy-system cutover; see [legacy migration](docs/LEGACY_MIGRATION.md).
