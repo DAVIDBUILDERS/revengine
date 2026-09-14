@@ -14,7 +14,7 @@ test("all operational screens fit a narrow viewport", async ({ page }) => {
     "operator",
   ]) {
     await page.goto(`/?view=${view}`);
-    await expect(page.locator(".page-heading h1, .briefing-question h1")).toBeVisible();
+    await expect(page.locator(".page-heading h1, .briefing-question h1, .studio-heading h1")).toBeVisible();
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth > innerWidth,
@@ -307,6 +307,7 @@ test("catalog selections, saved scenarios and evidence keyboard navigation", asy
   page,
 }) => {
   await page.goto("/?view=team");
+  await page.getByRole("button",{name:"Build your team",exact:true}).click();
   await expect(page.locator(".agent-card")).toHaveCount(32);
   await page.getByRole("button", { name: "Recommend my five" }).click();
   await expect(page.getByRole("status").filter({hasText:"Recommended team selected below"})).toBeVisible();
@@ -366,6 +367,7 @@ test("activation resumes and preparation leads to a bounded reviewed initiative"
   await page.reload();
   await expect(page.getByRole("heading", { name: "Systems & sources", exact: true })).toBeVisible();
   await page.getByRole("link", { name: "Your team", exact: true }).click();
+  await page.getByRole("button",{name:"Build your team",exact:true}).click();
   await page
     .locator(".agent-card")
     .filter({

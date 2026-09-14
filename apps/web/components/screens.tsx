@@ -1,4 +1,5 @@
 "use client";
+import {TeamStudio} from "./team-studio";
 import { AgentRoster, AgentWorkspace } from "./agent-workspace";
 import { SourceSetup } from "./source-setup";
 import { activeApprovals } from "./approval-state";
@@ -49,7 +50,9 @@ import {
   shortDate,
 } from "./ui";
 
-export function Team(props: ScreenProps) {
+export function Team(props: ScreenProps) { return <TeamStudio {...props} configuration={<TeamConfiguration {...props}/>}/>; }
+
+function TeamConfiguration(props: ScreenProps) {
   const { state, act, busy, navigate } = props;
   const [goal, setGoal] = useState(state.recommendation.goal);
   const [model, setModel] = useState(state.workspace.businessModel);
