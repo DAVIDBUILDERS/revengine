@@ -16,11 +16,11 @@ export function suggestCompany(capture: CapturedCompany): CompanySuggestion[] {
   };
   for(const page of capture.pages.slice(0,3)){
     for(const line of page.text.split('\n')){
-      const metadata=/^(Organization name|Offer|Audience):\s*(.{2,500})$/.exec(line);
+      const metadata=/^(Organization name|Offer|Audience):\s*(.{2,500})$/.exec(line.replace(/^\s*(?:#{1,6}\s+|[-*]\s+)?/, '').replace(/\*\*/g,''));
       if(metadata)add(metadata[1]==='Organization name'?'name':metadata[1]==='Offer'?'offers':'customers',metadata[2],line,page.url,'Explicit page metadata; confirm before use');
     }
     if(!suggestions.some(s=>s.field==='name'))add('name',page.title.split(/\s+[|–—-]\s+/)[0]??'',page.title,page.url,'Page title; confirm the company name');
-    const sentences=[page.description,page.text].flatMap(text=>text.split(/(?<=[.!?])\s+/)).filter(s=>s.length>8&&s.length<700);
+    const sentences=[page.description,page.text].flatMap(text=>text.split(/\n+|(?<=[.!?])\s+/)).filter(s=>s.length>8&&s.length<700);
     for(const sentence of sentences){
       const offer=/(?:we (?:offer|provide|deliver)|our services include|offers:)\s+(.{3,350})/i.exec(sentence);
       if(offer)add('offers',offer[1],sentence,page.url,'Explicit offer wording');

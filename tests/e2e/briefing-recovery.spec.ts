@@ -38,9 +38,9 @@ test('late website response after a different saved URL is ignored and OAuth-sty
  release!();await page.getByLabel('Business description').fill('Our current description');await page.getByRole('button',{name:'Continue',exact:false}).click();await page.getByRole('radio',{name:/Get more qualified leads/}).check();await page.getByRole('button',{name:'Continue',exact:false}).click();
  await page.goto('/?view=activation');await expect(page.getByRole('heading',{name:'Let’s fill in just the essentials.'})).toBeVisible();await expect(page.getByText('Abandoned company')).toHaveCount(0);
 });
-test('new owners enter the briefing, existing work returns to dashboard, and viewer controls remain read-only',async({page})=>{
+test('new owners enter their team, existing work returns to dashboard, and viewer controls remain read-only',async({page})=>{
  const {fixture}=await apiFixture(page);
- await page.goto('/');await expect(page.getByRole('heading',{name:/Let’s find a useful first step/})).toBeVisible();
+ await page.goto('/');await expect(page.getByRole('heading',{name:'Your team',exact:true})).toBeVisible();
  fixture.activation.milestone='preparation_artifact';await page.goto('/');await expect(page.getByRole('heading',{name:'Today',exact:true})).toBeVisible();
  fixture.context.role='workspace_viewer';await page.goto('/?view=activation');await expect(page.getByRole('button',{name:'Let’s begin'})).toBeDisabled();await expect(page.getByText(/A workspace owner must save answers/)).toBeVisible();
 });
@@ -63,4 +63,20 @@ test('a newer workspace revision blocks edits and reload restores the saved webs
  const record=fixture.onboarding!;const answers=structuredClone(record.answers);answers.briefing!.websiteInput='newer.example';await executeCommand(fixture,{type:'save_onboarding',expectedRevision:record.revision,answers});
  await page.clock.fastForward(31000);await expect(page.getByRole('button',{name:'Reload saved answers'})).toBeVisible();await expect(page.getByLabel('Company website',{exact:true})).toBeDisabled();
  await page.getByRole('button',{name:'Reload saved answers'}).click();await expect(page.getByLabel('Company website',{exact:true})).toHaveValue('newer.example');
+});
+
+test('partial website research opens findings before asking for missing audience',async({page})=>{
+ await apiFixture(page);
+ await page.route('**/api/context/capture',r=>r.fulfill({json:{capture:{id:'00000000-0000-4000-8000-000000000011',sourceHash:'b'.repeat(64),context:{fixture:false,pages:[{url:'https://company.example/',title:'Example Company',description:'',text:'We provide pest control services.',capturedAt:new Date().toISOString()}]}}}}));
+ await page.goto('/?view=activation');await page.getByRole('button',{name:'Let’s begin'}).click();
+ await page.getByLabel('Company website').fill('https://company.example');await page.getByLabel('Company website').press('Enter');
+ await page.getByRole('radio',{name:/Get more qualified leads/}).check();await page.getByRole('button',{name:'Continue',exact:false}).click();
+ await page.getByRole('button',{name:'Review what we found'}).click();
+ await expect(page.getByRole('heading',{name:'Here’s what we learned about your business.'})).toBeVisible();
+ await expect(page.getByText('pest control services',{exact:true})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Who do you help?',exact:true})).toHaveCount(0);
+ await expect(page.getByText('Customer audience: not identified in the captured pages.')).toBeVisible();
+ await page.getByRole('button',{name:'Small businesses',exact:true}).click();
+ await expect(page.getByText('For Small businesses',{exact:true})).toBeVisible();
+ await expect(page.getByRole('button',{name:'That’s right',exact:true})).toBeEnabled();
 });
