@@ -62,6 +62,22 @@ describe('shared company connections',()=>{
   expect(state.connections).toEqual(before);expect(system(state,'mail').status).toBe('verified');
   expect(onboardingReport(state).agents.find(a=>a.id==='deal-follow-up')!.missing).toContain('Apply the current reviewed settings before activation.');
  });
+ it('preserves source checks made before the first team save on a persisted revision-zero baseline',()=>{
+  const state=createFixtureState('company-before-team');state.workspace.mode='shadow';state.context.environment='shadow';
+  const baseline=onboardingFor(state);state.onboarding={...baseline,configurationRevision:0,configurationUpdatedAt:baseline.updatedAt};
+  state.asOf=new Date(Date.parse(state.asOf)+60000).toISOString();state.connections=[account(state)];
+  expect(system(state,'mail').status).toBe('verified');expect(system(state,'calendar').status).toBe('verified');
+  const connections=structuredClone(state.connections);state.asOf=new Date(Date.parse(state.asOf)+60000).toISOString();state.workspace.paused=false;
+  state.onboarding=saveOnboarding(state,{...state.onboarding.answers,team:['appointment-coordinator']},0);
+  expect(state.onboarding.revision).toBe(1);expect(state.onboarding.configurationRevision).toBe(0);
+  expect(state.onboarding.configurationUpdatedAt).toBe(baseline.updatedAt);expect(state.onboarding.updatedAt).toBe(state.asOf);
+  expect(state.connections).toEqual(connections);expect(hasCurrentCapabilitySource(state,'calendar.availability')).toBe(true);
+  expect(system(state,'mail').status).toBe('verified');expect(state.workspace.paused).toBe(true);expect(state.onboarding.appliedRevision).toBeNull();
+  const changed=structuredClone(state.onboarding.answers);changed.operations.dailyCapacity=2;
+  state.onboarding=saveOnboarding(state,changed,1);
+  expect(state.onboarding.configurationRevision).toBe(2);expect(state.onboarding.configurationUpdatedAt).toBe(state.asOf);
+  expect(hasCurrentCapabilitySource(state,'calendar.availability')).toBe(false);
+ });
  it('only asks for additional capability permissions when a new role needs them',()=>{
   const state=company();const connection=account(state);connection.operations=connection.operations.filter(op=>op!=='gmail.send');connection.scopes=connection.scopes.filter(scope=>!scope.endsWith('gmail.send'));state.connections=[connection];
   expect(system(state,'mail').status).toBe('verified'); // The read check remains true.

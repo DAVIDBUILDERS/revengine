@@ -28,6 +28,8 @@ Progress, verification and release evidence will be recorded here as implementat
 - New companies enter Connections. Team selection remains optional during source setup, and a full lineup can replace a specialist without rebuilding company answers. Draft conflicts require an explicit reload.
 - Migration 023 decouples checked read-only setup jobs from specialist installations, retaining tenant and token/action boundaries. It also adds stable material-configuration stamps and a versioned onboarding reader. Applied to the hosted test project; all 14 hosted SQL suites passed, including new source-setup security and lifecycle cases.
 - Browser checks passed for company inventory persistence, help requests, direct source entry, company-wide Google scope selection, CSV entry, saved/failed team swaps and mobile layout. Google handoff/return and briefing recovery remain covered. The first full unit pass was 247 tests.
-- Found a fresh-company edge during review: no persisted onboarding baseline existed before the first answer save. Additive migration 024 will establish an empty, permission-free revision-0 baseline so the first team selection also preserves checks made earlier.
+- Found a fresh-company edge during review: no persisted onboarding baseline existed before the first answer save. Additive migration 024 establishes an empty, permission-free revision-0 baseline so the first team selection also preserves checks made earlier. It passed the hosted test migration and all 15 SQL suites.
 
 The browser/SQL fixtures are labeled test data. These checks do not claim a real Google consent grant, mail delivery, booking or finished implementation of planned agents.
+
+Final local checks: 251 unit tests, all 46 browser scenarios (one stale CSS selector corrected and rerun), TypeScript, lint/module boundaries, and builds for the operational app and both demo variants passed. No Google provider credentials were copied into the test project.

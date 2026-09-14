@@ -54,7 +54,8 @@ export function saveOnboarding(state:AppSnapshot,answers:OnboardingAnswers,expec
  const a=OnboardingAnswers.parse(answers);
  if(a.team.length>(state.workspace.entitlement??5))throw new Error('Selected team exceeds the configured workspace allowance.');
  if(a.team.some(id=>!state.catalog.some(c=>c.id===id)))throw new Error('Unknown agent selected.');
- const material=old.revision===0||JSON.stringify(onboardingConfiguration(old.answers))!==JSON.stringify(onboardingConfiguration(a));
+ const initialized=old.configurationRevision!==undefined&&old.configurationUpdatedAt!==undefined;
+ const material=(old.revision===0&&!initialized)||JSON.stringify(onboardingConfiguration(old.answers))!==JSON.stringify(onboardingConfiguration(a));
  const critical=material||JSON.stringify(old.answers.team)!==JSON.stringify(a.team);
  if(critical){state.workspace.paused=true;state.approvals.filter(ap=>(ap.status==='pending'||ap.status==='approved')&&state.actions.some(action=>action.id===ap.actionId&&action.status==='not_attempted')).forEach(ap=>ap.status='invalidated');}
  const revision=old.revision+1;
