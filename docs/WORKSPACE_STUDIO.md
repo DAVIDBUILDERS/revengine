@@ -6,7 +6,7 @@ Extend the established Your Team studio across Today, Connections, Opportunities
 ## Implementation
 - Connections: source overview, account tiles, explicit capability selection and focused connection inspection.
 - Today: review desk with an actual work-product preview, installed team and recorded outcomes.
-- Opportunities: source-status filters and real record counts above the proposal workbench.
+- Opportunities: proposal-status filters and real record counts above the proposal workbench.
 - Decisions: actionable review overview, proposed/approved filters and evidence-first decision cards.
 - Journey: relationship panel and independently evidenced milestones; recorded stages remain separate from each other.
 - Scenarios: live low/base/high comparison precedes assumptions; all values remain labeled projections.
@@ -24,3 +24,8 @@ All command authorization, revision checks, source requirements, explicit permis
 - TypeScript, ESLint/module boundaries and the operational web production build passed.
 
 These browser scenarios use explicitly synthetic fixtures. They verify presentation and existing workflow behavior, not new live provider capabilities. No database migration or new execution permission is required for this release.
+
+## Hosted release verification
+Test deployment `gNVTKC3GyCuDw5WHxApxfrf94CYF` passed 20 checks using two isolated Auth accounts and private Supabase workspaces. Checks include login/create/return routing, tenant read/write isolation, cross-origin rejection, signed-out denial, an explicit missing-Firecrawl-key response, and all seven owner-facing studio pages on desktop/mobile. The optional `--studio-pages` flag in `scripts/verify-hosted-onboarding.ts` retains these hosted checks. Published CSS ordering and empty Connections/Today states were visually inspected.
+
+Implementation commit: `ffc38cc`. The hosted accounts are explicitly labeled test actors in the separate test project; no customer account or execution permission was altered.

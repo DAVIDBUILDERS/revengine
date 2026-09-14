@@ -62,6 +62,21 @@ try{
  const state=await api('/api/state?workspace='+a);expect(state.status).toBe(200);expect(state.body.workspace.mode).toBe('shadow');expect(state.body.workspace.paused).toBe(true);expect(state.body.onboardingCapture.fixture).toBe(false);expect(state.body.onboarding.appliedRevision).toBe(state.body.onboarding.revision);
  check('Explicitly reviewed preparation setup applied with execution paused and spending disabled');
  }
+ if(process.argv.includes('--studio-pages')){
+  await page.setViewportSize({width:1440,height:1000});
+  for(const view of ['today','connections','opportunities','decisions','journey','scenarios','activation']){
+   await page.goto(`${origin}/?view=${view}&workspace=${a}${view==='activation'?'&mode=profile':''}`);
+   await expect(page.locator('.studio-app')).toBeVisible();
+   await expect(page.locator('.page-heading h1, .studio-heading h1')).toBeVisible();
+   if(view==='connections')await expect(page.locator('.connections-network')).toHaveCSS('background-color','rgb(34, 41, 37)');
+   await page.screenshot({path:`artifacts/hosted-studio-${view}-desktop.png`});
+   await page.setViewportSize({width:390,height:844});
+   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`${view} must fit a mobile viewport`).toBe(true);
+   await page.screenshot({path:`artifacts/hosted-studio-${view}-mobile.png`});
+   await page.setViewportSize({width:1440,height:1000});
+   check(`Published ${view} studio renders for a new workspace and fits mobile`);
+  }
+ }
  const updateDenied=await api('/api/command?workspace='+b,{type:'build_setup',goal:'demand',expectedRevision:0,expectedGeneration:0});expect(updateDenied.status).toBe(403);check('Cross-workspace mutation denied');
  const wrongOrigin=await contexts[0].request.post(origin+'/api/command?workspace='+a,{headers:{'x-vercel-protection-bypass':bypass,Origin:'https://untrusted.example'},data:{type:'build_setup',goal:'demand',expectedRevision:0,expectedGeneration:0}});expect(wrongOrigin.status()).toBe(403);check('Cross-origin mutation denied');
  await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:'artifacts/hosted-onboarding.png',fullPage:true});
