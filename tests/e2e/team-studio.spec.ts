@@ -10,9 +10,16 @@ test('studio focuses on one agent, keeps configuration optional, and fits mobile
  await page.getByRole('button',{name:'Close details'}).click();
  await page.getByRole('button',{name:'Build your team',exact:true}).click();
  await expect(page.locator('.agent-card')).toHaveCount(32);
+ await page.screenshot({path:'artifacts/team-builder-desktop.png'});
  await page.getByRole('button',{name:'Recommend my five',exact:true}).click();
  await expect(page.getByRole('status').filter({hasText:'Recommended team selected below'})).toBeVisible();
+ const removed=await page.getByRole('button',{name:/^Remove /}).first().getAttribute('aria-label');
+ await page.getByRole('button',{name:/^Remove /}).first().click();
  await page.getByRole('button',{name:'Back to workspace',exact:true}).click();
  await page.setViewportSize({width:390,height:844});
+ await page.getByRole('button',{name:'Build your team',exact:true}).click();
+ await expect(page.getByRole('button',{name:removed!,exact:true})).toHaveCount(0);
+ await expect(page.getByRole('button',{name:/^Remove /})).toHaveCount(4);
+ await page.screenshot({path:'artifacts/team-builder-mobile.png',fullPage:false});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });

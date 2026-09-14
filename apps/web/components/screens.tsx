@@ -1,6 +1,6 @@
 "use client";
 import {TeamStudio} from "./team-studio";
-import { AgentRoster, AgentWorkspace } from "./agent-workspace";
+import { AgentWorkspace } from "./agent-workspace";
 import { SourceSetup } from "./source-setup";
 import { activeApprovals } from "./approval-state";
 import { useEffect, useState } from "react";
@@ -55,7 +55,7 @@ export function Team(props: ScreenProps) { return <TeamStudio {...props} configu
 function TeamConfiguration(props: ScreenProps) {
   const { state, act, busy, navigate } = props;
   const [goal, setGoal] = useState(state.recommendation.goal);
-  const [model, setModel] = useState(state.workspace.businessModel);
+  const model = state.workspace.businessModel;
   const setup = onboardingFor(state);
   const savedTeam = setup.revision ? setup.answers.team : state.activation.selectedTeam;
   const [selected, setSelected] = useState(savedTeam);
@@ -96,278 +96,28 @@ function TeamConfiguration(props: ScreenProps) {
           ? [...current, id]
           : current,
     );
+  const allowance = state.workspace.entitlement ?? 5;
   return (
-    <div className="stack">
-      <PageHeading
-        eyebrow="People set direction. Agents do bounded work."
-        title="Your team"
-        description="Inspect each agent’s work, sources and permissions. Choose responsibilities within your workspace allowance."
-        action={
-          <Button variant="primary" onClick={() => openSetup(5)}>
-            Review team readiness
-            <ArrowRight size={14} />
-          </Button>
-        }
-      />
-      <section aria-label="Installed agents">
-        <div className="section-heading">
-          <h2>Installed agents</h2>
-          <span>Open a workspace to inspect or request work</span>
-        </div>
-        <AgentRoster state={state} onOpen={setAgent} />
+    <div className="team-builder">
+      <section className="builder-objective">
+        <div><span className="studio-kicker">TEAM DESIGN / {state.workspace.businessModel.replaceAll("_", " ")}</span><h2>Give ambition a team.</h2><p>Choose your objective. Find the specialists to move it forward.</p></div>
+        <div className="builder-intent"><label htmlFor="team-goal">The outcome</label><select id="team-goal" value={goal} onChange={e=>setGoal(e.target.value)}>{[...new Set([state.recommendation.goal,"Recover open proposals","Create qualified demand","Improve conversion","Retain and expand customers"])].map(g=><option key={g}>{g}</option>)}</select>
+        <Button disabled={busy} onClick={async()=>{const result=await act({type:"recommend_team",goal,businessModel:model});if(result){setSelected(result.snapshot.recommendation.specialistIds.slice(0,allowance));setTeamMessage("Recommended team selected below. Review it, then save your team.");}else setTeamMessage("We couldn’t recommend a team. Review the error above and try again.");}}><ListChecks size={16}/>{busy?"Working…":"Recommend my five"}</Button></div>
       </section>
-      <section className="card card-body stack">
-        <div className="between">
-          <div>
-            <h2 style={{ fontSize: 17 }}>Start with the outcome you want</h2>
-            <p className="small muted" style={{ marginTop: 8 }}>
-              Recommendations account for applicability, source dependencies and
-              the capabilities implemented today.
-            </p>
-          </div>
-          <ListChecks size={23} color="var(--accent)" />
-        </div>
-        <div className="grid-two">
-          <label className="field">
-            Business goal
-            <select
-              className="input"
-              value={goal}
-              onChange={(e) => setGoal(e.target.value)}
-            >
-              <option value={state.recommendation.goal}>
-                {state.recommendation.goal}
-              </option>
-              {[
-                "Recover open proposals",
-                "Create qualified demand",
-                "Improve conversion",
-                "Retain and expand customers",
-              ]
-                .filter((item) => item !== state.recommendation.goal)
-                .map((item) => (
-                  <option key={item}>{item}</option>
-                ))}
-            </select>
-          </label>
-          <label className="field">
-            Business model
-            <select
-              className="input"
-              value={model}
-              onChange={(e) => setModel(e.target.value as typeof model)}
-            >
-              <option value="b2b_services">B2B services</option>
-              <option value="home_services">Home services</option>
-              <option value="commerce">Commerce · catalog and scenarios</option>
-            </select>
-          </label>
-        </div>
-        <div className="between">
-          <span className="help">
-            Recommendations do not grant connection access or authorize
-            execution.
-          </span>
-          <div className="flex wrap">
-            <Button
-              onClick={async () => {
-                setTeamMessage("");
-                const result = await act({ type: "recommend_team", goal, businessModel: model });
-                if (result) {
-                  setSelected(result.snapshot.recommendation.specialistIds.slice(0, state.workspace.entitlement ?? 5));
-                  setTeamMessage("Recommended team selected below. Review it, then save your team.");
-                } else setTeamMessage("We couldn’t recommend a team. Review the error above and try again.");
-              }}
-              disabled={busy}
-            >
-              <ListChecks size={14} />
-              Recommend my five
-            </Button>
-            <Button
-              disabled={busy || !state.recommendation.specialistIds.length}
-              onClick={() =>
-                setSelected([...state.recommendation.specialistIds])
-              }
-            >
-              Use recommended five
-              <ArrowRight size={13} />
-            </Button>
-          </div>
-        </div>
-      </section>
-      {teamMessage && <p role="status" className="notice">{teamMessage}</p>}
-      <section>
-        <div className="section-heading">
-          <h2>Your selected team</h2>
-          <span>
-            {selected.length} / {state.workspace.entitlement ?? 5} specialist slots ·{" "}
-            {money(state.workspace.subscriptionMinor)} / month
-          </span>
-        </div>
-        <div className="card card-body">
-          <div className="flex wrap">
-            {selected.map((id) => (
-              <span
-                key={id}
-                className="badge badge-info"
-                style={{ padding: "9px 11px", fontSize: 12 }}
-              >
-                {state.catalog.find((item) => item.id === id)?.name ?? id}
-                <button
-                  style={{
-                    border: 0,
-                    background: "transparent",
-                    display: "flex",
-                  }}
-                  onClick={() => toggle(id)}
-                  aria-label={`Remove ${state.catalog.find((item) => item.id === id)?.name ?? id}`}
-                >
-                  <X size={12} />
-                </button>
-              </span>
-            ))}
-            {!selected.length && (
-              <p className="small muted">
-                Select specialists within your workspace allowance.
-              </p>
-            )}
-          </div>
-          <div className="between" style={{ marginTop: 20 }}>
-            <p className="help">
-              Shared foundations consume no specialist slots. Changing the team
-              pauses execution. Save your team, then configure its sources and permissions below.
-            </p>
-            <Button
-              variant="primary"
-              disabled={busy || selectedKey === selected.join(",")}
-              onClick={async () => {
-                const result = await act({ type: "save_onboarding", expectedRevision: setup.revision, answers: {...setup.answers, team: selected} });
-                setTeamMessage(result ? "Team saved. Configure sources and permissions, then review readiness." : "Your team could not be saved. Review the error above and retry.");
-              }}
-            >
-              Save team
-            </Button>
-          </div>
-        </div>
-      </section>
-      <section className="card card-body stack" aria-label="Build this workspace together">
-        <h2>Build this workspace together</h2>
-        <p>Work through these settings with your customer in any order. Saved answers are shared across the team; agents remain blocked until their required checks pass.</p>
-        <div className="flex wrap">
-          <Button onClick={() => openSetup(0)}>Company & objectives</Button>
-          <Button onClick={() => openSetup(2)}>Sources & connections</Button>
-          <Button onClick={() => openSetup(3)}>Permissions & budgets</Button>
-          <Button onClick={() => openSetup(4)}>People & measurement</Button>
-          <Button onClick={() => openSetup(5)}>Review readiness</Button>
-        </div>
-      </section>
-      {state.recommendation.limitations.length > 0 && (
-        <div className="notice notice-warning">
-          <AlertCircle size={18} />
-          <div>
-            {state.recommendation.limitations.map((item) => (
-              <p key={item}>{item}</p>
-            ))}
-          </div>
-        </div>
-      )}
-      <section className="stack">
-        <div className="between">
-          <div className="field" style={{ minWidth: 220 }}>
-            <label htmlFor="catalog-search">Search the catalog</label>
-            <div className="flex">
-              <Search size={17} color="var(--muted)" />
-              <input
-                id="catalog-search"
-                className="input"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Name or responsibility"
-              />
-            </div>
-          </div>
-          <label className="field">
-            Responsibility group
-            <select
-              className="input"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            >
-              {categories.map((item) => (
-                <option key={item}>{item}</option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <div className="catalog-grid">
-          {filtered.map((item) => {
-            const installed = state.installations.find(
-              (value) => value.agentId === item.id,
-            );
-            const applicable = item.supportedArchetypes.includes(model);
-            const picked = selected.includes(item.id);
-            const recommended = state.recommendation.specialistIds.includes(
-              item.id,
-            );
-            return (
-              <article
-                className={`card agent-card ${picked ? "selected" : ""}`}
-                key={item.id}
-              >
-                <div className="between">
-                  <div className="agent-symbol">
-                    <ListChecks size={18} />
-                  </div>
-                  {recommended ? (
-                    <Badge tone="info">Recommended</Badge>
-                  ) : (
-                    <span className="eyebrow">{item.category}</span>
-                  )}
-                </div>
-                <h3>{item.name}</h3>
-                <p>{item.responsibility}</p>
-                <div className="flex wrap" style={{ gap: 5 }}>
-                  <Badge status={installed?.status ?? item.releaseStatus} />
-                  {item.modes.map((mode) => (
-                    <Badge
-                      key={mode}
-                      tone={mode === "preparation" ? "info" : "warning"}
-                    >
-                      {words(mode)}
-                    </Badge>
-                  ))}
-                  {!applicable && (
-                    <Badge tone="warning">Outside this business model</Badge>
-                  )}
-                </div>
-                <div className="agent-card-foot">
-                  <button
-                    className="link-button"
-                    onClick={() => setAgent(item)}
-                  >
-                    Role & readiness
-                    <ChevronRight size={12} />
-                  </button>
-                  <Button
-                    className="btn-small"
-                    disabled={!picked && (selected.length >= (state.workspace.entitlement ?? 5) || !applicable)}
-                    onClick={() => toggle(item.id)}
-                  >
-                    {picked ? <Check size={13} /> : <Plus size={13} />}{" "}
-                    {picked ? "Selected" : "Select"}
-                  </Button>
-                </div>
-              </article>
-            );
-          })}
-        </div>
-        {!filtered.length && (
-          <Empty title="No matching specialists">
-            Try a different search or responsibility group.
-          </Empty>
-        )}
-      </section>
-      <AgentWorkspace {...props} agent={agent} onClose={() => setAgent(null)} />
+      <section className="builder-lineup" aria-label="Your selected team"><div className="between"><span className="studio-kicker">YOUR LINEUP</span><span>{selected.length} / {allowance} specialists</span></div><div className="builder-slots">
+      {Array.from({length:Math.min(allowance,Math.max(5,selected.length+1))},(_,i)=>{const item=state.catalog.find(a=>a.id===selected[i]);return <div className={item?"builder-slot filled":"builder-slot"} key={i}><span className="studio-index">{String(i+1).padStart(2,"0")}</span>{item?<><strong>{item.name}</strong><button aria-label={`Remove ${item.name}`} onClick={()=>toggle(item.id)}><X size={14}/></button><small>{item.releaseStatus==="planned"?"Capability planned":"Readiness checked separately"}</small></>:<><Plus size={19}/><span>Open position</span></>}</div>})}
+      </div></section>
+      {teamMessage&&<p role="status" className="notice">{teamMessage}</p>}
+      <section className="builder-library" aria-label="Specialist library"><div className="builder-library-heading"><div><span className="studio-kicker">32 SPECIALISTS / ONE SHARED OBJECTIVE</span><h2>Find your next advantage.</h2></div><label className="builder-search"><Search size={16}/><input aria-label="Search the catalog" placeholder="Find a specialist…" value={query} onChange={e=>setQuery(e.target.value)}/></label></div>
+      <div className="builder-filters" aria-label="Responsibility group">{categories.map(c=><button key={c} aria-pressed={category===c} onClick={()=>setCategory(c)}>{c}</button>)}</div>
+      <div className="builder-catalog">{filtered.map((item,i)=>{const picked=selected.includes(item.id);const applicable=item.supportedArchetypes.includes(model);const recommended=state.recommendation.specialistIds.includes(item.id);return <article key={item.id} className={`agent-card builder-agent ${picked?"selected":""}`}>
+      <div className="builder-agent-top"><span className="builder-monogram" aria-hidden="true">{item.name.split(" ").slice(0,2).map(w=>w[0]).join("")}</span><span className="studio-kicker">{recommended?"RECOMMENDED":item.category}</span><span className="studio-index">{String(i+1).padStart(2,"0")}</span></div>
+      <h3>{item.name}</h3><p>{item.responsibility}</p><span className="builder-capability">{!applicable?"Outside this business model":item.releaseStatus==="planned"?"Capability planned":item.modes.includes("preparation")?"Preparation capability":"Requires action verification"}</span>
+      <div className="builder-agent-actions"><button className="studio-text-action" onClick={()=>setAgent(item)}>Role & readiness <ArrowUpRight size={14}/></button><Button disabled={busy||(!picked&&(selected.length>=allowance||!applicable))} onClick={()=>toggle(item.id)} aria-pressed={picked}>{picked?<Check size={14}/>:<Plus size={14}/>} {picked?"Selected":"Select"}</Button></div>
+      </article>})}</div>{!filtered.length&&<Empty title="No matching specialists">Try another name or responsibility group.</Empty>}</section>
+      <footer className="builder-save"><div><strong>{selected.length} specialists in your team</strong><p>{selectedKey===selected.join(",")?"Your lineup is saved. Review sources and permissions to begin.":"Unsaved changes. Saving a team does not authorize execution."}</p></div><Button variant="primary" disabled={busy||selectedKey===selected.join(",")} onClick={async()=>{const result=await act({type:"save_onboarding",expectedRevision:setup.revision,answers:{...setup.answers,team:selected}});setTeamMessage(result?"Team saved. Configure sources and permissions, then review readiness.":"Your team could not be saved. Your selections are still here. Review the error above and retry.");}}>Save team <ArrowRight size={15}/></Button></footer>
+      <details className="builder-settings"><summary>Sources, permissions & workspace setup</summary><p>Selection defines the team. Verified access and explicit permissions determine what it can do.</p><div className="flex wrap">{[[0,"Company & objectives"],[2,"Sources & connections"],[3,"Permissions & budgets"],[4,"People & measurement"],[5,"Review readiness"]].map(([section,label])=><Button key={section} onClick={()=>openSetup(Number(section))}>{label}</Button>)}</div>{state.recommendation.limitations.map(item=><p key={item} className="help">{item}</p>)}</details>
+      <AgentWorkspace {...props} agent={agent} onClose={()=>setAgent(null)}/>
     </div>
   );
 }
