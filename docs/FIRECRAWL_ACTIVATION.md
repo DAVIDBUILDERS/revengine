@@ -14,3 +14,6 @@ Hosted verification passed 13 checks across two isolated test workspaces, includ
 
 ## Findings-first review
 Successful capture now goes directly to the business summary, even when audience or offer extraction is incomplete. The summary labels missing facts instead of promising all facts were found. Missing audience has explicit owner-choice buttons and a custom-answer option; these are not presented as website findings. Requested edits return to the summary. Failed/no-website capture retains the manual path. Extraction recognizes Markdown line boundaries and formatted structured labels. Seven briefing browser scenarios and fourteen domain tests passed; build/typecheck/lint passed.
+
+## Finish-screen loop correction
+The finish screen previously linked Continue setup back to the same briefing permission review; completing that review returned to finish. It now opens the full profile's readiness section (mode=profile, setup=5). Open my workspace / Save and exit opens Your Team and clears briefing-only routing parameters. Answers are flushed before navigation, preserving existing save-failure handling. A browser regression test verifies both destinations and refresh persistence. Typecheck and lint pass.

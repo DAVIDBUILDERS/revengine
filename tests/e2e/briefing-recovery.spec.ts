@@ -80,3 +80,23 @@ test('partial website research opens findings before asking for missing audience
  await expect(page.getByText('For Small businesses',{exact:true})).toBeVisible();
  await expect(page.getByRole('button',{name:'That’s right',exact:true})).toBeEnabled();
 });
+
+test('finished briefing exits to team and remaining setup without repeating permission review',async({page})=>{
+ const {fixture}=await apiFixture(page);
+ const {Briefing}=await import('../../packages/contracts/src/index');
+ const {onboardingFor}=await import('../../packages/domain/src/onboarding');
+ const answers=onboardingFor(fixture).answers;
+ answers.company.offers=['Pest control'];answers.company.customers=['Homeowners'];
+ answers.briefing=Briefing.parse({version:1,step:'finish',goal:'demand',name:'JT',task:'technical-seo-monitor'});
+ await executeCommand(fixture,{type:'save_onboarding',expectedRevision:0,answers});
+ await page.goto('/?view=activation&step=finish');
+ await page.getByRole('button',{name:'Open my workspace',exact:true}).click();
+ await expect(page).toHaveURL(/view=team/);await expect(page.getByRole('heading',{name:'Your team',exact:true})).toBeVisible();
+ await page.reload();await expect(page.getByRole('heading',{name:'Your team',exact:true})).toBeVisible();
+ await page.goto('/?view=activation&step=finish');
+ await page.getByRole('button',{name:'Continue setup',exact:true}).click();
+ await expect(page).toHaveURL(/mode=profile/);await expect(page).toHaveURL(/setup=5/);
+ await expect(page.getByRole('heading',{name:'Your first step, JT.'})).toHaveCount(0);
+ await expect(page.getByText('I approve this internal preparation limit and accept responsibility for reviewing its output.')).toHaveCount(0);
+ await page.reload();await expect(page).toHaveURL(/setup=5/);
+});

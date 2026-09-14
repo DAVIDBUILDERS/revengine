@@ -34,7 +34,7 @@ export function Conversation(props:ScreenProps){
  async function go(next:BriefingStep){briefing({step:next});if(!await save.flush())return;history.current.push(step);setStep(next);setReview(false);const url=new URL(location.href);url.searchParams.set('view','activation');url.searchParams.set('step',next);url.searchParams.delete('setup');url.searchParams.delete('guide');window.history.replaceState({},'',url.pathname+url.search);}
  async function forward(){save.update(d=>AnswersSchema.parse(d));await go(nextBriefingStep(step,save.draft.current,save.draft.current.briefing!));}
  async function back(){const path=briefingPath(a,b);const previous=history.current.pop()??path[Math.max(0,path.indexOf(step)-1)];await go(previous);history.current.pop();}
- async function leave(profile=false){if(!await save.flush())return;const url=new URL(location.href);url.searchParams.set('view',profile?'activation':'today');url.searchParams.delete('step');if(profile)url.searchParams.set('mode','profile');else url.searchParams.delete('mode');location.assign(url.pathname+url.search);}
+ async function leave(profile=false){if(!await save.flush())return;const url=new URL(location.href);url.searchParams.set('view',profile?'activation':'team');url.searchParams.delete('step');url.searchParams.delete('guide');url.searchParams.delete('setup');if(profile){url.searchParams.set('mode','profile');url.searchParams.set('setup','5');}else url.searchParams.delete('mode');location.assign(url.pathname+url.search);}
  async function researchWebsite(url:string,id:string){
   request.current=id;setResearch('running');
   try{
@@ -159,7 +159,7 @@ export function Conversation(props:ScreenProps){
     {working?<p role="status">Preparation status: {working.status.replaceAll('_',' ')}. This is a saved server task, not a completed output.</p>:<p className="notice">{artifacts.length?'Your preparation is available above. Review the output and its sources before using it.':briefingNextAction(state)}</p>}
     {requests.filter(r=>['failed','blocked','cancelled'].includes(r.status)).map(r=><p role="status" key={r.id}>Previous preparation: {r.status}. Review the operator queue before retrying.</p>)}
     {canRequest&&<button type="button" className="btn btn-primary" onClick={()=>void run(async()=>{if(state.workspace.paused)await command({type:'pause',paused:false});await command({type:'prepare',agentId:task!.id});setError(demo?'Synthetic preparation saved below.':'Preparation request saved. Server status will refresh here.');})}>{demo?'Prepare sample output':'Request my first preparation'}</button>}
-    <div className="flex wrap"><button type="button" className="btn btn-primary" onClick={()=>void run(()=>leave())}>Open my workspace</button><button type="button" className="btn" onClick={()=>void run(()=>go(!usableCapture?'website':task?.requiresModel&&a.operations.modelDailyBudgetMinor===null?'budget':'review'))}>Continue setup</button><button type="button" className="link-button" onClick={()=>void run(help)}>Request setup assistance</button></div>
+    <div className="flex wrap"><button type="button" className="btn btn-primary" onClick={()=>void run(()=>leave())}>Open my workspace</button><button type="button" className="btn" onClick={()=>void run(()=>leave(true))}>Continue setup</button><button type="button" className="link-button" onClick={()=>void run(help)}>Request setup assistance</button></div>
    </Question>}
    </fieldset>
   </main>
