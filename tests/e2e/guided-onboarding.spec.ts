@@ -33,7 +33,7 @@ test('website briefing, explicit permission and source-backed synthetic output w
  await page.getByLabel(/I approve this internal preparation limit/).check();
  await page.getByRole('button',{name:'Approve this preparation setup'}).click();
  await expect(page.getByRole('heading',{name:'Your team',exact:true})).toBeVisible();
- await page.goto('/?view=activation');
+ await page.goto(`${origin}/?view=activation`);
  await page.getByRole('button',{name:'Prepare sample output'}).click();
  await expect(page.getByRole('heading',{name:'Source-grounded content brief'})).toBeVisible();
  await page.getByRole('button',{name:'Mark output reviewed'}).click();
