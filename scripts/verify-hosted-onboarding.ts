@@ -34,6 +34,7 @@ try{
   const r=await contexts[0].request.fetch(origin+path,{method:body?'POST':'GET',headers:{'x-vercel-protection-bypass':bypass,...(body?{'Origin':origin}: {})},...(body?{data:body}:{})});return {status:r.status(),body:await r.json()};
  };
  const denied=await api('/api/state?workspace='+b);expect(denied.status).toBe(403);check('Cross-workspace read denied');
+ if(process.argv.includes('--capture-unconfigured')){const capture=await api('/api/context/capture',{workspaceId:a,url:'https://getdavid.ai'});expect(capture.status).toBe(503);expect(capture.body.error).toBe('FIRECRAWL_UNCONFIGURED');check('Missing Firecrawl credentials produce explicit setup error without fallback');}
  if(!routingOnly){
  await page.goto(origin+'/?view=activation&workspace='+a);
  await page.getByRole('button',{name:'Let’s begin'}).click();
