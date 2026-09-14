@@ -56,6 +56,19 @@ export function Team(props: ScreenProps) {
   const setup = onboardingFor(state);
   const savedTeam = setup.revision ? setup.answers.team : state.activation.selectedTeam;
   const [selected, setSelected] = useState(savedTeam);
+  const [teamMessage, setTeamMessage] = useState("");
+  async function openSetup(section: number) {
+    if (busy) return;
+    if (selectedKey !== selected.join(",")) {
+      const result = await act({type:"save_onboarding", expectedRevision:setup.revision, answers:{...setup.answers,team:selected}});
+      if (!result) { setTeamMessage("Save failed. Your selections are still here; retry before opening settings."); return; }
+    }
+    const url = new URL(window.location.href);
+    url.searchParams.set("mode", "profile");
+    url.searchParams.set("setup", String(section));
+    window.history.replaceState({}, "", url.pathname + url.search);
+    navigate("activation");
+  }
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All specialists");
   const [agent, setAgent] = useState<AgentDefinition | null>(null);
@@ -87,8 +100,8 @@ export function Team(props: ScreenProps) {
         title="Your team"
         description="Inspect each agent’s work, sources and permissions. Choose responsibilities within your workspace allowance."
         action={
-          <Button variant="primary" onClick={() => navigate("activation")}>
-            Continue activation
+          <Button variant="primary" onClick={() => openSetup(5)}>
+            Review team readiness
             <ArrowRight size={14} />
           </Button>
         }
@@ -154,9 +167,14 @@ export function Team(props: ScreenProps) {
           </span>
           <div className="flex wrap">
             <Button
-              onClick={() =>
-                void act({ type: "recommend_team", goal, businessModel: model })
-              }
+              onClick={async () => {
+                setTeamMessage("");
+                const result = await act({ type: "recommend_team", goal, businessModel: model });
+                if (result) {
+                  setSelected(result.snapshot.recommendation.specialistIds.slice(0, state.workspace.entitlement ?? 5));
+                  setTeamMessage("Recommended team selected below. Review it, then save your team.");
+                } else setTeamMessage("We couldn’t recommend a team. Review the error above and try again.");
+              }}
               disabled={busy}
             >
               <ListChecks size={14} />
@@ -174,6 +192,7 @@ export function Team(props: ScreenProps) {
           </div>
         </div>
       </section>
+      {teamMessage && <p role="status" className="notice">{teamMessage}</p>}
       <section>
         <div className="section-heading">
           <h2>Your selected team</h2>
@@ -213,18 +232,30 @@ export function Team(props: ScreenProps) {
           <div className="between" style={{ marginTop: 20 }}>
             <p className="help">
               Shared foundations consume no specialist slots. Changing the team
-              pauses execution. Apply the reviewed setup in Activation to install the team and validate handoffs.
+              pauses execution. Save your team, then configure its sources and permissions below.
             </p>
             <Button
               variant="primary"
               disabled={busy || selectedKey === selected.join(",")}
-              onClick={() =>
-                void act({ type: "save_onboarding", expectedRevision: setup.revision, answers: {...setup.answers, team: selected} })
-              }
+              onClick={async () => {
+                const result = await act({ type: "save_onboarding", expectedRevision: setup.revision, answers: {...setup.answers, team: selected} });
+                setTeamMessage(result ? "Team saved. Configure sources and permissions, then review readiness." : "Your team could not be saved. Review the error above and retry.");
+              }}
             >
               Save team
             </Button>
           </div>
+        </div>
+      </section>
+      <section className="card card-body stack" aria-label="Build this workspace together">
+        <h2>Build this workspace together</h2>
+        <p>Work through these settings with your customer in any order. Saved answers are shared across the team; agents remain blocked until their required checks pass.</p>
+        <div className="flex wrap">
+          <Button onClick={() => openSetup(0)}>Company & objectives</Button>
+          <Button onClick={() => openSetup(2)}>Sources & connections</Button>
+          <Button onClick={() => openSetup(3)}>Permissions & budgets</Button>
+          <Button onClick={() => openSetup(4)}>People & measurement</Button>
+          <Button onClick={() => openSetup(5)}>Review readiness</Button>
         </div>
       </section>
       {state.recommendation.limitations.length > 0 && (

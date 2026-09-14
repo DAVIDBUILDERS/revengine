@@ -25,9 +25,9 @@ try{
   check(`Account ${letter} without a workspace is routed from the dashboard to setup`);
   await page.getByLabel('Company name',{exact:true}).fill(`Hosted onboarding ${marker} ${letter}`);await page.getByRole('button',{name:'Continue',exact:true}).click();await page.getByRole('button',{name:'Create workspace',exact:true}).click();await page.waitForURL(/workspace=/,{timeout:30000});
   const workspaceId=new URL(page.url()).searchParams.get('workspace')!;userRecords.at(-1)!.workspaceId=workspaceId;writeFileSync('.env.hosted-test-actors.local',JSON.stringify(userRecords),{mode:0o600});
-  await expect(page.getByRole('heading',{name:/Let’s find a useful first step/})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Your team',exact:true})).toBeVisible();
   check(`Authenticated ${letter} created a private workspace in the deployed app`);
-  await page.goto(origin+'/login');await page.getByLabel('Email address').fill(email);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).click();await page.waitForURL(u=>u.searchParams.get('workspace')===workspaceId,{timeout:60000});await expect(page.getByRole('heading',{name:/Let’s find a useful first step/})).toBeVisible();check(`Returning account ${letter} opens its existing workspace`);
+  await page.goto(origin+'/login');await page.getByLabel('Email address').fill(email);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).click();await page.waitForURL(u=>u.searchParams.get('workspace')===workspaceId,{timeout:60000});await expect(page.getByRole('heading',{name:'Your team',exact:true})).toBeVisible();check(`Returning account ${letter} opens its existing workspace`);
  }
  const page=contexts[0].pages()[0];const a=userRecords[0].workspaceId!,b=userRecords[1].workspaceId!;
  const api=async(path:string,body?:unknown)=>{
@@ -35,6 +35,7 @@ try{
  };
  const denied=await api('/api/state?workspace='+b);expect(denied.status).toBe(403);check('Cross-workspace read denied');
  if(!routingOnly){
+ await page.goto(origin+'/?view=activation&workspace='+a);
  await page.getByRole('button',{name:'Let’s begin'}).click();
  await page.getByLabel('Company website',{exact:true}).fill('https://example.com');await page.getByLabel('Company website',{exact:true}).press('Enter');
  await page.getByLabel('Your name',{exact:true}).fill('Hosted test owner');await page.getByRole('button',{name:'Continue',exact:false}).click();

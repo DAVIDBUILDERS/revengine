@@ -309,7 +309,7 @@ test("catalog selections, saved scenarios and evidence keyboard navigation", asy
   await page.goto("/?view=team");
   await expect(page.locator(".agent-card")).toHaveCount(32);
   await page.getByRole("button", { name: "Recommend my five" }).click();
-  await expect(page.getByRole("status")).toBeVisible();
+  await expect(page.getByRole("status").filter({hasText:"Recommended team selected below"})).toBeVisible();
   await page.getByRole("link", { name: "Scenarios", exact: true }).click();
   await page
     .getByLabel("Scenario name", { exact: true })

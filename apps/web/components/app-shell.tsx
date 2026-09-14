@@ -201,7 +201,7 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
           ? requested
           : snapshot.workspace.id;
       if (!browserDemo && snapshot.workspace.mode !== "fixture" && !new URLSearchParams(window.location.search).has("view") && snapshot.onboarding && !snapshot.onboarding.appliedRevision && snapshot.activation.milestone === "not_started" && !briefingFinished(snapshot.onboarding.answers) && ["workspace_owner","david_operator"].includes(snapshot.context.role)) {
-        setPage("activation");
+        setPage("team");
       }
       setState(snapshot);
       setLoadError("");
