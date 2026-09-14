@@ -17,3 +17,6 @@ Successful capture now goes directly to the business summary, even when audience
 
 ## Finish-screen loop correction
 The finish screen previously linked Continue setup back to the same briefing permission review; completing that review returned to finish. It now opens the full profile's readiness section (mode=profile, setup=5). Open my workspace / Save and exit opens Your Team and clears briefing-only routing parameters. Answers are flushed before navigation, preserving existing save-failure handling. A browser regression test verifies both destinations and refresh persistence. Typecheck and lint pass.
+
+## Approval handoff
+Successful apply_onboarding now exits directly to Your Team after the final saved permission, rather than returning to the briefing finish page. No preparation is automatically requested. Failure still throws through the existing feedback path and prevents navigation. A transport-fixture regression checks one approval request, direct team navigation and refresh persistence. This verifies UI routing, not live database authorization.

@@ -100,3 +100,30 @@ test('finished briefing exits to team and remaining setup without repeating perm
  await expect(page.getByText('I approve this internal preparation limit and accept responsibility for reviewing its output.')).toHaveCount(0);
  await page.reload();await expect(page).toHaveURL(/setup=5/);
 });
+
+test('successful preparation approval opens the team rather than recycling the briefing',async({page})=>{
+ const {fixture}=await apiFixture(page);
+ const {Briefing}=await import('../../packages/contracts/src/index');
+ const {onboardingFor}=await import('../../packages/domain/src/onboarding');
+ const answers=onboardingFor(fixture).answers;
+ answers.company.offers=['Pest control'];answers.company.customers=['Homeowners'];
+ answers.briefing=Briefing.parse({version:1,step:'review',goal:'demand',name:'JT',task:'technical-seo-monitor'});
+ await executeCommand(fixture,{type:'save_onboarding',expectedRevision:0,answers});
+ let approvals=0;
+ // UI transport fixture: this assertion tests navigation only, not database permission enforcement.
+ await page.route('**/api/command*',async route=>{
+  const input=route.request().postDataJSON();
+  if(input.type!=='apply_onboarding'){await route.fallback();return;}
+  approvals++;
+  fixture.onboarding!.appliedRevision=fixture.onboarding!.revision;
+  await route.fulfill({json:{snapshot:{...snapshot(fixture),workspace:{...fixture.workspace,mode:'shadow'},setupIdentity:{email:'owner@example.invalid',name:'Known Owner'},preparationRuntime:{configured:false,message:'Fixture'}},message:'Fixture approval applied'}});
+ });
+ await page.goto('/?view=activation&step=review');
+ await page.getByLabel('I approve this internal preparation limit and accept responsibility for reviewing its output.').check();
+ await page.getByRole('button',{name:'Approve this preparation setup',exact:true}).click();
+ await expect(page).toHaveURL(/view=team/);
+ await expect(page.getByRole('heading',{name:'Your team',exact:true})).toBeVisible();
+ expect(approvals).toBe(1);
+ await page.reload();await expect(page.getByRole('heading',{name:'Your team',exact:true})).toBeVisible();
+ expect(approvals).toBe(1);
+});

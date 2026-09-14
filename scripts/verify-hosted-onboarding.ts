@@ -58,7 +58,7 @@ try{
   const saved=await api('/api/state?workspace='+a);expect(saved.body.onboarding.answers.briefing.task).toBe('technical-seo-monitor');
   check('Model-free recommendation skips spending questions and resumes from Supabase');
  }
- await page.getByLabel(/I approve this internal preparation limit/).check();await page.getByRole('button',{name:'Approve this preparation setup'}).click();await expect(page.getByRole('heading',{name:/Your first step/})).toBeVisible({timeout:60000});
+ await page.getByLabel(/I approve this internal preparation limit/).check();await page.getByRole('button',{name:'Approve this preparation setup'}).click();await expect(page.getByRole('heading',{name:'Your team',exact:true})).toBeVisible({timeout:60000});
  const state=await api('/api/state?workspace='+a);expect(state.status).toBe(200);expect(state.body.workspace.mode).toBe('shadow');expect(state.body.workspace.paused).toBe(true);expect(state.body.onboardingCapture.fixture).toBe(false);expect(state.body.onboarding.appliedRevision).toBe(state.body.onboarding.revision);
  check('Explicitly reviewed preparation setup applied with execution paused and spending disabled');
  }

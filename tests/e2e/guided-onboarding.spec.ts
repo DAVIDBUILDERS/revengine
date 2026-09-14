@@ -32,6 +32,8 @@ test('website briefing, explicit permission and source-backed synthetic output w
  await expect(page.getByRole('button',{name:'Approve this preparation setup'})).toBeDisabled();
  await page.getByLabel(/I approve this internal preparation limit/).check();
  await page.getByRole('button',{name:'Approve this preparation setup'}).click();
+ await expect(page.getByRole('heading',{name:'Your team',exact:true})).toBeVisible();
+ await page.goto('/?view=activation');
  await page.getByRole('button',{name:'Prepare sample output'}).click();
  await expect(page.getByRole('heading',{name:'Source-grounded content brief'})).toBeVisible();
  await page.getByRole('button',{name:'Mark output reviewed'}).click();
@@ -39,7 +41,7 @@ test('website briefing, explicit permission and source-backed synthetic output w
  await page.screenshot({path:info.outputPath('briefing-finish-desktop.png'),fullPage:true});
  await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
  await page.screenshot({path:info.outputPath('briefing-finish-mobile.png'),fullPage:true});
- await page.getByRole('button',{name:'Open my workspace'}).click();await expect(page.getByRole('region',{name:'Your starting plan'})).toContainText('A content brief for your ideal customer');
+ await page.getByRole('button',{name:'Open my workspace'}).click();await expect(page.getByRole('heading',{name:'Your team',exact:true})).toBeVisible();
  expect(errors).toEqual([]);expect(calls).toEqual([]);
 });
 test('manual fallback, backtracking and refresh preserve answers without claiming execution',async({page},info)=>{

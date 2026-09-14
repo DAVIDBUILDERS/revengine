@@ -75,7 +75,7 @@ export function Conversation(props:ScreenProps){
   save.update(d=>({...d,team:d.team,people:[...d.people.filter(p=>p.responsibility!=='approver'),{email:approver,name:b.name||approver,responsibility:'approver',role:'workspace_owner'}],operations:{...d.operations,approvalMode:'each_action',automationAcknowledged:false,approvedContactIds:[],sender:'',calendarId:'',dailyCapacity:1,modelDailyBudgetMinor:task.requiresModel?d.operations.modelDailyBudgetMinor:0,actionDailyBudgetMinor:0,escalationOwner:approver,policyAcknowledged:true},briefing:{...d.briefing!,finished:true,step:'finish'}}));
   if(!await save.flush())return;
   // The last write is the reviewed permission; advancing the screen must not create another revision.
-  await command({type:'apply_onboarding',expectedRevision:onboardingFor(save.latest.current).revision});setStep('finish');
+  await command({type:'apply_onboarding',expectedRevision:onboardingFor(save.latest.current).revision});await leave();
  }
  async function help(){
   const existing=onboardingFor(save.latest.current).tasks.find(t=>t.title==='Help prepare the first task'&&t.status!=='resolved');
