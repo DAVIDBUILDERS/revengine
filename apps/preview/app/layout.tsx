@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "../../web/app/globals.css";
 import "../../web/app/product-design.css";
+import "../../web/app/workspace-studio.css";
 export const metadata: Metadata = {
   title: "Revengine · DAVID Engine",
   description: "Explore DAVID Engine with synthetic workspaces. Browser demo; live integrations are disconnected.",

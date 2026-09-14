@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, ArrowUpRight, FileText, Pause, Play } from "lucide-react";
+import { ArrowRight, ArrowUpRight, FileText, Pause, Play, ShieldCheck } from "lucide-react";
 import type { AgentDefinition, Metric } from "@david/contracts";
 import { money, words } from "@david/ui";
 import { PageHeading, type ScreenProps } from "./app-shell";
 import { activeApprovals } from "./approval-state";
-import { AgentRoster, AgentWorkspace } from "./agent-workspace";
+import { AgentWorkspace } from "./agent-workspace";
 import { Button, dateTime } from "./ui";
+import "./today-studio.css";
 
 export function Today(props: ScreenProps & { showBrief: () => Promise<void> }) {
   const { state, navigate, inspect, busy, act } = props;
@@ -48,6 +49,7 @@ export function Today(props: ScreenProps & { showBrief: () => Promise<void> }) {
   ];
   const current =
     decisions.find((item) => item.id === selected) ?? decisions[0];
+  const approvalCount = decisions.filter((item) => item.kind === "Approval").length;
   const currentAction = current?.action;
   const currentFinding = current?.finding;
   const assigned = currentAction
@@ -74,7 +76,7 @@ export function Today(props: ScreenProps & { showBrief: () => Promise<void> }) {
     timeZone: state.workspace.timeZone,
   }).format(new Date(state.asOf));
   return (
-    <div className="today-page">
+    <div className="today-page today-studio">
       <PageHeading
         eyebrow={date}
         title="Today"
@@ -92,19 +94,27 @@ export function Today(props: ScreenProps & { showBrief: () => Promise<void> }) {
       />
 
       <section className="decision-desk" aria-labelledby="attention-heading">
-        <div className="section-heading desk-heading">
-          <h2 id="attention-heading">
-            Decisions needed{" "}
-            <span className="count-label">{decisions.length}</span>
-          </h2>
-          <span>
-            {pending.length} approvals · {decisions.length - pending.length}{" "}
-            recommendations
-          </span>
+        <div className="today-focus-header">
+          <div>
+            <span className="today-kicker">YOUR ATTENTION</span>
+            <h2 id="attention-heading">
+              {decisions.length ? "Make the next move." : "Room for your next move."}
+            </h2>
+            <p>
+              {decisions.length
+                ? "Prepared work, ready for your judgment."
+                : "Choose a specialist and give it a piece of work."}
+            </p>
+          </div>
+          <div className="today-review-count">
+            <strong>{String(decisions.length).padStart(2, "0")}</strong>
+            <span>Decisions needed<small>{approvalCount} approvals · {decisions.length - approvalCount} recommendations</small></span>
+          </div>
         </div>
         {current ? (
           <div className="decision-layout">
             <div className="decision-queue" aria-label="Items for review">
+              <p className="today-kicker">REVIEW QUEUE</p>
               {decisions.slice(0, 3).map((item, index) => (
                 <button
                   key={item.id}
@@ -254,7 +264,7 @@ export function Today(props: ScreenProps & { showBrief: () => Promise<void> }) {
           </div>
         ) : (
           <div className="decision-empty">
-            <span className="editorial-number">00</span>
+            <div className="today-empty-mark" aria-hidden="true"><ShieldCheck size={30} strokeWidth={1} /></div>
             <div>
               <h3>No decisions waiting.</h3>
               <p>
@@ -269,22 +279,36 @@ export function Today(props: ScreenProps & { showBrief: () => Promise<void> }) {
         )}
       </section>
 
-      <div className="today-ledger-grid">
-        <section aria-labelledby="team-heading">
+        <section className="today-specialists" aria-labelledby="team-heading">
           <div className="section-heading">
             <h2 id="team-heading">
-              Work underway{" "}
+              Your specialists{" "}
               <span className="count-label">{state.installations.length}</span>
             </h2>
             <button className="link-button" onClick={() => navigate("team")}>
               Manage team <ArrowUpRight size={12} />
             </button>
           </div>
-          <p className="section-caption">
-            Open an agent to inspect its work, sources and limits.
-          </p>
-          <AgentRoster state={state} onOpen={setAgent} />
+          <div className="today-team-grid">
+            {state.installations.map((installation, index) => {
+              const specialist = state.catalog.find((item) => item.id === installation.agentId);
+              if (!specialist) return null;
+              const outputCount = state.artifacts.filter((item) => item.agentId === specialist.id).length;
+              const actionCount = state.actions.filter((item) => item.installationId === installation.id).length;
+              return (
+                <button key={installation.id} className="today-specialist" onClick={() => setAgent(specialist)} aria-label={`Open ${specialist.name} workspace`}>
+                  <span className="today-specialist-top"><span className="today-kicker">{String(index + 1).padStart(2, "0")} / {words(installation.mode)}</span><ArrowUpRight size={16} /></span>
+                  <strong>{specialist.name}</strong>
+                  <span className="today-specialist-status">{state.workspace.paused ? "Workspace paused" : words(installation.status)}</span>
+                  <span className="today-specialist-detail">{installation.blockers[0] ?? (outputCount || actionCount ? `${outputCount} saved outputs · ${actionCount} action records` : "Awaiting its first piece of work")}</span>
+                  <span className="today-specialist-footer">Work, sources & limits <ArrowRight size={14} /></span>
+                </button>
+              );
+            })}
+            {!state.installations.length && <div className="today-team-empty"><p>No specialists installed yet.</p><Button onClick={() => navigate("team")}>Build your team <ArrowRight size={14} /></Button></div>}
+          </div>
         </section>
+      <div className="today-ledger-grid">
         <section className="outcome-ledger" aria-labelledby="results-heading">
           <div className="section-heading">
             <h2 id="results-heading">Results</h2>
@@ -321,12 +345,12 @@ export function Today(props: ScreenProps & { showBrief: () => Promise<void> }) {
               <ArrowUpRight size={12} />
             </button>
           ))}
+          {!state.metrics.length && <p className="small muted">No outcome measurements recorded yet.</p>}
         </section>
-      </div>
 
       <section className="readiness-summary" aria-labelledby="blockers-heading">
         <div className="section-heading">
-          <h2 id="blockers-heading">Blockers</h2>
+          <h2 id="blockers-heading"><ShieldCheck size={17} /> Operating boundaries</h2>
           <button
             className="link-button"
             onClick={() => navigate("connections")}
@@ -393,6 +417,7 @@ export function Today(props: ScreenProps & { showBrief: () => Promise<void> }) {
           </Button>
         </div>
       </section>
+      </div>
 
       <section className="recent-records">
         <div className="section-heading">
@@ -401,13 +426,13 @@ export function Today(props: ScreenProps & { showBrief: () => Promise<void> }) {
             Customer journeys <ArrowUpRight size={12} />
           </button>
         </div>
-        {state.timeline
+        <div className="today-record-grid">{state.timeline
           .slice()
           .sort((a, b) => b.at.localeCompare(a.at))
           .slice(0, 4)
           .map((event) => (
-            <div className="record-row" key={event.id}>
-              <span className="record-actor">{words(event.actor)}</span>
+            <article className="record-row" key={event.id}>
+              <div className="today-record-top"><span className="record-actor">{words(event.actor)}</span><time className="tiny muted">{dateTime(event.at)}</time></div>
               <div>
                 <h3>{event.title}</h3>
                 <p>{event.detail}</p>
@@ -420,9 +445,8 @@ export function Today(props: ScreenProps & { showBrief: () => Promise<void> }) {
               >
                 Evidence <ArrowUpRight size={11} />
               </button>
-              <time className="tiny muted">{dateTime(event.at)}</time>
-            </div>
-          ))}
+            </article>
+          ))}</div>
         {!state.timeline.length && (
           <p className="small muted">
             No recorded activity. Import current proposal records to begin.

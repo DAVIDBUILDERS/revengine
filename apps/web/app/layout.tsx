@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "./product-design.css";
 
+import "./workspace-studio.css";
 export const metadata: Metadata = {
   title: "David Engine — Workspace",
   description:

@@ -1,7 +1,7 @@
 "use client";
+import {WorkspaceOverview} from "./workspace-overview";
 import {TeamStudio} from "./team-studio";
 import { AgentWorkspace } from "./agent-workspace";
-import { SourceSetup } from "./source-setup";
 import { activeApprovals } from "./approval-state";
 import { useEffect, useState } from "react";
 import {
@@ -11,12 +11,10 @@ import {
   BookOpen,
   Calendar,
   Check,
-  CheckCircle2,
   ChevronRight,
   Clock3,
   FileText,
   FlaskConical,
-  Mail,
   Pause,
   Play,
   Plus,
@@ -130,10 +128,12 @@ export function Opportunities(props: ScreenProps) {
       ? null
       : new URLSearchParams(window.location.search).get("proposal"),
   );
+  const [recordStatus,setRecordStatus]=useState("all");
+  const visibleProposals=state.proposals.filter(p=>recordStatus==="all"||p.status===recordStatus);
   const [importOpen, setImportOpen] = useState(false);
   const proposal = state.proposals.find((item) => item.id === proposalId);
   return (
-    <div className="stack">
+    <div className="stack workspace-studio opportunities-studio">
       <PageHeading
         eyebrow="Focus on the next useful action"
         title="Opportunities"
@@ -145,6 +145,9 @@ export function Opportunities(props: ScreenProps) {
           </Button>
         }
       />
+      <WorkspaceOverview eyebrow="OPPORTUNITY DESK" title="Every next step has a source." description="Inspect the current proposal, the person behind it, and the action ready for review.">
+        <div className="studio-signal-grid" aria-label="Filter proposal records">{[['all','All records'],['open','Open'],['on_hold','On hold'],['accepted','Accepted']].map(([value,label])=><button key={value} className="studio-signal" aria-pressed={recordStatus===value&&tab==='sales'} onClick={()=>{setRecordStatus(value);setTab('sales');}}><span>{label}</span><strong>{state.proposals.filter(p=>value==='all'||p.status===value).length}</strong><small>View records <ArrowUpRight size={12}/></small></button>)}</div>
+      </WorkspaceOverview>
       <div className="pill-tabs" aria-label="Opportunity views">
         <button aria-pressed={tab === "sales"} onClick={() => setTab("sales")}>
           Sales records · {state.proposals.length}
@@ -183,7 +186,7 @@ export function Opportunities(props: ScreenProps) {
                 </tr>
               </thead>
               <tbody>
-                {state.proposals.map((item) => {
+                {visibleProposals.map((item) => {
                   const contact = state.contacts.find(
                     (c) => c.id === item.contactId,
                   );
@@ -243,6 +246,7 @@ export function Opportunities(props: ScreenProps) {
               </tbody>
             </table>
           </div>
+          {!!state.proposals.length&&!visibleProposals.length&&<Empty title="No records in this state"><button className="link-button" onClick={()=>setRecordStatus("all")}>Show all records</button></Empty>}
           {!state.proposals.length && (
             <Empty
               title="No proposal records yet"
@@ -761,13 +765,19 @@ export function Decisions({
   navigate,
 }: ScreenProps) {
   const pending = activeApprovals(state);
+  const [reviewScope,setReviewScope]=useState("all");
+  const findings=state.findings.filter(f=>reviewScope==="all"||f.status===reviewScope);
   return (
-    <div className="stack">
+    <div className="stack workspace-studio decisions-studio">
       <PageHeading
         eyebrow="Decide, then follow through"
         title="Turn a good decision into tracked work."
         description="Recommendations make the evidence, alternatives and resource commitment explicit. Approved initiatives retain their baseline, owner and review date."
       />
+      <WorkspaceOverview eyebrow="HUMAN DIRECTION / RECORDED DECISIONS" title="Choose what deserves momentum." description="See the evidence and commitment before approving work. Every decision keeps its owner and review date.">
+        <div className="studio-signal-grid"><button className="studio-signal" onClick={()=>setReviewScope('proposed')} aria-pressed={reviewScope==='proposed'}><span>Awaiting a decision</span><strong>{state.findings.filter(f=>f.status==='proposed').length}</strong><small>Review proposals <ArrowUpRight size={12}/></small></button><button className="studio-signal" onClick={()=>navigate('opportunities')}><span>Action approvals</span><strong>{pending.length}</strong><small>Inspect exact actions <ArrowUpRight size={12}/></small></button><div className="studio-signal"><span>Tracked initiatives</span><strong>{state.initiatives.length}</strong><small>Saved work plans</small></div></div>
+      </WorkspaceOverview>
+      <div className="studio-filter-bar" aria-label="Filter recommendations">{[['all','All recommendations'],['proposed','Needs a decision'],['approved','Approved']].map(([value,label])=><button key={value} aria-pressed={reviewScope===value} onClick={()=>setReviewScope(value)}>{label}</button>)}</div>
       {pending.length > 0 && (
         <section className="card card-body">
           <div className="between">
@@ -794,8 +804,8 @@ export function Decisions({
           <span>Evidence → hypothesis → decision</span>
         </div>
         <div className="grid-two">
-          {state.findings.map((f) => (
-            <article className="card card-body stack-small" key={f.id}>
+          {findings.map((f) => (
+            <article className="card card-body stack-small studio-decision-card" key={f.id}>
               <div className="between">
                 <Badge status={f.status} />
                 <span className="eyebrow">Review {shortDate(f.reviewAt)}</span>
@@ -869,6 +879,7 @@ export function Decisions({
             </article>
           ))}
         </div>
+        {!!state.findings.length&&!findings.length&&<Empty title="No recommendations in this view">Choose another filter to inspect the saved recommendations.</Empty>}
         {!state.findings.length && (
           <div className="card">
             <Empty title="No recommendations yet">
@@ -983,7 +994,7 @@ export function CustomerJourney({ state, act, busy, inspect }: ScreenProps) {
     (item) => item.opportunityId === proposal?.opportunityId,
   );
   return (
-    <div className="stack">
+    <div className="stack workspace-studio journey-studio">
       <PageHeading
         eyebrow="One relationship. A shared history."
         title="The whole customer journey."
@@ -1006,7 +1017,7 @@ export function CustomerJourney({ state, act, busy, inspect }: ScreenProps) {
       </label>
       {proposal ? (
         <>
-          <div className="card card-body">
+          <div className="card card-body journey-identity">
             <div className="between">
               <div className="flex">
                 <div className="agent-symbol red">
@@ -1061,6 +1072,7 @@ export function CustomerJourney({ state, act, busy, inspect }: ScreenProps) {
               </Button>
             )}
           </div>
+          <section className="journey-evidence-map" aria-label="Recorded customer milestones"><div className="section-heading"><h2>Evidence across the relationship</h2><span>Each stage is verified separately</span></div><div className="journey-stages">{['reply','booked','attended','signed','completed','invoiced','paid'].map((stage,index)=>{const records=outcomes.filter(o=>o.stage===stage);return <button key={stage} disabled={!records.length} className={records.length?'has-evidence':''} onClick={()=>inspect(words(stage),'Recorded evidence for this stage.',records.flatMap(r=>r.evidence))}><span className="journey-stage-dot">{String(index+1).padStart(2,'0')}</span><strong>{words(stage)}</strong><small>{records.length?records.length+' recorded':'No evidence yet'}</small></button>})}</div></section>
           <div className="grid-two">
             <section className="card card-body">
               <h2 style={{ fontSize: 16, marginBottom: 26 }}>
@@ -1381,7 +1393,7 @@ export function Scenarios({ state, act, busy }: ScreenProps) {
     }
   };
   return (
-    <div className="stack">
+    <div className="stack workspace-studio scenarios-studio">
       <PageHeading
         eyebrow="Planning, with the assumptions in view"
         title="One funnel. Three possible cases."
@@ -1397,6 +1409,36 @@ export function Scenarios({ state, act, busy }: ScreenProps) {
           </Button>
         }
       />
+      <div className="scenario-range-board" aria-label="Live scenario comparison">
+        {cases.map((item) => (
+          <section
+            className={`scenario-case studio-case ${item.case === "base" ? "featured" : ""}`}
+            key={item.case}
+          >
+            <div className="between">
+              <span className="eyebrow">{item.case} case</span>
+              <Badge tone="warning">Scenario</Badge>
+            </div>
+            <div className="scenario-number numeric">
+              {item.wins.toFixed(1)} <span className="small muted">wins</span>
+            </div>
+            <div className="studio-case-track" aria-hidden="true"><span style={{width:`${Math.max(0,item.wins/Math.max(1,...cases.map(c=>c.wins))*100)}%`}}/></div>
+            <p className="small">
+              {money(item.revenueMinor, scenario.currency)} projected value
+            </p>
+            <p className="help" style={{ marginTop: 10 }}>
+              {item.capacityLimited
+                ? "Capacity limit applied"
+                : "Within stated capacity"}
+              <br />
+              Incremental ROI:{" "}
+              {item.incrementalRoi === null
+                ? "Unavailable"
+                : `${(item.incrementalRoi * 100).toFixed(1)}%`}
+            </p>
+          </section>
+        ))}
+      </div>
       <div className="notice notice-warning">
         <FlaskConical size={18} />
         <div>
@@ -1659,35 +1701,6 @@ export function Scenarios({ state, act, busy }: ScreenProps) {
           )}
         </section>
       </div>
-      <div className="readiness-grid">
-        {cases.map((item) => (
-          <section
-            className={`scenario-case ${item.case === "base" ? "featured" : ""}`}
-            key={item.case}
-          >
-            <div className="between">
-              <span className="eyebrow">{item.case} case</span>
-              <Badge tone="warning">Scenario</Badge>
-            </div>
-            <div className="scenario-number numeric">
-              {item.wins.toFixed(1)} <span className="small muted">wins</span>
-            </div>
-            <p className="small">
-              {money(item.revenueMinor, scenario.currency)} projected value
-            </p>
-            <p className="help" style={{ marginTop: 10 }}>
-              {item.capacityLimited
-                ? "Capacity limit applied"
-                : "Within stated capacity"}
-              <br />
-              Incremental ROI:{" "}
-              {item.incrementalRoi === null
-                ? "Unavailable"
-                : `${(item.incrementalRoi * 100).toFixed(1)}%`}
-            </p>
-          </section>
-        ))}
-      </div>
       <div className="card card-body stack">
         <h2 style={{ fontSize: 17 }}>Baseline & comparison</h2>
         <div className="grid-two">
@@ -1758,383 +1771,7 @@ export function Scenarios({ state, act, busy }: ScreenProps) {
   );
 }
 
-export function Connections({ state, navigate }: ScreenProps) {
-  const [selected, setSelected] = useState<string | null>(null);
-  const connection = state.connections.find((item) => item.id === selected);
-  const [connecting, setConnecting] = useState(false);
-  const [connectionMessage, setConnectionMessage] = useState("");
-  const [scopes, setScopes] = useState<Array<"sheets" | "mail" | "calendar">>([
-    "sheets",
-  ]);
-  const connect = async () => {
-    setConnecting(true);
-    setConnectionMessage("");
-    try {
-      const response = await fetch("/api/google/connect", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          workspaceId: state.workspace.id,
-          capabilities: scopes,
-        }),
-      });
-      const result = await response.json();
-      if (!response.ok)
-        throw new Error(
-          result.message ??
-            result.error ??
-            "Google authorization could not start.",
-        );
-      const url = new URL(result.url);
-      if (url.protocol !== "https:" || url.hostname !== "accounts.google.com")
-        throw new Error(
-          "An unexpected authorization destination was rejected.",
-        );
-      window.location.assign(url.toString());
-    } catch (error) {
-      setConnectionMessage(
-        error instanceof Error ? error.message : "Connection failed.",
-      );
-    } finally {
-      setConnecting(false);
-    }
-  };
-  const disconnect = async () => {
-    if (!connection) return;
-    setConnecting(true);
-    try {
-      const response = await fetch("/api/google/disconnect", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          workspaceId: state.workspace.id,
-          connectionId: connection.id,
-        }),
-      });
-      const result = await response.json();
-      if (!response.ok)
-        throw new Error(
-          result.message ??
-            result.error ??
-            "Connection could not be disconnected.",
-        );
-      setConnectionMessage(
-        result.message ??
-          "Connection disconnected. Further access is stopped. The workspace refreshes automatically.",
-      );
-    } catch (error) {
-      setConnectionMessage(
-        error instanceof Error ? error.message : "Disconnect failed.",
-      );
-    } finally {
-      setConnecting(false);
-    }
-  };
-  return (
-    <div className="stack">
-      <PageHeading
-        eyebrow="Permission is a specific capability"
-        title="Know what your team can access."
-        description="Each connection binds an account, a resource and a permitted operation. Integration, action and measurement readiness are independent checks."
-        action={
-          <Button onClick={() => navigate("activation")}>
-            Review activation
-            <ArrowRight size={14} />
-          </Button>
-        }
-      />
-      <div className="readiness-grid">
-        {[
-          {
-            label: "Integration readiness",
-            value: state.readiness.integration,
-            description: "Required accounts, scopes and bound resources.",
-          },
-          {
-            label: "Action readiness",
-            value: state.readiness.action,
-            description:
-              "Current policy, fresh facts, ownership and authority.",
-          },
-          {
-            label: "Measurement readiness",
-            value: state.readiness.measurement,
-            description: "Evidence sources for the outcome being claimed.",
-          },
-        ].map((item) => (
-          <div className="card readiness-card" key={item.label}>
-            <div className="between">
-              <h2 style={{ fontSize: 14 }}>{item.label}</h2>
-              {item.value ? (
-                <ShieldCheck size={19} color="var(--positive)" />
-              ) : (
-                <AlertCircle size={19} color="var(--warning)" />
-              )}
-            </div>
-            <p className="help" style={{ margin: "12px 0" }}>
-              {item.description}
-            </p>
-            <Badge status={item.value ? "verified" : "blocked"} />
-          </div>
-        ))}
-      </div>
-      <section className="card card-body stack-small">
-        <h2 style={{ fontSize: 17 }}>Connect a Google Workspace account</h2>
-        <p className="small muted">
-          Select the specific capability you need. Google sign-in for DAVID and
-          authorization to access customer systems are separate.
-        </p>
-        <div className="flex wrap">
-          {(["sheets", "mail", "calendar"] as const).map((capability) => (
-            <label key={capability} className="check-row">
-              <input
-                type="checkbox"
-                checked={scopes.includes(capability)}
-                disabled={state.workspace.mode === "fixture"}
-                onChange={(e) =>
-                  setScopes((current) =>
-                    e.target.checked
-                      ? [...current, capability]
-                      : current.filter((item) => item !== capability),
-                  )
-                }
-              />
-              {capability === "sheets"
-                ? "Selected Sheets"
-                : capability === "mail"
-                  ? "Gmail send & replies"
-                  : "Owned calendars"}
-            </label>
-          ))}
-        </div>
-        <div className="notice notice-warning">
-          <ShieldCheck size={18} />
-          <p>
-            {state.workspace.mode === "fixture"
-              ? "Google authorization is disabled in fixture mode. Configure a hosted nonproduction project and authenticated operator before connecting a real account."
-              : "Sheets uses drive.file for selected files; the initial Calendar grant supports owned calendars. Gmail reply reading requests mailbox-wide restricted access even though DAVID processes only enrolled conversations. Review the actual consent grant before continuing."}
-          </p>
-        </div>
-        <div>
-          <Button
-            disabled={
-              state.workspace.mode === "fixture" || connecting || !scopes.length
-            }
-            onClick={() => void connect()}
-          >
-            <ShieldCheck size={14} />
-            {connecting
-              ? "Starting authorization…"
-              : "Review Google authorization"}
-          </Button>
-        </div>
-        {connectionMessage && (
-          <p className="notice" role="status">
-            {connectionMessage}
-          </p>
-        )}
-      </section>
-      <SourceSetup state={state} />
-      <section className="card">
-        <div className="card-head">
-          <h2>Bound accounts & sources</h2>
-          <span className="tiny muted">
-            Last checked {dateTime(state.readiness.evaluatedAt)}
-          </span>
-        </div>
-        {state.connections.map((item) => {
-          const stale =
-            !!item.lastSyncAt &&
-            Date.parse(state.asOf) - Date.parse(item.lastSyncAt) >
-              item.freshnessSeconds * 1000;
-          return (
-            <article className="work-row" key={item.id}>
-              <div
-                className={`agent-symbol ${item.provider === "google" ? "blue" : ""}`}
-              >
-                {item.operations.some((op) => /calendar|book/.test(op)) ? (
-                  <Calendar size={19} />
-                ) : item.operations.some((op) =>
-                    /gmail|send|reply/.test(op),
-                  ) ? (
-                  <Mail size={19} />
-                ) : (
-                  <FileText size={19} />
-                )}
-              </div>
-              <div className="work-copy">
-                <div className="between">
-                  <h3>{item.identity}</h3>
-                  <Badge status={stale ? "stale" : item.health} />
-                </div>
-                <p>{item.resource}</p>
-                <p>
-                  Owner: {item.owner} · {words(item.provider)} provider
-                </p>
-                <div className="flex wrap" style={{ gap: 6, marginTop: 10 }}>
-                  {item.operations.map((operation) => (
-                    <Badge key={operation} tone="info">
-                      {operation}
-                    </Badge>
-                  ))}
-                </div>
-                <p style={{ marginTop: 12 }}>
-                  Last sync: {dateTime(item.lastSyncAt)} · Freshness limit:{" "}
-                  {Math.round(item.freshnessSeconds / 60)} min
-                </p>
-              </div>
-              <Button
-                className="btn-small"
-                onClick={() => setSelected(item.id)}
-              >
-                Inspect
-                <ArrowUpRight size={12} />
-              </Button>
-            </article>
-          );
-        })}
-        {!state.connections.length && (
-          <Empty title="No bound connections">
-            Continue activation to identify the precise accounts, permissions
-            and source owners needed.
-          </Empty>
-        )}
-      </section>
-      <section className="card card-body">
-        <h2 style={{ fontSize: 17, marginBottom: 8 }}>
-          Readiness blockers & accountable next steps
-        </h2>
-        {state.readiness.blockers.map((blocker) => (
-          <article className="prerequisite" key={blocker.code}>
-            <div className="between">
-              <h3 style={{ fontSize: 14 }}>{blocker.message}</h3>
-              <Badge tone="warning">{blocker.dimension}</Badge>
-            </div>
-            <p className="small muted" style={{ marginTop: 8 }}>
-              Owner: {blocker.owner}
-            </p>
-            <p className="small" style={{ marginTop: 8 }}>
-              {blocker.nextStep}
-            </p>
-          </article>
-        ))}
-        {!state.readiness.blockers.length && (
-          <div className="notice">
-            <CheckCircle2 size={18} />
-            <p>
-              No current blockers. Each action rechecks its own readiness
-              immediately before dispatch.
-            </p>
-          </div>
-        )}
-      </section>
-      <Drawer
-        open={!!connection}
-        onClose={() => setSelected(null)}
-        title={connection?.identity ?? "Connection"}
-        description="A successful sign-in does not automatically grant Gmail, Sheets or Calendar integration permissions."
-      >
-        {connection && (
-          <div className="stack">
-            <Badge status={connection.health} />
-            <dl
-              className="small"
-              style={{
-                display: "grid",
-                gridTemplateColumns: "110px 1fr",
-                gap: "12px 16px",
-                margin: 0,
-              }}
-            >
-              <dt className="muted">Provider</dt>
-              <dd style={{ margin: 0 }}>{connection.provider}</dd>
-              <dt className="muted">Resource</dt>
-              <dd style={{ margin: 0, overflowWrap: "anywhere" }}>
-                {connection.resource}
-              </dd>
-              <dt className="muted">Source owner</dt>
-              <dd style={{ margin: 0 }}>{connection.owner}</dd>
-              <dt className="muted">Last verified</dt>
-              <dd style={{ margin: 0 }}>{dateTime(connection.verifiedAt)}</dd>
-              <dt className="muted">Last sync</dt>
-              <dd style={{ margin: 0 }}>{dateTime(connection.lastSyncAt)}</dd>
-            </dl>
-            <div>
-              <h3 style={{ fontSize: 15 }}>Granted scopes</h3>
-              <div
-                className="small muted"
-                style={{ marginTop: 10, overflowWrap: "anywhere" }}
-              >
-                {connection.scopes.length
-                  ? connection.scopes.map((scope) => <p key={scope}>{scope}</p>)
-                  : "No verified provider scopes."}
-              </div>
-            </div>
-            <div className="notice notice-warning">
-              <AlertCircle size={18} />
-              <div>
-                {state.workspace.mode === "fixture"
-                  ? "This is a synthetic connection. To enable real Google access, an authorized operator must configure the OAuth client, consent audience, resource bindings and Vault token lifecycle in a hosted nonproduction project."
-                  : "Connection setup requires an authorized operator to verify the OAuth client, consent audience, selected resources and required scopes. Revoked or expired access blocks affected actions until reauthorized."}
-              </div>
-            </div>
-            {state.workspace.mode !== "fixture" &&
-              connection.provider === "google" && (
-                <div className="flex wrap">
-                  <Button disabled={connecting} onClick={() => void connect()}>
-                    Reauthorize selected capabilities
-                  </Button>
-                  <Button
-                    variant="danger"
-                    disabled={connecting || connection.health === "revoked"}
-                    onClick={() => void disconnect()}
-                  >
-                    Disconnect this account
-                  </Button>
-                </div>
-              )}
-            <h3 style={{ fontSize: 15 }}>Exact setup needed</h3>
-            <ol
-              className="small muted"
-              style={{ paddingLeft: 20, lineHeight: 1.9 }}
-            >
-              <li>
-                Confirm the Google organization, approved sender, Sheet
-                file/tab/range and calendar with their source owners.
-              </li>
-              <li>
-                Configure the dedicated integration OAuth client and approved
-                callback, with Gmail send/read and precise Sheet/Calendar
-                scopes.
-              </li>
-              <li>
-                Store connection credentials through the server-side Vault
-                lifecycle and bind only the selected resources.
-              </li>
-              <li>
-                Verify fresh reads, reply synchronization and checked test
-                actions with authorized recipients and calendar.
-              </li>
-              <li>
-                Record the live cohort, exception operator, working hours and
-                release review.
-              </li>
-            </ol>
-            <Button
-              onClick={() => {
-                setSelected(null);
-                navigate("activation");
-              }}
-            >
-              Open activation prerequisites
-              <ArrowRight size={14} />
-            </Button>
-          </div>
-        )}
-      </Drawer>
-    </div>
-  );
-}
+export { ConnectionsStudio as Connections } from "./connections-studio";
 
 export function Operator({ state, act, busy, inspect }: ScreenProps) {
   const [category, setCategory] =
@@ -2164,7 +1801,7 @@ export function Operator({ state, act, busy, inspect }: ScreenProps) {
       </div>
     );
   return (
-    <div className="stack">
+    <div className="stack workspace-studio operator-studio">
       <PageHeading
         eyebrow="Assigned workspace operations"
         title="Keep the work accountable."
@@ -2182,6 +1819,7 @@ export function Operator({ state, act, busy, inspect }: ScreenProps) {
           </Button>
         }
       />
+      <WorkspaceOverview eyebrow="WORKSPACE CONTROL" title={state.workspace.paused?'Dispatch is paused.':'Keep every action accountable.'} description="Provider health, pending actions and business outcomes have separate evidence. Investigate uncertainty before retrying a write."><div className="studio-signal-grid"><div className="studio-signal"><span>Uncertain / in flight</span><strong>{uncertain.length}</strong><small>Actions to reconcile</small></div><div className="studio-signal"><span>Human takeovers</span><strong>{state.contacts.filter(c=>c.humanTakeover).length}</strong><small>People directing the work</small></div><div className="studio-signal"><span>Outcome records</span><strong>{state.outcomes.length}</strong><small>Source-linked observations</small></div></div></WorkspaceOverview>
       <div className="notice">
         <ShieldCheck size={18} />
         <div>
@@ -2197,49 +1835,7 @@ export function Operator({ state, act, busy, inspect }: ScreenProps) {
           <h2>Runtime & provider health</h2>
           <Badge tone="info">Component-level evidence</Badge>
         </div>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Component / coverage</th>
-                <th>Health</th>
-                <th>Last technical success</th>
-                <th>Preparation / business action</th>
-                <th>Owner & next step</th>
-              </tr>
-            </thead>
-            <tbody>
-              {state.health.map((item) => (
-                <tr key={item.component}>
-                  <td>
-                    <strong>{item.component}</strong>
-                    <p className="help" style={{ maxWidth: 240 }}>
-                      {item.coverage}
-                    </p>
-                  </td>
-                  <td>
-                    <Badge status={item.health} />
-                  </td>
-                  <td className="help">
-                    {dateTime(item.lastSuccessAt)}
-                    <br />
-                    Observed {dateTime(item.observedAt)}
-                  </td>
-                  <td className="help">
-                    Preparation: {dateTime(item.lastPreparationAt)}
-                    <br />
-                    Business: {dateTime(item.lastBusinessActionAt)}
-                  </td>
-                  <td className="help" style={{ maxWidth: 230 }}>
-                    <strong>{item.owner}</strong>
-                    <br />
-                    {item.nextStep}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <div className="studio-health-grid">{state.health.map(item=><article className="studio-health-card" key={item.component}><div className="between"><span className="studio-kicker">COMPONENT</span><Badge status={item.health}/></div><h3>{item.component}</h3><p>{item.coverage}</p><dl><dt>Technical success</dt><dd>{dateTime(item.lastSuccessAt)}</dd><dt>Preparation</dt><dd>{dateTime(item.lastPreparationAt)}</dd><dt>Business action</dt><dd>{dateTime(item.lastBusinessActionAt)}</dd></dl><footer><strong>{item.owner}</strong><p>{item.nextStep}</p><small>Observed {dateTime(item.observedAt)}</small></footer></article>)}</div>
       </section>
       <div className="grid-two">
         <section className="card">

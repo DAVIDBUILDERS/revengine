@@ -1,0 +1,145 @@
+/* Today shares the team studio's quiet work surface. Every status comes from saved records. */
+.today-studio.today-page {
+  max-width: 1500px;
+  margin: 0 auto;
+  gap: 30px;
+  color: #222925;
+}
+.today-studio > .page-heading { padding: 12px 0 0; align-items: center; }
+.today-studio > .page-heading h1 { font: 500 clamp(42px, 4vw, 64px)/1.05 Georgia, serif; letter-spacing: -2px; }
+.today-studio > .page-heading p { max-width: 650px; color: #686f68; }
+.today-studio .today-kicker { font: 500 10px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: 1.8px; color: #767e73; }
+.today-studio .section-heading h2 { font-size: 17px; font-weight: 550; }
+.today-studio .section-heading { margin-bottom: 17px; }
+.today-studio .decision-desk { background: #222925; border: 1px solid #222925; border-radius: 20px; overflow: hidden; }
+.today-studio .today-focus-header { display: flex; align-items: center; justify-content: space-between; gap: 32px; padding: 30px 32px; color: #f2f3eb; }
+.today-studio .today-focus-header .today-kicker { color: #b7c0b2; }
+.today-studio .today-focus-header h2 { font: 500 clamp(27px, 2.8vw, 39px)/1.13 Georgia, serif; letter-spacing: -.6px; margin: 10px 0; }
+.today-studio .today-focus-header p { color: #bdc5b9; font-size: 13px; margin: 0; }
+.today-studio .today-review-count { display: flex; align-items: center; gap: 17px; flex-shrink: 0; }
+.today-studio .today-review-count > strong { font: 400 60px/1 Georgia, serif; color: #dde5cd; letter-spacing: -3px; }
+.today-studio .today-review-count > span { font-size: 12px; line-height: 1.8; }
+.today-studio .today-review-count small { display: block; max-width: 170px; font-size: 10px; color: #b3bfb0; }
+.today-studio .decision-layout { grid-template-columns: minmax(195px, .8fr) minmax(0, 2fr); border: 0; margin: 0 7px 7px; gap: 7px; }
+.today-studio .decision-queue { display: block; overflow: visible; background: transparent; border: 0; padding: 12px 8px 16px 16px; min-width: 0; }
+.today-studio .decision-queue > .today-kicker { color: #a9b5a4; margin: 0 12px 13px; }
+.today-studio .decision-queue > button { border: 1px solid transparent; border-radius: 11px; background: transparent; color: #bfc7ba; padding: 15px 26px 16px 13px; }
+.today-studio .decision-queue > button:hover { background: #303b31; }
+.today-studio .decision-queue > button[aria-pressed="true"] { color: #f8f9f1; background: #374237; border-color: #58644f; }
+.today-studio .decision-queue .queue-index { color: #a8b69e; font-size: 9px; }
+.today-studio .decision-queue strong { font-size: 13px; font-weight: 500; }
+.today-studio .decision-preview { background: #fff; border-radius: 14px; padding: 28px 32px; }
+.today-studio .decision-preview > .between { flex-wrap: wrap; gap: 10px; }
+.today-studio .decision-preview .eyebrow { color: #68735f; font-size: 9px; letter-spacing: 1.3px; }
+.today-studio .decision-preview h3 { font-size: clamp(26px, 2.8vw, 35px); }
+.today-studio .decision-agent { padding: 6px 10px; border-radius: 20px; background: #edf0e5; color: #58634e; text-decoration: none; }
+.today-studio .message-preview { background: #f7f8f2; border: 1px solid #e2e5d9; border-radius: 12px; }
+.today-studio .finding-brief { padding: 17px; border-radius: 11px; background: #f5f6f0; }
+.today-studio .finding-brief > div { grid-template-columns: minmax(110px, .65fr) minmax(0, 2fr); }
+.today-studio .decision-empty { border: 0; background: #f5f6f0; border-radius: 14px; margin: 0 7px 7px; padding: 38px 32px; }
+.today-studio .today-empty-mark { display: grid; place-items: center; height: 88px; width: 88px; flex: 0 0 88px; border: 1px solid #cfd7c4; border-radius: 50%; outline: 9px solid #ecf0e5; color: #617250; }
+.today-studio .decision-empty h3 { font-size: 31px; }
+.today-studio .decision-empty p { max-width: 550px; line-height: 1.8; }
+.today-studio .today-team-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.today-studio .today-specialist { display: flex; flex-direction: column; gap: 12px; min-width: 0; padding: 20px; text-align: left; background: #f5f6ef; border: 1px solid #dfe3d7; border-radius: 14px; color: #222925; transition: border-color 160ms, transform 160ms; }
+.today-studio .today-specialist:hover { border-color: #9ca88c; transform: translateY(-2px); }
+.today-studio .today-specialist-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; }
+.today-studio .today-specialist-top .today-kicker { font-size: 9px; letter-spacing: 1px; }
+.today-studio .today-specialist-top > svg { flex-shrink: 0; color: #757f68; }
+.today-studio .today-specialist > strong { font-size: 17px; font-weight: 550; line-height: 1.3; }
+.today-studio .today-specialist-status { align-self: flex-start; background: #e4e9d9; color: #546347; border-radius: 20px; padding: 4px 8px; font-size: 10px; }
+.today-studio .today-specialist-detail { flex: 1; font-size: 11px; line-height: 1.75; color: #6f7668; overflow-wrap: anywhere; }
+.today-studio .today-specialist-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px solid #dde2d3; padding-top: 13px; margin-top: 3px; font-size: 10px; color: #667359; }
+.today-studio .today-team-empty { padding: 24px; border: 1px dashed #c9d1c0; border-radius: 13px; background: #f7f8f2; }
+.today-studio .today-team-empty p { margin-bottom: 16px; color: #68725f; }
+.today-studio .today-ledger-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.today-studio .outcome-ledger { border: 1px solid #e1e3dc; border-radius: 16px; padding: 24px; min-width: 0; background: #fff; }
+.today-studio .outcome-ledger .section-caption { color: #78806f; }
+.today-studio .ledger-metric.metric-card { min-height: 74px; padding: 16px 0; border-color: #e5e7df; border-radius: 0; }
+.today-studio .ledger-metric.metric-card:hover { background: #f8f9f3; }
+.today-studio .ledger-metric > span { min-width: 0; }
+.today-studio .ledger-metric strong.numeric { font: 400 clamp(25px, 2.7vw, 35px)/1.1 Georgia, serif; letter-spacing: -1px; }
+.today-studio .readiness-summary { padding: 24px; border: 1px solid #dbe1d1; border-radius: 16px; background: #eef2e7; min-width: 0; }
+.today-studio .readiness-summary .section-heading { align-items: flex-start; flex-wrap: wrap; gap: 12px; }
+.today-studio .readiness-summary h2 { display: flex; gap: 8px; align-items: center; }
+.today-studio .readiness-summary .section-heading > .link-button { font-size: 10px; }
+.today-studio .readiness-summary summary { flex-wrap: wrap; justify-content: flex-start; gap: 9px; padding-bottom: 16px; }
+.today-studio .readiness-summary summary > .tiny { margin-left: 20px; font-size: 10px; }
+.today-studio .readiness-item { border-color: #d5deca; }
+.today-studio .readiness-item > div { min-width: 0; overflow-wrap: anywhere; }
+.today-studio .control-line { border-color: #d5deca; flex-direction: column; align-items: flex-start; gap: 13px; padding: 17px 0 0; }
+.today-studio .control-line > .btn { background: #fff; border-color: #ccd5c2; }
+.today-studio .control-line > span { line-height: 1.8; }
+.today-studio .today-record-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.today-studio .record-row { display: flex; flex-direction: column; align-items: flex-start; gap: 17px; border: 1px solid #e1e3db; border-radius: 13px; padding: 20px; background: #fcfcfa; }
+.today-studio .today-record-top { display: flex; flex-wrap: wrap; justify-content: space-between; width: 100%; gap: 10px; }
+.today-studio .record-row .record-actor { color: #64745a; padding-left: 10px; border-left: 2px solid #a4b98c; }
+.today-studio .record-row h3 { font-weight: 550; font-size: 13px; line-height: 1.55; }
+.today-studio .record-row p { font-size: 11px; line-height: 1.8; margin-top: 6px; color: #6e756a; overflow-wrap: anywhere; }
+.today-studio .today-record-top time { margin: 0; text-align: left; }
+.today-studio .record-row > .link-button { margin-top: auto; }
+.today-studio > .tiny { border-top: 1px solid #e2e5dc; padding-top: 16px; line-height: 1.9; }
+.today-studio button:focus-visible,
+.today-studio summary:focus-visible { outline: 2px solid #bb292d; outline-offset: 4px; }
+@media (max-width: 1000px) {
+  .today-studio .today-focus-header { padding: 26px; }
+  .today-studio .today-review-count { gap: 12px; }
+  .today-studio .today-review-count > strong { font-size: 47px; }
+  .today-studio .today-review-count small { max-width: 110px; }
+  .today-studio .decision-preview { padding: 25px; }
+  .today-studio .today-team-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+}
+@media (max-width: 760px) {
+  .today-studio.today-page { gap: 24px; }
+  .today-studio .today-focus-header { gap: 22px; align-items: flex-start; flex-direction: column; }
+  .today-studio .today-review-count > strong { font-size: 36px; letter-spacing: -1px; }
+  .today-studio .today-review-count small { max-width: none; }
+  .today-studio .decision-layout { grid-template-columns: 1fr; }
+  .today-studio .decision-queue { display: flex; gap: 7px; padding: 0 7px 8px; flex-wrap: wrap; }
+  .today-studio .decision-queue > .today-kicker { width: 100%; margin: 4px 10px; }
+  .today-studio .decision-queue > button { flex: 1 1 140px; width: auto; margin: 0; padding: 12px 24px 12px 11px; }
+  .today-studio .decision-queue > button strong { font-size: 11px; }
+  .today-studio .decision-queue > .btn { flex-basis: 100%; }
+  .today-studio .today-ledger-grid { grid-template-columns: 1fr; }
+  .today-studio .decision-empty { gap: 20px; padding: 28px; }
+  .today-studio .today-empty-mark { width: 62px; height: 62px; flex-basis: 62px; outline-width: 5px; }
+  .today-studio .today-team-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .today-studio .today-specialist { padding: 17px; }
+  .today-studio .today-specialist > strong { font-size: 15px; }
+}
+@media (max-width: 480px) {
+  .today-studio > .page-heading { align-items: flex-start; }
+  .today-studio .today-focus-header { padding: 23px; }
+  .today-studio .today-focus-header h2 { font-size: 30px; }
+  .today-studio .decision-preview { padding: 22px 17px; }
+  .today-studio .message-preview { padding: 16px; }
+  .today-studio .finding-brief > div { grid-template-columns: 1fr; gap: 3px; }
+  .today-studio .decision-empty { flex-direction: column; align-items: flex-start; }
+  .today-studio .preview-actions { gap: 18px; }
+  .today-studio .today-team-grid, .today-studio .today-record-grid { grid-template-columns: 1fr; }
+  .today-studio .today-specialist { padding: 20px; }
+  .today-studio .outcome-ledger, .today-studio .readiness-summary { padding: 21px; }
+  .today-studio .ledger-metric strong.numeric { font-size: 27px; }
+  .today-studio .readiness-item { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .today-studio .control-line .btn { white-space: normal; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .today-studio .today-specialist { transition: none; }
+  .today-studio .today-specialist:hover { transform: none; }
+}
+
+.today-handoff { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 25px; padding: 24px 28px; margin-bottom: 28px; border: 1px solid #dbe2cf; border-radius: 16px; background: #f0f3e9; color: #273025; }
+.today-handoff .eyebrow { color: #6d7b5f; font-size: 9px; letter-spacing: 1.7px; }
+.today-handoff h2 { font: 400 26px/1.2 Georgia, serif; margin: 8px 0 10px; }
+.today-handoff-plan > p:not(.eyebrow) { font-size: 12px; color: #637156; }
+.today-handoff details { margin-top: 13px; font-size: 11px; color: #66745a; }
+.today-handoff summary { cursor: pointer; }
+.today-handoff details p { line-height: 1.8; margin-top: 12px; }
+.today-handoff-action { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 14px; padding-left: 25px; border-left: 1px solid #d5dfc8; min-width: 0; }
+.today-handoff-action p { font-size: 12px; line-height: 1.8; color: #66745a; overflow-wrap: anywhere; }
+.today-handoff-action .btn { background: #fff; border-color: #cbd7bd; white-space: normal; }
+.today-handoff summary:focus-visible { outline: 2px solid #bb292d; outline-offset: 4px; }
+@media (max-width: 760px) {
+  .today-handoff { grid-template-columns: 1fr; padding: 23px; gap: 18px; }
+  .today-handoff-action { padding: 18px 0 0; border-left: 0; border-top: 1px solid #d5dfc8; }
+}

@@ -357,7 +357,7 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
       <EvidenceAccessContext.Provider
         value={{ workspaceId: state.workspace.id, mode: state.workspace.mode }}
       >
-        <div className="app-shell">
+        <div className="app-shell studio-app">
           <a className="skip-link" href="#main-content">
             Skip to content
           </a>
@@ -749,7 +749,7 @@ export function PageHeading({
     <div className="page-heading">
       <div>
         <div className="eyebrow">{eyebrow}</div>
-        <h1>{title}</h1>
+        <h1>{title}{!/[.!?]$/.test(title)&&<span className="studio-heading-dot" aria-hidden="true">.</span>}</h1>
         <p>{description}</p>
       </div>
       {action}
