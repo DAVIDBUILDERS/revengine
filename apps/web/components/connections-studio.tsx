@@ -9,7 +9,10 @@ import type { ConnectionCapability } from "@david/contracts";
 import { words } from "@david/ui";
 import type { ScreenProps } from "./app-shell";
 import { Badge, Button, dateTime, Drawer } from "./ui";
-import { SourceSetup } from "./source-setup";
+import { SourceSetup, supportsResource } from "./source-setup";
+import { CompanyConnectionMap } from "./company-connection-map";
+import { CompanySystemDetails } from "./company-system-details";
+import type { SystemKind } from "@david/domain/company-connections";
 import { GoogleConnectionExperience, type GoogleCapability } from "./google-connection-experience";
 import "./connections-studio.css";
 
@@ -56,13 +59,16 @@ function isStale(connection: ConnectionCapability, asOf: string) {
   return (connection.health === "healthy" || connection.health === "fixture") && !!connection.lastSyncAt && Date.parse(asOf) - Date.parse(connection.lastSyncAt) > connection.freshnessSeconds * 1000;
 }
 
-export function ConnectionsStudio({ state, navigate }: ScreenProps) {
+export function ConnectionsStudio({ state, navigate, act, busy }: ScreenProps) {
   const [selected, setSelected] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [connectionMessage, setConnectionMessage] = useState("");
   const [scopes, setScopes] = useState<GoogleCapability[]>(["sheets"]);
   const [handoff, setHandoff] = useState<Handoff | null>(null);
   const [sourceLaunch, setSourceLaunch] = useState<SourceLaunch>();
+  const [websiteRequest, setWebsiteRequest] = useState(0);
+  const [systemKind, setSystemKind] = useState<SystemKind | null>(null);
+  const [proposalChoice, setProposalChoice] = useState(false);
   const pendingRequest = useRef<AbortController | null>(null);
   const redirectFrame = useRef<number | null>(null);
   const authorizationUrl = useRef<string | null>(null);
@@ -70,8 +76,6 @@ export function ConnectionsStudio({ state, navigate }: ScreenProps) {
   const fixture = state.workspace.mode === "fixture";
   const canConfigure = !fixture && ["workspace_owner", "david_operator"].includes(state.context.role);
   const returnedConnection = state.connections.find((item) => item.id === handoff?.connectionId && item.workspaceId === state.workspace.id && item.provider === "google");
-  const healthy = state.connections.filter((item) => item.health === "healthy" && !isStale(item, state.asOf)).length;
-  const sourceOwners = new Set(state.connections.map((item) => item.owner).filter(Boolean)).size;
   const readiness = [
     { label: "Integration readiness", short: "Access", value: state.readiness.integration, description: "Accounts, scopes and selected resources." },
     { label: "Action readiness", short: "Authority", value: state.readiness.action, description: "Current rules, facts and operating permission." },
@@ -125,6 +129,7 @@ export function ConnectionsStudio({ state, navigate }: ScreenProps) {
     setConnecting(false);
     setHandoff(null);
     setSourceLaunch(undefined);
+    setWebsiteRequest(0);
     forgetIntent(state.workspace.id);
     clearReturnHint();
     if (restoreFocus) requestAnimationFrame(() => document.getElementById("review-google-authorization")?.focus());
@@ -149,12 +154,42 @@ export function ConnectionsStudio({ state, navigate }: ScreenProps) {
     navigate("activation");
   }
 
+  function chooseTeam() {
+    const url = new URL(window.location.href);
+    url.searchParams.set("team", "build");
+    window.history.replaceState({}, "", url.pathname + url.search);
+    navigate("team");
+  }
+
+  function setupGoogle(resourceType: SourceLaunch["resourceType"]) {
+    setProposalChoice(false);
+    const account = state.connections.find(item => item.workspaceId === state.workspace.id && item.provider === "google" && ["healthy", "unconfigured"].includes(item.health) && supportsResource(item, resourceType));
+    if (account && canConfigure) {
+      setSourceLaunch(current => ({ requestId: (current?.requestId ?? 0) + 1, connectionId: account.id, resourceType }));
+      return;
+    }
+    const capability: GoogleCapability = resourceType === "sheet" ? "sheets" : resourceType === "mailbox" ? "mail" : "calendar";
+    setScopes(current => [...new Set([...current, capability])]);
+    requestAnimationFrame(() => {
+      document.getElementById("connect-google-title")?.scrollIntoView({ block: "center", behavior: "smooth" });
+      document.getElementById("review-google-authorization")?.focus({ preventScroll: true });
+    });
+  }
+
+  function setupSystem(kind: SystemKind) {
+    if (kind === "website") setWebsiteRequest(current => current + 1);
+    else if (kind === "proposals") setProposalChoice(true);
+    else if (kind === "mail" || kind === "calendar") setupGoogle(kind === "mail" ? "mailbox" : "calendar");
+    else setSystemKind(kind);
+  }
+
   async function connect(requestedCapabilities = scopes) {
     if (!canConfigure || connecting || pendingRequest.current || !requestedCapabilities.length) return;
     const controller = new AbortController();
     pendingRequest.current = controller;
     setSelected(null);
     setSourceLaunch(undefined);
+    setWebsiteRequest(0);
     setScopes(requestedCapabilities);
     setConnecting(true);
     setConnectionMessage("");
@@ -232,25 +267,10 @@ export function ConnectionsStudio({ state, navigate }: ScreenProps) {
           <h1>Connections<span aria-hidden="true">.</span></h1>
           <p>{state.workspace.name} · A clear view of what your team can access.</p>
         </div>
-        <Button onClick={openSetup}>Review source requirements <ArrowUpRight size={15} /></Button>
+        <Button onClick={chooseTeam}>Choose your team <ArrowUpRight size={15} /></Button>
       </header>
 
-      <section className="connections-network" aria-label="Workspace connection overview">
-        <div className="connections-network-copy">
-          <span className="studio-kicker">YOUR WORKSPACE, CONNECTED</span>
-          <h2>Good work starts<br />at the source.</h2>
-          <p>Choose the accounts. Define the access.<br />Keep every permission in view.</p>
-          {fixture && <span className="connections-demo-label">Synthetic workspace · example connections</span>}
-        </div>
-        <div className="connections-map" aria-label={`${state.connections.length} bound sources, ${healthy} healthy sources, ${sourceOwners} source owners`}>
-          <div className="connections-map-core"><span aria-hidden="true">D</span><strong>Your team</strong><small>Approved access only</small></div>
-          <div className="connections-map-nodes">
-            <div><span><FileText size={16} /> Bound sources</span><strong>{state.connections.length.toString().padStart(2, "0")}</strong></div>
-            <div><span><ShieldCheck size={16} /> Healthy sources</span><strong>{healthy.toString().padStart(2, "0")}</strong></div>
-            <div><span><LockKeyhole size={16} /> Source owners</span><strong>{sourceOwners.toString().padStart(2, "0")}</strong></div>
-          </div>
-        </div>
-      </section>
+      <CompanyConnectionMap state={state} onSetup={setupSystem} onChooseTeam={chooseTeam} onManageSystem={setSystemKind} />
 
       <section className="connections-readiness" aria-label="Independent readiness checks">
         {readiness.map((item, index) => (
@@ -279,12 +299,13 @@ export function ConnectionsStudio({ state, navigate }: ScreenProps) {
               <p className="connections-sync">Last sync {dateTime(item.lastSyncAt)} · {Math.round(item.freshnessSeconds / 60)} min freshness limit</p>
             </article>;
           })}
-        </div> : <div className="connections-empty"><span className="connections-empty-icon"><Plus size={26} /></span><div><h3>No bound connections yet</h3><p>Start with the system your first specialist needs. Connect an account below, then choose its approved resources.</p></div></div>}
+        </div> : <div className="connections-empty"><span className="connections-empty-icon"><Plus size={26} /></span><div><h3>No bound connections yet</h3><p>Connect your company’s accounts, then choose their approved resources. These sources stay with the company when you change specialists.</p></div></div>}
       </section>
 
       <section className="connections-compose" aria-labelledby="connect-google-title">
-        <div className="connections-compose-intro"><span className="studio-kicker">ADD A CONNECTION</span><h2 id="connect-google-title">Google Workspace</h2><p>Choose only the capabilities your team needs. Signing in to DAVID is separate from authorizing access to these systems.</p><span className="connections-provider-label"><ShieldCheck size={15} /> Permission reviewed with Google</span></div>
+        <div className="connections-compose-intro"><span className="studio-kicker">ADD A CONNECTION</span><h2 id="connect-google-title">Google Workspace</h2><p>Authorize the capabilities your company uses once, then reuse them across your team. Choose the exact resources after returning from Google.</p><span className="connections-provider-label"><ShieldCheck size={15} /> Permission reviewed with Google</span></div>
         <div className="connections-compose-controls">
+          <Button className="btn-small" disabled={!canConfigure || connecting} onClick={() => setScopes(["sheets", "mail", "calendar"])}>Select all company capabilities</Button>
           <fieldset className="connections-capabilities"><legend>Choose capabilities</legend>
             {capabilities.map(({ id, label, description, Icon }) => <label className={`connections-capability ${scopes.includes(id) ? "is-selected" : ""}`} key={id}>
               <input type="checkbox" checked={scopes.includes(id)} disabled={!canConfigure || connecting} onChange={(event) => setScopes((current) => event.target.checked ? [...current, id] : current.filter((item) => item !== id))} />
@@ -297,12 +318,20 @@ export function ConnectionsStudio({ state, navigate }: ScreenProps) {
         </div>
       </section>
 
-      <div className="connections-source-setup"><SourceSetup state={state} launch={sourceLaunch} /></div>
+      <div className="connections-source-setup"><SourceSetup state={state} launch={sourceLaunch} websiteRequest={websiteRequest} /></div>
 
       <section className="connections-next" aria-labelledby="connection-next-title">
         <div className="connections-section-heading"><div><span className="studio-kicker">THE NEXT CONNECTION</span><h2 id="connection-next-title">What needs attention</h2></div><span>{state.readiness.blockers.length} open requirement{state.readiness.blockers.length === 1 ? "" : "s"}</span></div>
         {state.readiness.blockers.length ? <div className="connections-blockers">{state.readiness.blockers.map((blocker, index) => <details key={`${blocker.code}:${index}`} className="connections-blocker"><summary><span className="connections-step">{(index + 1).toString().padStart(2, "0")}</span><strong>{blocker.message}</strong><span>{words(blocker.dimension)}</span><Plus size={15} /></summary><div><p>{blocker.nextStep}</p><span>Accountable owner: {blocker.owner}</span></div></details>)}</div> : <div className="connections-clear"><CheckCircle2 size={20} /><p>No current blockers. Each action checks its own readiness again immediately before dispatch.</p></div>}
       </section>
+
+      {systemKind && <CompanySystemDetails key={`${state.workspace.id}:${systemKind}`} state={state} act={act} busy={busy} kind={systemKind} onClose={() => setSystemKind(null)} />}
+      <Drawer open={proposalChoice} onClose={() => setProposalChoice(false)} title="Your company’s proposal records" description="Choose the source you use. Its records stay in this workspace when you change specialists.">
+        <div className="stack company-system-details">
+          <div className="company-system-inventory-note"><span className="studio-kicker">CONNECTED SOURCE</span><h3>Google Sheets</h3><p>Authorize the account, select a Sheet and range, then verify the current records.</p><Button variant="primary" onClick={() => setupGoogle("sheet")}>Set up Google Sheets <ArrowRight size={15} /></Button></div>
+          <div className="company-system-inventory-note"><span className="studio-kicker">FILE IMPORT</span><h3>CSV export</h3><p>Import a validated proposal export. An upload is a saved snapshot; it does not establish ongoing account access.</p><Button onClick={() => { setProposalChoice(false); const url = new URL(window.location.href); url.searchParams.set("import", "csv"); window.history.replaceState({}, "", url.pathname + url.search); navigate("opportunities"); }}>Import proposal CSV <ArrowRight size={15} /></Button></div>
+        </div>
+      </Drawer>
 
       <Drawer open={!!connection} onClose={() => setSelected(null)} title={connection?.identity ?? "Connection"} description="A successful sign-in does not automatically grant Gmail, Sheets or Calendar integration permissions.">
         {connection && <div className="stack connections-inspector">

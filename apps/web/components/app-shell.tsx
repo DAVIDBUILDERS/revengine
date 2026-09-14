@@ -201,7 +201,7 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
           ? requested
           : snapshot.workspace.id;
       if (!browserDemo && snapshot.workspace.mode !== "fixture" && !new URLSearchParams(window.location.search).has("view") && snapshot.onboarding && !snapshot.onboarding.appliedRevision && snapshot.activation.milestone === "not_started" && !briefingFinished(snapshot.onboarding.answers) && ["workspace_owner","david_operator"].includes(snapshot.context.role)) {
-        setPage("team");
+        setPage(snapshot.onboarding.answers.team.length ? "team" : "connections");
       }
       setState(snapshot);
       setLoadError("");
@@ -242,6 +242,8 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
       query.delete("google");
       query.delete("connection");
     }
+    if (next !== "team") query.delete("team");
+    if (next !== "opportunities") query.delete("import");
     query.delete("proposal");
     if (focus?.proposal) query.set("proposal", focus.proposal);
     if (workspaceKey.current) query.set("workspace", workspaceKey.current);
@@ -256,6 +258,8 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
     url.searchParams.set("view", page);
     url.searchParams.delete("google");
     url.searchParams.delete("connection");
+    url.searchParams.delete("team");
+    url.searchParams.delete("import");
     window.location.assign(`${url.pathname}${url.search}`);
   };
   const act = async (command: Command): Promise<CommandResult | undefined> => {

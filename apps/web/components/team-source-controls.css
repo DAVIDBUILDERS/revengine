@@ -1,0 +1,31 @@
+.builder-shared-sources { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 24px 27px; background: #eef4e5; border: 1px solid #d6e2c6; border-radius: 14px; }
+.builder-shared-sources h3 { font: 400 25px/1.2 Georgia, serif; letter-spacing: -.4px; margin: 7px 0 9px; color: #34472a; }
+.builder-shared-sources p { max-width: 700px; margin: 0; font-size: 12px; color: #627454; line-height: 1.8; }
+.builder-shared-sources > .btn { flex-shrink: 0; background: #fff; border-color: #c7d7b7; font-size: 11px; }
+.team-builder .builder-agent-sources { margin-top: 16px; padding: 14px 0 3px; border-top: 1px solid #dce4d1; }
+.team-builder .builder-agent-sources > .studio-kicker { font-size: 8px; letter-spacing: 1.2px; }
+.team-builder .builder-agent-sources > strong { display: block; margin: 7px 0 11px; font-size: 11px; font-weight: 500; line-height: 1.6; color: #5e7250; }
+.team-builder .builder-agent-sources > div { display: flex; flex-wrap: wrap; gap: 6px; }
+.team-builder .builder-agent-sources > div > span { display: inline-flex; align-items: center; gap: 5px; font-size: 9px; color: #6c7a60; border: 1px solid #dce4d1; border-radius: 5px; background: #f3f6ed; padding: 4px 6px; }
+.team-builder .builder-agent-sources > div > .is-verified { color: #4f6a3b; background: #e7f0da; border-color: #cadcb5; }
+.team-builder .builder-agent-sources > p { font-size: 10px; line-height: 1.8; color: #718063; margin: 12px 0 0; }
+.team-builder .builder-agent-actions { flex-wrap: wrap; }
+.team-builder .builder-agent-actions > .btn { white-space: normal; }
+.builder-swap > h3 { font: 400 30px/1.2 Georgia, serif; color: #2d3d26; letter-spacing: -.5px; margin: 10px 0 15px; }
+.builder-swap > p { font-size: 12px; line-height: 1.9; color: #697b5b; }
+.builder-swap-options { display: grid; gap: 11px; margin: 24px 0; }
+.builder-swap-options > button { display: flex; align-items: center; justify-content: space-between; gap: 16px; text-align: left; color: #35492b; background: #f2f6eb; border: 1px solid #d7e3c8; border-radius: 12px; padding: 19px; cursor: pointer; }
+.builder-swap-options > button:hover:not(:disabled) { border-color: #91ae77; background: #ebf2df; }
+.builder-swap-options > button:disabled { cursor: not-allowed; opacity: .55; }
+.builder-swap-options strong { display: block; font-size: 13px; font-weight: 550; line-height: 1.6; }
+.builder-swap-options small { display: block; margin-top: 5px; font-size: 10px; color: #6d805c; }
+.builder-swap-options > button > svg { flex-shrink: 0; }
+.builder-swap-options > button:focus-visible { outline: 2px solid #bc2e31; outline-offset: 4px; }
+@media(max-width:760px) {
+  .builder-shared-sources { flex-direction: column; align-items: flex-start; gap: 19px; padding: 23px; }
+  .builder-shared-sources h3 { font-size: 23px; }
+}
+.builder-team-conflict { padding: 21px 24px; border: 1px solid #dfc6ab; border-left: 3px solid #b47947; border-radius: 12px; background: #faf5ec; color: #76552f; }
+.builder-team-conflict > strong { font-size: 14px; font-weight: 550; }
+.builder-team-conflict > p { font-size: 12px; line-height: 1.8; margin: 9px 0 16px; }
+.builder-team-conflict > .btn { background: #fff; border-color: #d7bea0; font-size: 11px; }

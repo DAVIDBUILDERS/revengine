@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 
-test('team recommendation is visible and setup opens the requested saved section',async({page})=>{
+test('team recommendation is visible and saved source setup opens company connections',async({page})=>{
  await page.goto('/?view=team');
  await page.getByRole('button',{name:'Build your team',exact:true}).click();
  await page.getByRole('button',{name:'Recommend my five',exact:true}).click();
@@ -10,7 +10,7 @@ test('team recommendation is visible and setup opens the requested saved section
  if(await save.isEnabled())await save.click();
  await page.getByText('Sources, permissions & workspace setup',{exact:true}).click();
  await page.getByRole('button',{name:'Sources & connections',exact:true}).click();
- await expect(page).toHaveURL(/mode=profile/);
- await expect(page.getByRole('heading',{name:'Systems & sources',exact:true})).toBeVisible();
+ await expect(page).toHaveURL(/view=connections/);
+ await expect(page.getByRole('heading',{name:'Connections',exact:true})).toBeVisible();
  await expect(page.getByRole('heading',{name:/Let’s find a useful first step/})).toHaveCount(0);
 });

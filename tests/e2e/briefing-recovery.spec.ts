@@ -38,9 +38,9 @@ test('late website response after a different saved URL is ignored and OAuth-sty
  release!();await page.getByLabel('Business description').fill('Our current description');await page.getByRole('button',{name:'Continue',exact:false}).click();await page.getByRole('radio',{name:/Get more qualified leads/}).check();await page.getByRole('button',{name:'Continue',exact:false}).click();
  await page.goto('/?view=activation');await expect(page.getByRole('heading',{name:'Let’s fill in just the essentials.'})).toBeVisible();await expect(page.getByText('Abandoned company')).toHaveCount(0);
 });
-test('new owners enter their team, existing work returns to dashboard, and viewer controls remain read-only',async({page})=>{
+test('new owners enter company connections, existing work returns to dashboard, and viewer controls remain read-only',async({page})=>{
  const {fixture}=await apiFixture(page);
- await page.goto('/');await expect(page.getByRole('heading',{name:'Your team',exact:true})).toBeVisible();
+ await page.goto('/');await expect(page.getByRole('heading',{name:'Connections',exact:true})).toBeVisible();
  fixture.activation.milestone='preparation_artifact';await page.goto('/');await expect(page.getByRole('heading',{name:'Today',exact:true})).toBeVisible();
  fixture.context.role='workspace_viewer';await page.goto('/?view=activation');await expect(page.getByRole('button',{name:'Let’s begin'})).toBeDisabled();await expect(page.getByText(/A workspace owner must save answers/)).toBeVisible();
 });

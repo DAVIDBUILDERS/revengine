@@ -18,7 +18,7 @@ test("hosted workspace works without an operational API and survives refresh", a
   await dialog.getByRole("button", { name: "Pause workspace", exact: true }).click();
   await expect(dialog.getByRole("button", { name: "Workspace paused", exact: true })).toBeDisabled();
   await page.reload();
-  await expect(page.locator(".page-heading h1, .briefing-question h1")).toBeVisible();
+  await expect(page.getByRole("main").getByRole("heading", { level: 1 })).toBeVisible();
   await page.getByRole("button", { name: "Open Account Intelligence workspace" }).click();
   await dialog.getByRole("button", { name: "Rules & limits" }).click();
   await expect(dialog.getByRole("button", { name: "Workspace paused", exact: true })).toBeDisabled();
@@ -26,7 +26,7 @@ test("hosted workspace works without an operational API and survives refresh", a
   await page.setViewportSize({ width: 390, height: 844 });
   for (const view of ["today", "team", "activation", "opportunities", "decisions", "journey", "scenarios", "connections", "operator"]) {
     await page.goto(`${origin}/?view=${view}`);
-    await expect(page.locator(".page-heading h1, .briefing-question h1")).toBeVisible();
+    await expect(page.getByRole("main").getByRole("heading", { level: 1 })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), view).toBe(false);
   }
   const other = await browser.newContext();

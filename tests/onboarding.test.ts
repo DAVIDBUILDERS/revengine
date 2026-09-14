@@ -70,7 +70,7 @@ describe('repeatable onboarding',()=>{
   await executeCommand(state,{type:'pause',paused:false});await executeCommand(state,{type:'prepare',agentId:'account-intelligence'});
   const artifact=state.artifacts.at(-1)!;await executeCommand(state,{type:'review_artifact',artifactId:artifact.id,decision:'reviewed'});
   // Supply explicit retained source evidence to exercise the operational report, never the public demo.
-  state.workspace.mode='shadow';state.context.environment='shadow';state.activation.confirmedFacts=true;artifact.sourceSnapshot.forEach(e=>e.quality='manually_reported');
+  state.workspace.mode='shadow';state.context.environment='shadow';state.activation.confirmedFacts=true;state.onboardingCapture={id:artifact.id,sourceHash:'a'.repeat(64),fixture:false,pages:[{url:answers.company.website,title:'Reviewed company',description:'Advisory',text:'Reviewed company facts',capturedAt:state.asOf}]};artifact.sourceSnapshot.forEach(e=>e.quality='manually_reported');
   expect(onboardingReport(state).agents.find(a=>a.id==='account-intelligence')?.status).toBe('ready');
   await executeCommand(state,{type:'review_artifact',artifactId:artifact.id,decision:'rejected'});
   expect(onboardingReport(state).complete[5]).toBe(false);
@@ -78,6 +78,19 @@ describe('repeatable onboarding',()=>{
   answers.operations.dailyCapacity=3;await executeCommand(state,{type:'save_onboarding',expectedRevision:1,answers});
   expect(onboardingReport(state).complete[5]).toBe(false);
   expect(onboardingReport(state).agents.find(a=>a.id==='account-intelligence')?.missing).toContain('Apply the current reviewed settings before activation.');
+ });
+ it('retains a reviewed preparation across team changes but not changed operating configuration',async()=>{
+  const {state,answers}=configured();await executeCommand(state,{type:'save_onboarding',expectedRevision:0,answers});await executeCommand(state,{type:'apply_onboarding',expectedRevision:1});
+  await executeCommand(state,{type:'pause',paused:false});await executeCommand(state,{type:'prepare',agentId:'account-intelligence'});
+  const artifact=state.artifacts.at(-1)!;await executeCommand(state,{type:'review_artifact',artifactId:artifact.id,decision:'reviewed'});
+  state.workspace.mode='shadow';state.context.environment='shadow';state.activation.confirmedFacts=true;state.onboardingCapture={id:artifact.id,sourceHash:'a'.repeat(64),fixture:false,pages:[{url:answers.company.website,title:'Reviewed company',description:'Advisory',text:'Reviewed company facts',capturedAt:state.asOf}]};artifact.sourceSnapshot.forEach(e=>e.quality='manually_reported');
+  answers.team=['account-intelligence','technical-seo-monitor'];await executeCommand(state,{type:'save_onboarding',expectedRevision:1,answers});
+  let report=onboardingReport(state).agents.find(a=>a.id==='account-intelligence')!;
+  expect(report.missing).not.toContain('Generate and review a current source-backed preparation.');
+  expect(report.missing).toContain('Apply the current reviewed settings before activation.');expect(state.workspace.paused).toBe(true);
+  answers.operations.dailyCapacity=3;await executeCommand(state,{type:'save_onboarding',expectedRevision:2,answers});
+  report=onboardingReport(state).agents.find(a=>a.id==='account-intelligence')!;
+  expect(report.missing).toContain('Generate and review a current source-backed preparation.');
  });
  it('keeps missing source information distinct from administrator account access',async()=>{
   const {state,answers}=configured();answers.systems=[];await executeCommand(state,{type:'save_onboarding',expectedRevision:0,answers});

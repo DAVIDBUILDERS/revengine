@@ -21,6 +21,7 @@ import {
   Search,
   Send,
   ShieldCheck,
+  ArrowLeftRight,
   ListChecks,
   Target,
   Upload,
@@ -35,6 +36,8 @@ import type {
   UsageRecord,
 } from "@david/contracts";
 import { onboardingFor } from '@david/domain/onboarding';
+import { companyConnectionCoverage } from '@david/domain/company-connections';
+import './team-source-controls.css';
 import { forecastCases, deliveryEconomics } from "@david/domain/scenarios";
 import { money, words } from "@david/ui";
 import { PageHeading, type ScreenProps } from "./app-shell";
@@ -56,15 +59,29 @@ function TeamConfiguration(props: ScreenProps) {
   const model = state.workspace.businessModel;
   const setup = onboardingFor(state);
   const savedTeam = setup.revision ? setup.answers.team : state.activation.selectedTeam;
+  const selectedKey = savedTeam.join(",");
   const [selected, setSelected] = useState(savedTeam);
+  const [draftBaseKey, setDraftBaseKey] = useState(selectedKey);
   const [teamMessage, setTeamMessage] = useState("");
+  const [swapAgentId, setSwapAgentId] = useState<string | null>(null);
+  const sharedCoverage = companyConnectionCoverage(state);
+  const swapAgent = state.catalog.find((item) => item.id === swapAgentId);
+  const draftKey = selected.join(",");
+  const teamConflict = selectedKey !== draftBaseKey && draftKey !== draftBaseKey && draftKey !== selectedKey;
+  const teamLocked = busy || selectedKey !== draftBaseKey;
   async function openSetup(section: number) {
-    if (busy) return;
+    if (teamLocked) return;
     if (selectedKey !== selected.join(",")) {
       const result = await act({type:"save_onboarding", expectedRevision:setup.revision, answers:{...setup.answers,team:selected}});
       if (!result) { setTeamMessage("Save failed. Your selections are still here; retry before opening settings."); return; }
     }
     const url = new URL(window.location.href);
+    if (section === 2) {
+      for (const parameter of ["mode", "setup", "step"]) url.searchParams.delete(parameter);
+      window.history.replaceState({}, "", url.pathname + url.search);
+      navigate("connections");
+      return;
+    }
     url.searchParams.set("mode", "profile");
     url.searchParams.set("setup", String(section));
     window.history.replaceState({}, "", url.pathname + url.search);
@@ -73,8 +90,18 @@ function TeamConfiguration(props: ScreenProps) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All specialists");
   const [agent, setAgent] = useState<AgentDefinition | null>(null);
-  const selectedKey = savedTeam.join(",");
-  useEffect(() => setSelected(savedTeam), [selectedKey]);
+  useEffect(() => {
+    if (selectedKey === draftBaseKey || teamConflict) return;
+    // Pristine drafts follow the server. Our own successful save matches the local draft.
+    setSelected(savedTeam);
+    setDraftBaseKey(selectedKey);
+  }, [selectedKey, draftBaseKey, teamConflict]);
+  function reloadSavedTeam() {
+    setSelected(savedTeam);
+    setDraftBaseKey(selectedKey);
+    setSwapAgentId(null);
+    setTeamMessage("Loaded the latest saved team.");
+  }
   const categories = [
     "All specialists",
     ...new Set(state.catalog.map((item) => item.category)),
@@ -86,7 +113,8 @@ function TeamConfiguration(props: ScreenProps) {
         .toLowerCase()
         .includes(query.toLowerCase()),
   );
-  const toggle = (id: string) =>
+  const toggle = (id: string) => {
+    if (teamLocked) return;
     setSelected((current) =>
       current.includes(id)
         ? current.filter((value) => value !== id)
@@ -94,28 +122,47 @@ function TeamConfiguration(props: ScreenProps) {
           ? [...current, id]
           : current,
     );
+  };
   const allowance = state.workspace.entitlement ?? 5;
+  function swapSpecialist(replacedId: string) {
+    if (teamLocked || allowance <= 0 || !swapAgent) return;
+    if (!selected.includes(replacedId) || selected.includes(swapAgent.id) || !swapAgent.supportedArchetypes.includes(model)) {
+      setSwapAgentId(null);
+      setTeamMessage("The lineup changed. Review the current team before choosing a replacement.");
+      return;
+    }
+    const replaced = state.catalog.find((item) => item.id === replacedId);
+    setSelected((current) => current.includes(replacedId) && !current.includes(swapAgent.id) ? current.map((id) => id === replacedId ? swapAgent.id : id) : current);
+    setTeamMessage(`${swapAgent.name} replaces ${replaced?.name ?? "the selected specialist"} in your draft. Save the team to keep this change.`);
+    setSwapAgentId(null);
+  }
   return (
     <div className="team-builder">
       <section className="builder-objective">
         <div><span className="studio-kicker">TEAM DESIGN / {state.workspace.businessModel.replaceAll("_", " ")}</span><h2>Give ambition a team.</h2><p>Choose your objective. Find the specialists to move it forward.</p></div>
         <div className="builder-intent"><label htmlFor="team-goal">The outcome</label><select id="team-goal" value={goal} onChange={e=>setGoal(e.target.value)}>{[...new Set([state.recommendation.goal,"Recover open proposals","Create qualified demand","Improve conversion","Retain and expand customers"])].map(g=><option key={g}>{g}</option>)}</select>
-        <Button disabled={busy} onClick={async()=>{const result=await act({type:"recommend_team",goal,businessModel:model});if(result){setSelected(result.snapshot.recommendation.specialistIds.slice(0,allowance));setTeamMessage("Recommended team selected below. Review it, then save your team.");}else setTeamMessage("We couldn’t recommend a team. Review the error above and try again.");}}><ListChecks size={16}/>{busy?"Working…":"Recommend my five"}</Button></div>
+        <Button disabled={teamLocked||allowance<=0} onClick={async()=>{const result=await act({type:"recommend_team",goal,businessModel:model});if(result){setSelected(result.snapshot.recommendation.specialistIds.slice(0,allowance));setTeamMessage("Recommended team selected below. Review it, then save your team.");}else setTeamMessage("We couldn’t recommend a team. Review the error above and try again.");}}><ListChecks size={16}/>{busy?"Working…":"Recommend my five"}</Button></div>
       </section>
+      <section className="builder-shared-sources" aria-label="Shared company source coverage"><div><span className="studio-kicker">ONE COMPANY / SHARED SOURCES</span><h3>Your sources stay with the company.</h3><p>Every specialist reuses your company setup. Source access, permissions and verified work are checked for each role.</p></div><Button disabled={teamLocked} onClick={()=>void openSetup(2)}>Manage company sources <ArrowUpRight size={14}/></Button></section>
       <section className="builder-lineup" aria-label="Your selected team"><div className="between"><span className="studio-kicker">YOUR LINEUP</span><span>{selected.length} / {allowance} specialists</span></div><div className="builder-slots">
-      {Array.from({length:Math.min(allowance,Math.max(5,selected.length+1))},(_,i)=>{const item=state.catalog.find(a=>a.id===selected[i]);return <div className={item?"builder-slot filled":"builder-slot"} key={i}><span className="studio-index">{String(i+1).padStart(2,"0")}</span>{item?<><strong>{item.name}</strong><button aria-label={`Remove ${item.name}`} onClick={()=>toggle(item.id)}><X size={14}/></button><small>{item.releaseStatus==="planned"?"Capability planned":"Readiness checked separately"}</small></>:<><Plus size={19}/><span>Open position</span></>}</div>})}
+      {Array.from({length:Math.min(allowance,Math.max(5,selected.length+1))},(_,i)=>{const item=state.catalog.find(a=>a.id===selected[i]);return <div className={item?"builder-slot filled":"builder-slot"} key={i}><span className="studio-index">{String(i+1).padStart(2,"0")}</span>{item?<><strong>{item.name}</strong><button disabled={teamLocked} aria-label={`Remove ${item.name}`} onClick={()=>toggle(item.id)}><X size={14}/></button><small>{item.releaseStatus==="planned"?"Capability planned":"Readiness checked separately"}</small></>:<><Plus size={19}/><span>Open position</span></>}</div>})}
       </div></section>
-      {teamMessage&&<p role="status" className="notice">{teamMessage}</p>}
+      {teamConflict&&<div className="builder-team-conflict" role="alert"><strong>Team changed in another session.</strong><p>Your local draft is still shown. Reload the saved team before continuing; reloading replaces this draft.</p><Button onClick={reloadSavedTeam}>Reload saved team <ArrowRight size={14}/></Button></div>}
+      {teamMessage&&!teamConflict&&<p role="status" className="notice">{teamMessage}</p>}
       <section className="builder-library" aria-label="Specialist library"><div className="builder-library-heading"><div><span className="studio-kicker">32 SPECIALISTS / ONE SHARED OBJECTIVE</span><h2>Find your next advantage.</h2></div><label className="builder-search"><Search size={16}/><input aria-label="Search the catalog" placeholder="Find a specialist…" value={query} onChange={e=>setQuery(e.target.value)}/></label></div>
       <div className="builder-filters" aria-label="Responsibility group">{categories.map(c=><button key={c} aria-pressed={category===c} onClick={()=>setCategory(c)}>{c}</button>)}</div>
-      <div className="builder-catalog">{filtered.map((item,i)=>{const picked=selected.includes(item.id);const applicable=item.supportedArchetypes.includes(model);const recommended=state.recommendation.specialistIds.includes(item.id);return <article key={item.id} className={`agent-card builder-agent ${picked?"selected":""}`}>
+      <div className="builder-catalog">{filtered.map((item,i)=>{const picked=selected.includes(item.id);const applicable=item.supportedArchetypes.includes(model);const recommended=state.recommendation.specialistIds.includes(item.id);const sourceCoverage=sharedCoverage.agents.find(role=>role.id===item.id);const currentSources=sourceCoverage?.currentSystems??[];const roleSources=sourceCoverage?.fullRoleSystems??[];return <article key={item.id} className={`agent-card builder-agent ${picked?"selected":""}`} data-agent={item.id}>
       <div className="builder-agent-top"><span className="builder-monogram" aria-hidden="true">{item.name.split(" ").slice(0,2).map(w=>w[0]).join("")}</span><span className="studio-kicker">{recommended?"RECOMMENDED":item.category}</span><span className="studio-index">{String(i+1).padStart(2,"0")}</span></div>
       <h3>{item.name}</h3><p>{item.responsibility}</p><span className="builder-capability">{!applicable?"Outside this business model":item.releaseStatus==="planned"?"Capability planned":item.modes.includes("preparation")?"Preparation capability":"Requires action verification"}</span>
-      <div className="builder-agent-actions"><button className="studio-text-action" onClick={()=>setAgent(item)}>Role & readiness <ArrowUpRight size={14}/></button><Button disabled={busy||(!picked&&(selected.length>=allowance||!applicable))} onClick={()=>toggle(item.id)} aria-pressed={picked}>{picked?<Check size={14}/>:<Plus size={14}/>} {picked?"Selected":"Select"}</Button></div>
+      <div className="builder-agent-sources"><span className="studio-kicker">SHARED COMPANY SOURCES</span><strong>{currentSources.length ? `${currentSources.length-(sourceCoverage?.missingCurrentSystems.length??0)} of ${currentSources.length} current inputs verified` : "Integration work is still required"}</strong><div>{(currentSources.length?currentSources:roleSources).map(kind=>{const system=sharedCoverage.systems.find(source=>source.kind===kind);const verified=currentSources.includes(kind)&&!sourceCoverage?.missingCurrentSystems.includes(kind);return <span key={kind} className={verified?"is-verified":""} title={system?.detail}>{verified?<Check size={11}/>:<Clock3 size={11}/>}{system?.label??kind}</span>})}</div>{currentSources.length>0&&roleSources.some(kind=>!currentSources.includes(kind))&&<p>Full role also needs {roleSources.filter(kind=>!currentSources.includes(kind)).map(kind=>sharedCoverage.systems.find(system=>system.kind===kind)?.label??kind).join(", ")} as those capabilities are implemented.</p>}</div>
+      <div className="builder-agent-actions"><button className="studio-text-action" onClick={()=>setAgent(item)}>Role & readiness <ArrowUpRight size={14}/></button><Button disabled={teamLocked||(!picked&&(!applicable||allowance<=0))} onClick={()=>!picked&&allowance>0&&selected.length>=allowance?setSwapAgentId(item.id):toggle(item.id)} aria-pressed={picked}>{picked?<Check size={14}/>:allowance>0&&selected.length>=allowance?<ArrowLeftRight size={14}/>:<Plus size={14}/>} {picked?"Selected":allowance<=0?"No team slots":selected.length>=allowance?"Swap into team":"Select"}</Button></div>
       </article>})}</div>{!filtered.length&&<Empty title="No matching specialists">Try another name or responsibility group.</Empty>}</section>
-      <footer className="builder-save"><div><strong>{selected.length} specialists in your team</strong><p>{selectedKey===selected.join(",")?"Your lineup is saved. Review sources and permissions to begin.":"Unsaved changes. Saving a team does not authorize execution."}</p></div><Button variant="primary" disabled={busy||selectedKey===selected.join(",")} onClick={async()=>{const result=await act({type:"save_onboarding",expectedRevision:setup.revision,answers:{...setup.answers,team:selected}});setTeamMessage(result?"Team saved. Configure sources and permissions, then review readiness.":"Your team could not be saved. Your selections are still here. Review the error above and retry.");}}>Save team <ArrowRight size={15}/></Button></footer>
-      <details className="builder-settings"><summary>Sources, permissions & workspace setup</summary><p>Selection defines the team. Verified access and explicit permissions determine what it can do.</p><div className="flex wrap">{[[0,"Company & objectives"],[2,"Sources & connections"],[3,"Permissions & budgets"],[4,"People & measurement"],[5,"Review readiness"]].map(([section,label])=><Button key={section} onClick={()=>openSetup(Number(section))}>{label}</Button>)}</div>{state.recommendation.limitations.map(item=><p key={item} className="help">{item}</p>)}</details>
+      <footer className="builder-save"><div><strong>{selected.length} specialists in your team</strong><p>{teamConflict?"The saved lineup changed. Reload it before saving your next selection.":selectedKey===selected.join(",")?"Your lineup is saved. Review sources and permissions to begin.":"Unsaved changes. Saving a team does not authorize execution."}</p></div><Button variant="primary" disabled={teamLocked||selectedKey===selected.join(",")} onClick={async()=>{const result=await act({type:"save_onboarding",expectedRevision:setup.revision,answers:{...setup.answers,team:selected}});setTeamMessage(result?"Team saved. Configure sources and permissions, then review readiness.":"Your team could not be saved. Your selections are still here. Review the error above and retry.");}}>Save team <ArrowRight size={15}/></Button></footer>
+      <details className="builder-settings"><summary>Sources, permissions & workspace setup</summary><p>Selection defines the team. Verified access and explicit permissions determine what it can do.</p><div className="flex wrap">{[[0,"Company & objectives"],[2,"Sources & connections"],[3,"Permissions & budgets"],[4,"People & measurement"],[5,"Review readiness"]].map(([section,label])=><Button key={section} disabled={teamLocked} onClick={()=>openSetup(Number(section))}>{label}</Button>)}</div>{state.recommendation.limitations.map(item=><p key={item} className="help">{item}</p>)}</details>
       <AgentWorkspace {...props} agent={agent} onClose={()=>setAgent(null)}/>
+      <Drawer open={!!swapAgent&&!teamConflict} onClose={()=>setSwapAgentId(null)} title={swapAgent?`Swap in ${swapAgent.name}`:"Swap a specialist"} description="Choose the specialist to replace in your draft lineup. Company sources stay available; the incoming role still needs its own readiness checks.">
+        {swapAgent&&<div className="builder-swap"><span className="studio-kicker">INCOMING SPECIALIST</span><h3>{swapAgent.name}</h3><p>{swapAgent.responsibility}</p><div className="builder-swap-options">{selected.map(id=>{const replaced=state.catalog.find(item=>item.id===id);return replaced?<button key={id} disabled={teamLocked} onClick={()=>swapSpecialist(id)} aria-label={`Replace ${replaced.name}`}><span><strong>{replaced.name}</strong><small>Replace in this lineup</small></span><ArrowLeftRight size={17}/></button>:null})}</div><p className="help">This changes your draft only. Save the team when you are ready.</p></div>}
+      </Drawer>
     </div>
   );
 }
@@ -130,7 +177,15 @@ export function Opportunities(props: ScreenProps) {
   );
   const [recordStatus,setRecordStatus]=useState("all");
   const visibleProposals=state.proposals.filter(p=>recordStatus==="all"||p.status===recordStatus);
-  const [importOpen, setImportOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("import") === "csv");
+  function closeImport() {
+    setImportOpen(false);
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("import") === "csv") {
+      url.searchParams.delete("import");
+      window.history.replaceState({}, "", url.pathname + url.search);
+    }
+  }
   const proposal = state.proposals.find((item) => item.id === proposalId);
   return (
     <div className="stack workspace-studio opportunities-studio">
@@ -320,7 +375,7 @@ export function Opportunities(props: ScreenProps) {
       </Drawer>
       <Drawer
         open={importOpen}
-        onClose={() => setImportOpen(false)}
+        onClose={closeImport}
         title="Import current proposal records"
         description="Preview field mappings and row-level validation before saving. Stable IDs make repeat imports safe; omitted rows never become wins or deletions."
       >

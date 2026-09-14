@@ -8,11 +8,14 @@ import {createVaultSecretStore} from '../../../packages/db/src/index';
 
 export async function connectionCheckV1(runId:string){
  'use workflow';
- const resources=await connectionResourcesStep(runId,getWorkflowMetadata().workflowRunId);
- if(!resources)return {status:'duplicate'};
- const results:{bindingId:string;operation:string;observedAt:string}[]=[];
- try{for(const id of resources)results.push(await checkResourceStep(runId,id));await recordConnectionCheckStep(runId,results);return {status:'read_checks_passed',testedResources:results.length,externalWritesVerified:false};}
- catch{await connectionFailureStep(runId);return {status:'blocked',externalWritesVerified:false};}
+ try{
+  const resources=await connectionResourcesStep(runId,getWorkflowMetadata().workflowRunId);
+  if(!resources)return {status:'duplicate'};
+  const results:{bindingId:string;operation:string;observedAt:string}[]=[];
+  for(const id of resources)results.push(await checkResourceStep(runId,id));
+  await recordConnectionCheckStep(runId,results);
+  return {status:'read_checks_passed',testedResources:results.length,externalWritesVerified:false};
+ }catch{await connectionFailureStep(runId);return {status:'blocked',externalWritesVerified:false};}
 }
 async function connectionResourcesStep(runId:string,workflowId:string){'use step';return runtimeDatabase().withRun(runId,async tx=>{const [claim]=await tx<{fence:number|null}[]>`select private.claim_run(${workflowId}) fence`;if(!claim?.fence)return null;const rows=await tx<{id:string}[]>`select s.id from public.source_bindings s join public.runs r on r.workspace_id=s.workspace_id and r.connection_id=s.connection_id where r.id=${runId}::uuid order by s.id limit 11`;if(!rows.length||rows.length>10)throw new Error('RESOURCE_BOUNDARY: Bind one to ten approved resources.');return rows.map(r=>r.id);});}
 async function checkResourceStep(runId:string,bindingId:string){'use step';const db=runtimeDatabase();const env=environment();if(!env.GOOGLE_CLIENT_ID||!env.GOOGLE_CLIENT_SECRET)throw new Error('GOOGLE_CONFIGURATION_REQUIRED');const row=await db.withRun(runId,async tx=>(await tx<{connection_id:string;identity:string;operations:string[];resource_type:string;resource_id:string;range_name:string|null;mapping:Record<string,unknown>;time_zone:string}[]>`select c.id connection_id,c.identity,c.operations,s.resource_type,s.resource_id,s.range_name,s.mapping,w.time_zone from public.runs r join public.connections c on c.id=r.connection_id and c.workspace_id=r.workspace_id join public.source_bindings s on s.connection_id=c.id and s.workspace_id=c.workspace_id join public.workspaces w on w.id=r.workspace_id where r.id=${runId}::uuid and s.id=${bindingId}::uuid`)[0]);if(!row)throw new Error('RESOURCE_BINDING_DENIED');

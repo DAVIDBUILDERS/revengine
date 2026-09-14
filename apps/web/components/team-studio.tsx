@@ -9,14 +9,14 @@ import {Button,dateTime} from './ui';
 export function TeamStudio(props:ScreenProps & {configuration:ReactNode}){
  const {state,act,busy,navigate,configuration}=props;
  const saved=onboardingFor(state);const ids=saved.revision?saved.answers.team:state.activation.selectedTeam;
- const [chosen,setChosen]=useState('');const [settings,setSettings]=useState(false);const [builderOpened,setBuilderOpened]=useState(false);const [inspect,setInspect]=useState(false);
+ const [chosen,setChosen]=useState('');const [settings,setSettings]=useState(()=>typeof window!=='undefined'&&new URLSearchParams(window.location.search).get('team')==='build');const [builderOpened,setBuilderOpened]=useState(()=>typeof window!=='undefined'&&new URLSearchParams(window.location.search).get('team')==='build');const [inspect,setInspect]=useState(false);
  const agents=ids.map(id=>state.catalog.find(a=>a.id===id)).filter(a=>!!a);
  const agent=agents.find(a=>a.id===chosen)??agents[0];
  const install=state.installations.find(i=>i.agentId===agent?.id);
  const outputs=state.artifacts.filter(a=>a.agentId===agent?.id).slice().sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
  const output=outputs[0];const [outputId,setOutputId]=useState('');const current=outputs.find(a=>a.id===outputId)??output;
  const goal=saved.answers.company.priorities[0]||state.recommendation.goal;
- function setup(){const u=new URL(window.location.href);u.searchParams.set('mode','profile');u.searchParams.set('setup','2');window.history.replaceState({},'',u.pathname+u.search);navigate('activation');}
+ function setup(){navigate('connections');}
  return <div className="team-studio">
   <header className="studio-heading"><div><span className="studio-kicker">DAVID / WORKSPACE</span><h1>Your team<span aria-hidden="true">.</span></h1><p>{state.workspace.name} · People set direction. Work stays visible.</p></div><Button onClick={()=>(setBuilderOpened(true),setSettings(!settings))}><Settings2 size={15}/>{settings?'Back to workspace':'Build your team'}</Button></header>
   {builderOpened&&<section hidden={!settings} aria-label="Team configuration">{configuration}</section>}

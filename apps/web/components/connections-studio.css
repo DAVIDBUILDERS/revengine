@@ -134,3 +134,11 @@
   .connections-empty { padding: 25px; flex-direction: column; align-items: start; gap: 18px; }
 }
 @media (prefers-reduced-motion: reduce) { .connections-capability { transition: none; } }
+
+.company-system-details label{display:grid;gap:9px;font-size:14px;font-weight:600;color:var(--text)}
+.company-system-details input,.company-system-details select,.company-system-details textarea{width:100%;min-height:44px;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--surface,#fff);color:var(--text);font:inherit}
+.company-system-details textarea{min-height:100px}
+.company-system-inventory-note{padding:22px;border:1px solid #dfe4d7;border-radius:14px;background:#f2f4ed}
+.company-system-inventory-note p{margin:12px 0;color:#56614e;line-height:1.65}
+.company-system-inventory-note h3{margin:10px 0}
+.connections-compose-controls>.btn-small{margin-bottom:18px}

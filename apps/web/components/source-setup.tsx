@@ -64,7 +64,7 @@ const resourceOptions = [
   { type: "mailbox", label: "Gmail", detail: "Sender and reply mailbox", Icon: Mail },
 ] as const;
 const defaultMapping = () => JSON.stringify({ columns: Object.fromEntries(sourceColumns.map(column => [column, column])) }, null, 2);
-function supportsResource(connection: ConnectionCapability | undefined, type: ResourceType) {
+export function supportsResource(connection: ConnectionCapability | undefined, type: ResourceType) {
   if (!connection) return false;
   const hasScope = (...scopes: string[]) => scopes.some(scope => connection.scopes.includes(`https://www.googleapis.com/auth/${scope}`));
   if (type === "sheet") return connection.operations.includes("sheets.read") && hasScope("drive.file", "spreadsheets.readonly", "spreadsheets");
@@ -75,7 +75,7 @@ function usableGoogle(connection: ConnectionCapability, workspaceId: string) {
   return connection.workspaceId === workspaceId && connection.provider === "google" && (connection.health === "healthy" || connection.health === "unconfigured");
 }
 
-export function SourceSetup({ state, launch }: { state: AppSnapshot; launch?: SourceSetupLaunch }) {
+export function SourceSetup({ state, launch, websiteRequest }: { state: AppSnapshot; launch?: SourceSetupLaunch; websiteRequest?: number }) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<"website" | "google">("website");
   const [busy, setBusy] = useState(false);
@@ -104,6 +104,7 @@ export function SourceSetup({ state, launch }: { state: AppSnapshot; launch?: So
   const [owner, setOwner] = useState("");
   const [mapping, setMapping] = useState(defaultMapping);
   const handledLaunch = useRef<number | null>(null);
+  const handledWebsite = useRef<number | null>(null);
   const sessionKey = `${state.workspace.id}:${state.context.actorId}`;
   const activeSession = useRef(sessionKey);
   const requestVersion = useRef(0);
@@ -143,6 +144,11 @@ export function SourceSetup({ state, launch }: { state: AppSnapshot; launch?: So
     clearResource();
     setResourceType(type);
   }
+  useEffect(() => {
+    if (!websiteRequest || handledWebsite.current === websiteRequest) return;
+    handledWebsite.current = websiteRequest;
+    setView("website"); setOpen(true);
+  }, [websiteRequest]);
   useEffect(() => {
     if (activeSession.current === sessionKey) return;
     activeSession.current = sessionKey;

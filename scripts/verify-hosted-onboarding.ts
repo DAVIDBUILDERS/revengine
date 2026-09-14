@@ -25,15 +25,46 @@ try{
   check(`Account ${letter} without a workspace is routed from the dashboard to setup`);
   await page.getByLabel('Company name',{exact:true}).fill(`Hosted onboarding ${marker} ${letter}`);await page.getByRole('button',{name:'Continue',exact:true}).click();await page.getByRole('button',{name:'Create workspace',exact:true}).click();await page.waitForURL(/workspace=/,{timeout:30000});
   const workspaceId=new URL(page.url()).searchParams.get('workspace')!;userRecords.at(-1)!.workspaceId=workspaceId;writeFileSync('.env.hosted-test-actors.local',JSON.stringify(userRecords),{mode:0o600});
-  await expect(page.getByRole('heading',{name:'Your team',exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Connections',exact:true})).toBeVisible();
   check(`Authenticated ${letter} created a private workspace in the deployed app`);
-  await page.goto(origin+'/login');await page.getByLabel('Email address').fill(email);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).click();await page.waitForURL(u=>u.searchParams.get('workspace')===workspaceId,{timeout:60000});await expect(page.getByRole('heading',{name:'Your team',exact:true})).toBeVisible();check(`Returning account ${letter} opens its existing workspace`);
+  await page.goto(origin+'/login');await page.getByLabel('Email address').fill(email);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).click();await page.waitForURL(u=>u.searchParams.get('workspace')===workspaceId,{timeout:60000});await expect(page.getByRole('heading',{name:'Connections',exact:true})).toBeVisible();check(`Returning account ${letter} opens its existing workspace`);
  }
  const page=contexts[0].pages()[0];const a=userRecords[0].workspaceId!,b=userRecords[1].workspaceId!;
  const api=async(path:string,body?:unknown)=>{
   const r=await contexts[0].request.fetch(origin+path,{method:body?'POST':'GET',headers:{'x-vercel-protection-bypass':bypass,...(body?{'Origin':origin}: {})},...(body?{data:body}:{})});return {status:r.status(),body:await r.json()};
  };
  const denied=await api('/api/state?workspace='+b);expect(denied.status).toBe(403);check('Cross-workspace read denied');
+ if(process.argv.includes('--company-connections')){
+  const before=await api('/api/state?workspace='+a);
+  expect(before.body.onboarding.answers.team).toEqual([]);
+  expect(before.body.onboarding.configurationRevision).toBe(0);
+  await page.goto(`${origin}/?view=connections&workspace=${a}`);
+  await expect(page.getByText('32 specialist roles',{exact:true})).toBeVisible();
+  await page.getByText('Plan other systems',{exact:true}).click();
+  await page.locator('[data-system="advertising"]').getByRole('button',{name:'Manage system inventory'}).click();
+  await page.getByLabel('System or tool name').fill('Hosted test advertising inventory');
+  await page.getByLabel('Availability',{exact:true}).selectOption('admin_needed');
+  await page.getByRole('button',{name:'Save & request setup help'}).click();
+  await expect(page.getByText(/administrator help added to the operator setup queue/)).toBeVisible();
+  await page.reload();
+  const saved=await api('/api/state?workspace='+a);
+  expect(saved.body.onboarding.answers.systems[0].tool).toBe('Hosted test advertising inventory');
+  expect(saved.body.onboarding.tasks).toHaveLength(1);
+  expect(saved.body.connections).toHaveLength(0);
+  check('Company inventory and administrator queue persist without selecting agents or claiming account access');
+  const revision=saved.body.onboarding.configurationRevision;
+  const team=saved.body.catalog.filter((agent:{releaseStatus:string})=>agent.releaseStatus==='implemented').slice(0,5).map((agent:{id:string})=>agent.id);
+  const first=await api('/api/command?workspace='+a,{type:'save_onboarding',expectedRevision:saved.body.onboarding.revision,answers:{...saved.body.onboarding.answers,team}});
+  expect(first.status).toBe(200);expect(first.body.snapshot.onboarding.configurationRevision).toBe(revision);
+  const next=first.body.snapshot;
+  const alternate=next.catalog.find((agent:{id:string;releaseStatus:string})=>agent.releaseStatus==='implemented'&&!team.includes(agent.id)).id;
+  const swap=await api('/api/command?workspace='+a,{type:'save_onboarding',expectedRevision:next.onboarding.revision,answers:{...next.onboarding.answers,team:[alternate,...team.slice(1)]}});
+  expect(swap.status).toBe(200);expect(swap.body.snapshot.onboarding.configurationRevision).toBe(revision);
+  expect(swap.body.snapshot.workspace.paused).toBe(true);expect(swap.body.snapshot.onboarding.answers.systems).toEqual(saved.body.onboarding.answers.systems);
+  const other=await contexts[1].request.get(`${origin}/api/state?workspace=${b}`,{headers:{'x-vercel-protection-bypass':bypass}});
+  expect((await other.json()).onboarding.answers.systems).toEqual([]);
+  check('Selecting and swapping five preserves company configuration; second workspace stays independent');
+ }
  if(process.argv.includes('--capture-unconfigured')){const capture=await api('/api/context/capture',{workspaceId:a,url:'https://getdavid.ai'});expect(capture.status).toBe(503);expect(capture.body.error).toBe('FIRECRAWL_UNCONFIGURED');check('Missing Firecrawl credentials produce explicit setup error without fallback');}
  if(!routingOnly){
  await page.goto(origin+'/?view=activation&workspace='+a);
@@ -68,7 +99,7 @@ try{
    await page.goto(`${origin}/?view=${view}&workspace=${a}${view==='activation'?'&mode=profile':''}`);
    await expect(page.locator('.studio-app')).toBeVisible();
    await expect(page.locator('.page-heading h1, .studio-heading h1')).toBeVisible();
-   if(view==='connections')await expect(page.locator('.connections-network')).toHaveCSS('background-color','rgb(34, 41, 37)');
+   if(view==='connections')await expect(page.locator('.company-map-mission')).toHaveCSS('background-color','rgb(34, 44, 37)');
    await page.screenshot({path:`artifacts/hosted-studio-${view}-desktop.png`});
    await page.setViewportSize({width:390,height:844});
    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`${view} must fit a mobile viewport`).toBe(true);
