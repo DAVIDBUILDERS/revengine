@@ -13,7 +13,7 @@ select set_config('test.setup_answers', $answers${"company": {"name": "Example",
 select set_config('request.jwt.claims','{"sub":"e3000000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal1"}',true);
 set local role authenticated;
 
-select set_config('test.briefing', '{"version":1,"step":"goal","name":"Owner","goal":"demand","otherGoal":"","description":"","websiteInput":"","proposalSource":"","conversionAction":"","researchId":"e3000000-0000-4000-8000-000000000070","noWebsite":false,"reviewedFacts":"","task":"","finished":false}',true);
+select set_config('test.briefing', '{"version":1,"step":"goal","name":"Owner","goal":"demand","goals":["demand"],"otherGoal":"","description":"","websiteInput":"","proposalSource":"","conversionAction":"","researchId":"e3000000-0000-4000-8000-000000000070","noWebsite":false,"reviewedFacts":"","task":"","finished":false}',true);
 select set_config('test.answers',jsonb_set(jsonb_set(current_setting('test.setup_answers')::jsonb,'{briefing}',current_setting('test.briefing')::jsonb),'{operations,policyAcknowledged}','false')::text,true);
 select public.save_onboarding('e3000000-0000-4000-8000-000000000010',0,current_setting('test.answers')::jsonb);
 do $$ begin
@@ -26,6 +26,7 @@ do $$ begin
  begin perform public.save_briefing_capture('e3000000-0000-4000-8000-000000000010','e3000000-0000-4000-8000-000000000070','https://changed.invalid','e3000000-0000-4000-8000-000000000080','{}');raise exception 'FAIL changed URL accepted';exception when serialization_failure then null;end;
  begin perform public.save_briefing_capture('e3000000-0000-4000-8000-000000000011','e3000000-0000-4000-8000-000000000070','https://example.invalid','e3000000-0000-4000-8000-000000000080','{}');raise exception 'FAIL cross tenant capture';exception when insufficient_privilege then null;end;
  begin perform public.save_onboarding('e3000000-0000-4000-8000-000000000010',1,jsonb_set(current_setting('test.answers')::jsonb,'{briefing,step}','"activate"'));raise exception 'FAIL invalid flow step';exception when raise_exception then if sqlerrm like 'FAIL%' then raise;end if;end;
+ begin perform public.save_onboarding('e3000000-0000-4000-8000-000000000010',1,jsonb_set(current_setting('test.answers')::jsonb,'{briefing,goals}','["bogus"]'));raise exception 'FAIL invalid goals';exception when raise_exception then if sqlerrm like 'FAIL%' then raise;end if;end;
 end $$;
 -- Capture/confirmation binds current request, facts, and the selected business objective.
 select set_config('test.capture',jsonb_build_object('id','e3000000-0000-4000-8000-000000000080','workspaceId','e3000000-0000-4000-8000-000000000010','sourceHash',repeat('a',64),'context',jsonb_build_object('fixture',false,'confirmed',false,'companyName','Awaiting review','offers','[]'::jsonb,'customerTypes','[]'::jsonb,'locations','[]'::jsonb,'pages',jsonb_build_array(jsonb_build_object('url','https://example.invalid','title','Example','description','','text','Example offers Advisory for Owners','capturedAt',now())),'evidence',jsonb_build_array(jsonb_build_object('id','e3000000-0000-4000-8000-000000000081','label','Test capture','source','https://example.invalid','quality','unknown','capturedAt',now()))))::text,true);

@@ -71,27 +71,20 @@ try{
  await page.getByRole('button',{name:'Let’s begin'}).click();
  await page.getByLabel('Company website',{exact:true}).fill('https://example.com');await page.getByLabel('Company website',{exact:true}).press('Enter');
  await page.getByLabel('Your name',{exact:true}).fill('Hosted test owner');await page.getByRole('button',{name:'Continue',exact:false}).click();
- await page.getByRole('radio',{name:/Get more qualified leads/}).check();await page.getByRole('button',{name:'Continue',exact:false}).click();
+ await page.getByRole('checkbox',{name:/Get more qualified leads/}).check();await page.getByRole('button',{name:'Continue',exact:false}).click();
  await page.getByRole('button',{name:'Review what we found'}).waitFor({timeout:45000});await page.getByRole('button',{name:'Review what we found'}).click();
  await expect(page.getByRole('heading',{name:/What’s your main offer|Who do you help|Here’s what we learned/})).toBeVisible();
  if(await page.getByLabel('Main offer',{exact:true}).isVisible()){await page.getByLabel('Main offer',{exact:true}).fill('Implementation consulting');await page.getByRole('button',{name:'Continue',exact:false}).click();}
  await expect(page.getByRole('heading',{name:/Who do you help|Here’s what we learned/})).toBeVisible();
  if(await page.getByLabel('Ideal customers',{exact:true}).isVisible()){await page.getByLabel('Ideal customers',{exact:true}).fill('Business owners');await page.getByRole('button',{name:'Continue',exact:false}).click();}
- await page.getByRole('button',{name:'That’s right'}).click();await page.getByRole('button',{name:'Start with this task'}).click();await page.getByRole('button',{name:'Confirm this source'}).click();
+ await page.getByRole('button',{name:'That’s right'}).click();
+ await expect(page.getByRole('heading',{name:/We’ve saved what we learned/})).toBeVisible();
  check('Actual HTTPS capture supports a reviewed company summary; owner supplied missing facts');
- await expect(page.getByRole('heading',{name:/What’s a comfortable spending limit|Review this preparation permission/})).toBeVisible();
- if(await page.getByLabel('Daily model budget (USD)').isVisible()){
-  await page.getByLabel('Daily model budget (USD)').fill('0');await expect(page.getByText('Saved to this workspace',{exact:true})).toBeVisible();await page.reload();await expect(page.getByLabel('Daily model budget (USD)')).toHaveValue('0');
-  check('Autosaved answers and zero spending limit survive reload from Supabase');
-  await page.getByRole('button',{name:'Continue',exact:false}).click();
- }else{
-  await expect(page.getByText('Saved to this workspace',{exact:true})).toBeVisible();await page.reload();await expect(page.getByRole('heading',{name:'Review this preparation permission.'})).toBeVisible();
-  const saved=await api('/api/state?workspace='+a);expect(saved.body.onboarding.answers.briefing.task).toBe('technical-seo-monitor');
-  check('Model-free recommendation skips spending questions and resumes from Supabase');
- }
- await page.getByLabel(/I approve this internal preparation limit/).check();await page.getByRole('button',{name:'Approve this preparation setup'}).click();await expect(page.getByRole('heading',{name:'Your team',exact:true})).toBeVisible({timeout:60000});
- const state=await api('/api/state?workspace='+a);expect(state.status).toBe(200);expect(state.body.workspace.mode).toBe('shadow');expect(state.body.workspace.paused).toBe(true);expect(state.body.onboardingCapture.fixture).toBe(false);expect(state.body.onboarding.appliedRevision).toBe(state.body.onboarding.revision);
- check('Explicitly reviewed preparation setup applied with execution paused and spending disabled');
+ await expect(page.getByText('Saved to this workspace',{exact:true})).toBeVisible();await page.reload();await expect(page.getByRole('heading',{name:/We’ve saved what we learned/})).toBeVisible();
+ check('Finished briefing resumes from Supabase without a first-task permission');
+ await page.getByRole('button',{name:'Open my workspace'}).click();await expect(page.getByRole('heading',{name:'Your team',exact:true})).toBeVisible({timeout:60000});
+ const state=await api('/api/state?workspace='+a);expect(state.status).toBe(200);expect(state.body.workspace.mode).toBe('shadow');expect(state.body.workspace.paused).toBe(true);expect(state.body.onboardingCapture.fixture).toBe(false);expect(state.body.onboarding.answers.briefing.finished).toBe(true);
+ check('Reviewed briefing finished with execution paused');
  }
  if(process.argv.includes('--studio-pages')){
   await page.setViewportSize({width:1440,height:1000});

@@ -69,7 +69,7 @@ export type ScreenProps = {
   state: AppSnapshot;
   act: (command: Command) => Promise<CommandResult | undefined>;
   busy: boolean;
-  navigate: (page: PageId, focus?: { proposal?: string }) => void;
+  navigate: (page: PageId, focus?: { proposal?: string; agent?: string }) => void;
   inspect: (
     title: string,
     description: string,
@@ -233,7 +233,7 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
     window.addEventListener("popstate", sync);
     return () => window.removeEventListener("popstate", sync);
   }, []);
-  const navigate = (next: PageId, focus?: { proposal?: string }) => {
+  const navigate = (next: PageId, focus?: { proposal?: string; agent?: string }) => {
     setPage(next);
     setMenu(false);
     const query = new URLSearchParams(window.location.search);
@@ -242,7 +242,11 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
       query.delete("google");
       query.delete("connection");
     }
-    if (next !== "team") query.delete("team");
+    if (next !== "team") {
+      query.delete("team");
+      query.delete("agent");
+    } else if (focus?.agent) query.set("agent", focus.agent);
+    else query.delete("agent");
     if (next !== "opportunities") query.delete("import");
     query.delete("proposal");
     if (focus?.proposal) query.set("proposal", focus.proposal);
@@ -259,6 +263,7 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
     url.searchParams.delete("google");
     url.searchParams.delete("connection");
     url.searchParams.delete("team");
+    url.searchParams.delete("agent");
     url.searchParams.delete("import");
     window.location.assign(`${url.pathname}${url.search}`);
   };

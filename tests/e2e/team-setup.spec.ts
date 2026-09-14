@@ -12,5 +12,5 @@ test('team recommendation is visible and saved source setup opens company connec
  await page.getByRole('button',{name:'Sources & connections',exact:true}).click();
  await expect(page).toHaveURL(/view=connections/);
  await expect(page.getByRole('heading',{name:'Connections',exact:true})).toBeVisible();
- await expect(page.getByRole('heading',{name:/Let’s find a useful first step/})).toHaveCount(0);
+ await expect(page.getByRole('heading',{name:/Let’s get to know/})).toHaveCount(0);
 });

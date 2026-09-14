@@ -4,7 +4,9 @@ const list = z.preprocess(value => Array.isArray(value) ? value.map(v=>typeof v=
 export const Briefing = z.object({
  version:z.literal(1),
  step:z.enum(['welcome','website','description','name','goal','other-goal','research','company-name','offer','customers','summary','proposal-source','conversion-action','recommendation','access','budget','review','finish']),
- name:text.default(''), goal:z.enum(['','demand','conversion','recover','other']).default(''), otherGoal:text.default(''),
+ name:text.default(''), goal:z.enum(['','demand','conversion','recover','other']).default(''),
+ goals:z.array(z.enum(['demand','conversion','recover','other'])).max(4).refine(v=>new Set(v).size===v.length,'Select distinct directions').default([]),
+ otherGoal:text.default(''),
  description:text.default(''), websiteInput:text.default(''), proposalSource:text.default(''), conversionAction:text.default(''),
  researchId:z.union([z.literal(''),z.uuid()]).default(''), noWebsite:z.boolean().default(false),
  reviewedFacts:z.string().max(16000).default(''), task:z.string().max(100).default(''), finished:z.boolean().default(false),

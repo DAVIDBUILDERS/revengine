@@ -10,7 +10,9 @@ test("hosted workspace works without an operational API and survives refresh", a
   });
   await page.goto(origin);
   await expect(page.getByText("Browser demo.", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Open Account Intelligence workspace" }).click();
+  await page.getByRole("button", { name: "Open Account Intelligence work" }).click();
+  await expect(page.getByRole("region", { name: "Account Intelligence workbench" })).toBeVisible();
+  await page.getByRole("button", { name: "Access, limits & history" }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByRole("button", { name: "Run bounded preparation" }).click();
   await expect(dialog.locator(".prose")).toContainText("ILLUSTRATIVE FIXTURE");
@@ -19,7 +21,7 @@ test("hosted workspace works without an operational API and survives refresh", a
   await expect(dialog.getByRole("button", { name: "Workspace paused", exact: true })).toBeDisabled();
   await page.reload();
   await expect(page.getByRole("main").getByRole("heading", { level: 1 })).toBeVisible();
-  await page.getByRole("button", { name: "Open Account Intelligence workspace" }).click();
+  await page.getByRole("button", { name: "Access, limits & history" }).click();
   await dialog.getByRole("button", { name: "Rules & limits" }).click();
   await expect(dialog.getByRole("button", { name: "Workspace paused", exact: true })).toBeDisabled();
   await page.keyboard.press("Escape");
@@ -32,7 +34,8 @@ test("hosted workspace works without an operational API and survives refresh", a
   const other = await browser.newContext();
   const otherPage = await other.newPage();
   await otherPage.goto(origin);
-  await otherPage.getByRole("button", { name: "Open Account Intelligence workspace" }).click();
+  await otherPage.getByRole("button", { name: "Open Account Intelligence work" }).click();
+  await otherPage.getByRole("button", { name: "Access, limits & history" }).click();
   await otherPage.getByRole("dialog").getByRole("button", { name: "Rules & limits" }).click();
   await expect(otherPage.getByRole("dialog").getByRole("button", { name: "Pause workspace", exact: true })).toBeEnabled();
   await other.close();

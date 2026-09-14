@@ -11,6 +11,12 @@ describe('guided onboarding assistance',()=>{
   expect(result.every(r=>['name','offers','customers'].includes(r.field)&&r.url===capture.pages[0].url)).toBe(true);
   expect(result.some(r=>/send messages/.test(r.value))).toBe(false);
  });
+ it('strips markdown markers from extracted facts',()=>{
+  const result=suggestCompany({...capture,pages:[{...capture.pages[0],description:'We provide **operations consulting**.',text:'We offer **workshops**.'}]});
+  expect(result.some(r=>r.field==='offers'&&r.value==='operations consulting')).toBe(true);
+  expect(result.some(r=>r.field==='offers'&&r.value==='workshops')).toBe(true);
+  expect(result.every(r=>!r.value.includes('*'))).toBe(true);
+ });
  it('leaves absent facts unresolved and respects applicability/allowance',()=>{
   expect(suggestCompany({...capture,pages:[{...capture.pages[0],title:'',description:'',text:'Welcome to our website.'}]})).toEqual([]);
   expect(suggestTeam('Create qualified demand','home_services',2)).toHaveLength(2);

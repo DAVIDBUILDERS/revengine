@@ -41,7 +41,7 @@ export function configurationBoundary(state:AppSnapshot){const record=recordFor(
 /** Selection/history changes retain proof; material business/source/permission edits invalidate it. */
 export function onboardingConfiguration(answers:OnboardingAnswers){
  const b=answers.briefing;
- const briefing={goal:b?.goal??'',otherGoal:b?.otherGoal??'',proposalSource:b?.proposalSource??'',conversionAction:b?.conversionAction??'',researchId:b?.researchId??'',noWebsite:b?.noWebsite??false};
+ const briefing={goal:b?.goal??'',goals:b?.goals?.length?b.goals:(b?.goal?[b.goal]:[]),otherGoal:b?.otherGoal??'',proposalSource:b?.proposalSource??'',conversionAction:b?.conversionAction??'',researchId:b?.researchId??'',noWebsite:b?.noWebsite??false};
  return {company:answers.company,systems:answers.systems,operations:answers.operations,people:answers.people,briefing};
 }
 function hasOperation(connection:ConnectionCapability,operation:string){return connection.operations.includes(operation)&&(connection.provider!=='google'||(operationScopes[operation]??[]).some(scope=>connection.scopes.includes(scope)));}

@@ -1,30 +1,30 @@
 "use client";
 
 import { ArrowUpRight } from "lucide-react";
-import { briefingFor, briefingNextAction, goals, recommendedTask } from "@david/domain/briefing";
+import { briefingFor, briefingFinished, briefingNextAction, goalLabels, presentFacts } from "@david/domain/briefing";
 import { onboardingFor } from "@david/domain/onboarding";
 import type { ScreenProps } from "../app-shell";
 
 export function BriefingHandoff({ state, navigate }: ScreenProps) {
   const answers = onboardingFor(state).answers;
   const briefing = briefingFor(state);
-  const task = recommendedTask(state, briefing);
   if (!answers.briefing) return null;
+  const done = briefingFinished(answers);
 
   return (
-    <section className="today-handoff" aria-label="Your starting plan">
+    <section className="today-handoff" aria-label="Your business">
       <div className="today-handoff-plan">
-        <p className="eyebrow">Your starting plan</p>
-        <h2>{task?.title ?? "Continue your business briefing"}</h2>
-        <p>{briefing.goal === "other" ? briefing.otherGoal : goals.find((goal) => goal.id === briefing.goal)?.label}</p>
+        <p className="eyebrow">Your business</p>
+        <h2>{answers.company.name || "Continue your business briefing"}</h2>
+        <p>{goalLabels(briefing).join(" · ")}</p>
         <details>
           <summary>Business context</summary>
-          <p>{answers.company.offers.join(" · ")}{answers.company.customers.length ? ` for ${answers.company.customers.join(" · ")}` : ""}</p>
+          <p>{presentFacts(answers.company.offers).join(" · ")}{answers.company.customers.length ? ` for ${presentFacts(answers.company.customers).join(" · ")}` : ""}</p>
         </details>
       </div>
       <div className="today-handoff-action">
         <p>{briefingNextAction(state)}</p>
-        <button className="btn" onClick={() => navigate("activation")}>Continue my first task <ArrowUpRight size={14} /></button>
+        <button className="btn" onClick={() => navigate("activation")}>{done ? "Review your briefing" : "Continue your briefing"} <ArrowUpRight size={14} /></button>
       </div>
     </section>
   );

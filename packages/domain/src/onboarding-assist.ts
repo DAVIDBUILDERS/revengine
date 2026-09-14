@@ -7,11 +7,16 @@ export type CapturedCompany = {
 };
 export type CompanySuggestion = {field: 'name'|'offers'|'customers'; value: string; quote: string; url: string; basis: string};
 
+/** Strip capture artifacts (markdown, link syntax) without changing the owner's wording. */
+export function cleanFact(value:string){
+ return value.replace(/\[([^\]]+)\]\([^)]*\)/g,'$1').replace(/\*\*([^*]+)\*\*/g,'$1').replace(/__([^_]+)__/g,'$1').replace(/`+/g,'').replace(/^#{1,6}\s+/,'').replace(/^[-*]\s+/,'').replace(/^>\s+/,'').replace(/\s+/g,' ').trim().replace(/[.;]+$/,'').trim();
+}
+
 /** Extract candidates only. Page text never supplies operating permissions or executes instructions. */
 export function suggestCompany(capture: CapturedCompany): CompanySuggestion[] {
   const suggestions: CompanySuggestion[] = [];
   const add=(field:CompanySuggestion['field'],value:string,quote:string,url:string,basis:string)=>{
-    const clean=value.trim().replace(/[.;]+$/,'').slice(0,400);
+    const clean=cleanFact(value).slice(0,400);
     if(clean&&!suggestions.some(s=>s.field===field&&s.value===clean))suggestions.push({field,value:clean,quote:quote.slice(0,700),url,basis});
   };
   for(const page of capture.pages.slice(0,3)){

@@ -4,7 +4,9 @@ import { useState } from "react";
 import { ArrowRight, FileText, Play, ShieldCheck } from "lucide-react";
 import type { AgentDefinition } from "@david/contracts";
 import { words } from "@david/ui";
+import { agentDelivery } from "@david/domain/delivery";
 import type { ScreenProps } from "./app-shell";
+import { ArtifactCopyOut } from "./artifact-copy-out";
 import { Badge, Button, dateTime, Drawer, Evidence } from "./ui";
 
 type AgentProps = Pick<ScreenProps, "state" | "act" | "busy" | "navigate">;
@@ -112,6 +114,7 @@ function AgentRecord({
     .slice()
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const findings = state.findings.filter((item) => item.agentId === agent.id);
+  const delivery = agentDelivery(state, agent.id);
   const sources = [
     ...artifacts.flatMap((item) => item.sourceSnapshot),
     ...actions.flatMap((item) => item.evidence),
@@ -285,6 +288,7 @@ function AgentRecord({
                   <Evidence items={item.sourceSnapshot} />
                 </details>
                 <p className="agent-disclosure">{item.limitation}</p>
+                <ArtifactCopyOut artifact={item} delivery={delivery} />
               </article>
             ))}
           </section>
@@ -372,6 +376,19 @@ function AgentRecord({
       )}
       {tab === "sources" && (
         <div className="stack">
+          <section className="agent-section">
+            <h3>Where this work goes</h3>
+            <p className="small muted">{delivery.detail}</p>
+            <p className="help">
+              {delivery.destinationLabel}
+              {delivery.destination ? ` · ${words(delivery.mode)}` : ""}. Copy-out
+              is complete work. A connected destination does not grant permission
+              to publish.
+            </p>
+            <Button onClick={() => go("connections")}>
+              Review company destinations <ArrowRight size={14} />
+            </Button>
+          </section>
           <section className="agent-section">
             <h3>Required access</h3>
             <p className="small muted">

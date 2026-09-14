@@ -23,3 +23,25 @@ test('studio focuses on one agent, keeps configuration optional, and fits mobile
  await page.screenshot({path:'artifacts/team-builder-mobile.png',fullPage:false});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
+
+test('Today opens a specialist workbench and copy-out is available without a destination',async({page,context})=>{
+ await context.grantPermissions(['clipboard-read','clipboard-write']);
+ await page.goto('/?view=today');
+ const resume=page.getByRole('button',{name:'Check readiness & resume'});
+ if(await resume.isVisible())await resume.click();
+ await page.getByRole('button',{name:'Open Technical SEO Monitor work'}).click();
+ await expect(page).toHaveURL(/view=team/);
+ await expect(page).toHaveURL(/agent=technical-seo-monitor/);
+ await expect(page.getByRole('region',{name:'Technical SEO Monitor workbench'})).toBeVisible();
+ await expect(page.getByText('Copy these checks onto your site')).toBeVisible();
+ await page.getByRole('button',{name:'Prepare first draft'}).click();
+ await expect(page.locator('.studio-output h2')).toContainText('Captured-page technical check');
+ await expect(page.locator('.studio-output-content')).toContainText('ILLUSTRATIVE FIXTURE');
+ await expect(page.getByText(/DAVID does not change your website/)).toBeVisible();
+ await page.getByRole('button',{name:'Copy',exact:true}).click();
+ await expect(page.getByRole('status').filter({hasText:'Copied to clipboard'})).toBeVisible();
+ const [download]=await Promise.all([page.waitForEvent('download'),page.getByRole('button',{name:'Download'}).click()]);
+ expect(download.suggestedFilename()).toMatch(/\.md$/);
+ await page.setViewportSize({width:390,height:844});
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});

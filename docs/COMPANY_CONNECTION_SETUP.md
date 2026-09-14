@@ -45,3 +45,14 @@ Final local checks: 251 unit tests, all 46 browser scenarios (one stale CSS sele
 - Production: `revengine-production-nm0c443ky-davidai.vercel.app`, deployment `2Qayj3ymj2ZyHfHHibyoEbMrcwYA`, aliased to `https://revengine.getdavid.ai`.
 - Vercel deployment file comparison confirms all 254 uploaded application/source files match between test and production; documentation and environment-specific build outputs are excluded. Evidence: `artifacts/company-deployment-parity.json`.
 - Production smoke checks: login/start render, unauthenticated workspace access is rejected, auth callback returns to the canonical domain, and malformed login is rejected by validation. No real customer agent was activated or external message sent during release.
+
+## Delivery modes and future connection fabric
+
+Specialists always produce reviewed work. Destinations are optional. When commerce, social, advertising or a CMS write is missing, the client copies or downloads the artifact. That is complete delivery, not a blocker. Connected publish is a later upgrade through the existing approval and action-service path.
+
+Do not add Shopify, Meta, MCP or a third-party aggregator to `ConnectionCapability.provider` until a live integration ships. Copy-out reads already-loaded artifact text in the browser; it does not mint tokens or call a provider.
+
+**Phase 2 (not in this slice):** Nango as auth and proxy behind the action service, mirroring the Google PKCE + Vault pattern. Use Nango’s pre-provisioned OAuth apps so customers can connect before DAVID finishes first-party Shopify, Meta, Google Ads and Search Console review. Swap those shared client IDs for DAVID’s own credentials later without changing product UX. Nango is not an MCP tool surface for the model. Model output still cannot select tools or perform writes.
+
+**Phase 3:** first connected write (for example a reviewed Search Growth artifact as a Shopify article) as a new action type with the same payload hash and approval gates as follow-up. Receipts remain provider-accepted until a read-back check exists.
+

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ArrowRight, ArrowUpRight, FileText, Pause, Play, ShieldCheck } from "lucide-react";
 import type { AgentDefinition, Metric } from "@david/contracts";
 import { money, words } from "@david/ui";
+import { specialistWorkSnapshot } from "@david/domain/delivery";
 import { PageHeading, type ScreenProps } from "./app-shell";
 import { activeApprovals } from "./approval-state";
 import { AgentWorkspace } from "./agent-workspace";
@@ -293,15 +294,21 @@ export function Today(props: ScreenProps & { showBrief: () => Promise<void> }) {
             {state.installations.map((installation, index) => {
               const specialist = state.catalog.find((item) => item.id === installation.agentId);
               if (!specialist) return null;
-              const outputCount = state.artifacts.filter((item) => item.agentId === specialist.id).length;
-              const actionCount = state.actions.filter((item) => item.installationId === installation.id).length;
+              const work = specialistWorkSnapshot(state, specialist.id);
+              const max = Math.max(1, ...work.counts);
               return (
-                <button key={installation.id} className="today-specialist" onClick={() => setAgent(specialist)} aria-label={`Open ${specialist.name} workspace`}>
+                <button key={installation.id} className="today-specialist" onClick={() => navigate("team", { agent: specialist.id })} aria-label={`Open ${specialist.name} work`}>
                   <span className="today-specialist-top"><span className="today-kicker">{String(index + 1).padStart(2, "0")} / {words(installation.mode)}</span><ArrowUpRight size={16} /></span>
                   <strong>{specialist.name}</strong>
                   <span className="today-specialist-status">{state.workspace.paused ? "Workspace paused" : words(installation.status)}</span>
-                  <span className="today-specialist-detail">{installation.blockers[0] ?? (outputCount || actionCount ? `${outputCount} saved outputs · ${actionCount} action records` : "Awaiting its first piece of work")}</span>
-                  <span className="today-specialist-footer">Work, sources & limits <ArrowRight size={14} /></span>
+                  <svg className="today-spark" viewBox="0 0 36 18" aria-hidden="true">
+                    {work.counts.map((value, bar) => {
+                      const height = Math.max(2, (value / max) * 16);
+                      return <rect key={bar} x={bar * 12 + 2} y={18 - height} width="8" height={height} rx="1" />;
+                    })}
+                  </svg>
+                  <span className="today-specialist-detail">{installation.blockers[0] ?? (work.latestTitle ? work.latestTitle : work.artifacts || work.actions ? `${work.artifacts} saved outputs · ${work.actions} action records` : "Awaiting its first piece of work")}</span>
+                  <span className="today-specialist-footer">{work.delivery.cardLabel} <ArrowRight size={14} /></span>
                 </button>
               );
             })}

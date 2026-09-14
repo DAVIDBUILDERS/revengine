@@ -68,9 +68,15 @@ test("agent workspace exposes recorded outputs, sources, limits and working paus
 }) => {
   await page.goto("/?view=today");
   const opener = page.getByRole("button", {
-    name: "Open Account Intelligence workspace",
+    name: "Open Account Intelligence work",
   });
   await opener.click();
+  await expect(page).toHaveURL(/view=team/);
+  await expect(page).toHaveURL(/agent=account-intelligence/);
+  await expect(
+    page.getByRole("region", { name: "Account Intelligence workbench" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Access, limits & history" }).click();
   const dialog = page.getByRole("dialog");
   await expect(
     dialog.getByText("None verified", { exact: true }),
@@ -87,6 +93,9 @@ test("agent workspace exposes recorded outputs, sources, limits and working paus
   ).toBeVisible();
   await expect(
     dialog.getByText("fixture-website", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    dialog.getByRole("heading", { name: "Where this work goes" }),
   ).toBeVisible();
   await dialog.getByRole("button", { name: "Rules & limits" }).click();
   await expect(
@@ -105,8 +114,9 @@ test("agent workspace exposes recorded outputs, sources, limits and working paus
   await expect(
     dialog.getByRole("button", { name: "Run bounded preparation" }),
   ).toBeDisabled();
+  await expect(dialog.getByRole("button", { name: "Copy", exact: true })).toBeVisible();
   await page.keyboard.press("Escape");
-  await expect(opener).toBeFocused();
+  await page.getByRole("link", { name: "Today", exact: true }).click();
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(
     page
