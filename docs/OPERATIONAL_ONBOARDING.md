@@ -86,3 +86,23 @@ Test deployment `8dEJiTso8BxZGHb9S9Nz48d449PT` (`revengine-test-egvloea28-davida
 Production deployment `EmpRUCZB7LMJ582bvAs8QiQUeJcY` (`revengine-production-f503juy28-davidai.vercel.app`) is READY and aliased to https://revengine-production.vercel.app. Production `/login` and `/start` return 200; unauthenticated workspace/state/cron APIs return 401. The production alias serves the new conversational briefing bundle. [Production evidence](evidence/conversational-production-20260912.json).
 
 The deployed application code matches the merged release. The follow-up harness and evidence changes affect verification/documentation only. No production test user or company was created, and no outbound messages were sent. Model, Google and SMTP limitations documented above remain; these checks do not establish provider execution or email delivery.
+
+## External tester email setup — September 12
+
+Live Auth configuration was rechecked: both projects enable email signup and require email confirmation, but neither has an SMTP host or sender address configured. No email-provider credentials were found in this repository's recorded runtime configuration or current shell. The available Resend browser session is signed out. No Auth configuration was changed and no test email was sent.
+
+Remaining input: the chosen transactional-email account and a sender domain controlled by the owner. Configure its verified sender and SMTP credentials in Supabase Auth (not client code), preserving confirmation and secure email changes. For Resend use its documented Supabase SMTP settings after domain verification. Verify delivery to an explicitly authorized tester address and follow the received confirmation link through private company creation before declaring external signup ready.
+
+References: https://supabase.com/docs/guides/auth/auth-smtp and https://resend.com/docs/send-with-supabase-smtp.
+
+## SMTP connected — September 12
+
+The owner supplied a Resend sending credential for signup setup. SMTP authentication succeeded against smtp.resend.com:465 using verified TLS. Both Supabase projects now use that SMTP service with sender DAVID Engine <noreply@engine.getdavid.ai>. Management API readback confirmed the configuration and that email confirmation remains required. No key is recorded in this document or repository files.
+
+Delivery remains unverified: SMTP login does not prove Resend domain verification or recipient delivery. Next, use an explicitly authorized recipient to test signup, receipt, confirmation callback and workspace creation. No email was sent in this configuration step.
+
+## Custom production domain — September 12
+
+Canonical production origin is now https://revengine.getdavid.ai. Vercel domain verification and DNS were confirmed. Production APP_ORIGIN and Supabase Auth site_url were updated; exact /auth/callback and /auth/callback?next=/account redirects were added while retaining the earlier Vercel callbacks for existing emails. Test configuration is unchanged.
+
+Existing production deployment CDvmj8f8QNQ1GYBCpntii3Dp5p1h was rebuilt with updated environment settings as GhvP4ECUK1G3nCCGwcmwwYmdrSoK (READY), preserving application source. The new domain is assigned to that deployment. HTTPS login/start return 200, unauthenticated workspace access returns 401, empty authentication callback redirects to the new domain login, and a login request from the new origin reaches validation instead of origin denial. These checks do not constitute a completed email-confirmation signup. Users should start at the new domain and sign in again because browser sessions are host-specific. Google OAuth remains unconfigured.
