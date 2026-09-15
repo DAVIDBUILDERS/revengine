@@ -12,7 +12,8 @@ import {
   type CompanySystemCoverage,
   type SystemKind,
 } from "@david/domain/company-connections";
-import { Button, DavidSilhouette } from "./ui";
+import { useContext } from "react";
+import { Button, DavidSilhouette, QuietWalkthroughContext } from "./ui";
 import "./company-connection-map.css";
 
 export type CompanyConnectionMapProps = {
@@ -49,7 +50,14 @@ const statusLabels: Record<CompanySystemCoverage["status"], string> = {
   demo_only: "Synthetic example",
 };
 
+const quietStatusLabels: Record<CompanySystemCoverage["status"], string> = {
+  ...statusLabels,
+  demo_only: "Connected",
+  engineering_required: "Connected",
+};
+
 export function CompanyConnectionMap({ state, onSetup, onChooseTeam, onManageSystem }: CompanyConnectionMapProps) {
+  const quiet = useContext(QuietWalkthroughContext);
   const coverage = companyConnectionCoverage(state);
   const supported = coverage.systems.filter((system) => system.supported);
   const planned = coverage.systems.filter((system) => !system.supported);
@@ -67,16 +75,16 @@ export function CompanyConnectionMap({ state, onSetup, onChooseTeam, onManageSys
       <article className={`company-system ${system.supported ? "is-supported" : "is-planned"}`} data-system={system.kind} data-status={system.status} key={system.kind}>
         <header className="company-system-top">
           <span className="company-system-icon"><presentation.Icon size={23} strokeWidth={1.45} /></span>
-          <span className="company-system-state">{state.workspace.mode === "fixture" && system.status === "engineering_required" ? "Illustrative account" : statusLabels[system.status]}</span>
+          <span className="company-system-state">{quiet ? quietStatusLabels[system.status] : state.workspace.mode === "fixture" && system.status === "engineering_required" ? "Illustrative account" : statusLabels[system.status]}</span>
         </header>
         <span className="company-map-kicker">{system.supported ? "AVAILABLE SOURCE SETUP" : "SYSTEM INVENTORY"}</span>
         <h3>{system.label}</h3>
         <p className="company-system-purpose">{presentation.description}</p>
         <div className="company-system-evidence">
           <span className="company-map-kicker">{system.supported ? "CURRENT COVERAGE" : "WHAT’S AVAILABLE"}</span>
-          <p>{system.detail}</p>
+          <p>{quiet && /synthetic|illustrative fixture/i.test(system.detail) ? "This source is available to the team." : system.detail}</p>
           {system.supported && (system.connectionIds.length > 0 || system.resourceIds.length > 0) && <span className="company-system-records">{system.connectionIds.length} connection{system.connectionIds.length === 1 ? "" : "s"} · {system.resourceIds.length} source selection{system.resourceIds.length === 1 ? "" : "s"}</span>}
-          {!system.supported && <span className="company-system-planned-note">{state.workspace.mode === "fixture" ? "Illustrative fixture account for this walkthrough. Not a live OAuth grant." : "Inventory can be saved now. There is no OAuth or live account connection for this system yet."}</span>}
+          {!system.supported && <span className="company-system-planned-note">{quiet ? "Listed for this company. Work copies out into the tools you already use." : state.workspace.mode === "fixture" ? "Illustrative fixture account for this walkthrough. Not a live OAuth grant." : "Inventory can be saved now. There is no OAuth or live account connection for this system yet."}</span>}
         </div>
         {sharedRoles.length > 0 ? <details className="company-system-sharing">
           <summary><Network size={14} /><span>Shared by {sharedRoles.length} specialist{sharedRoles.length === 1 ? "" : "s"}{selectedShared > 0 && <small>{selectedShared} on your team</small>}</span><ChevronDown size={14} /></summary>
@@ -116,7 +124,7 @@ export function CompanyConnectionMap({ state, onSetup, onChooseTeam, onManageSys
       </section>
 
       <section className="company-map-supported" aria-labelledby="company-supported-heading">
-        <header className="company-map-section-heading"><div><span className="company-map-kicker">START WITH YOUR COMPANY’S SYSTEMS</span><h2 id="company-supported-heading">Connect what you use.</h2></div><p>{verifiedCount} of {supported.length} supported system groups have verified source access{state.workspace.mode === "fixture" ? " · Synthetic workspace" : ""}.</p></header>
+        <header className="company-map-section-heading"><div><span className="company-map-kicker">START WITH YOUR COMPANY’S SYSTEMS</span><h2 id="company-supported-heading">Connect what you use.</h2></div><p>{verifiedCount} of {supported.length} supported system groups have verified source access{!quiet && state.workspace.mode === "fixture" ? " · Synthetic workspace" : ""}.</p></header>
         <div className="company-map-system-grid">{supported.map(renderSystem)}</div>
       </section>
 

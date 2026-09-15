@@ -26,19 +26,19 @@ test('studio focuses on one agent, keeps configuration optional, and fits mobile
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
 
-test('Today opens a specialist workbench and copy-out is available without a destination',async({page,context})=>{
+test('Dashboard opens a specialist tab and copy-out is available without a destination',async({page,context})=>{
  await context.grantPermissions(['clipboard-read','clipboard-write']);
  await page.goto('/?view=today');
  const resume=page.getByRole('button',{name:'Check readiness & resume'});
  if(await resume.isVisible())await resume.click();
- await page.getByRole('button',{name:'Open Search Growth work'}).click();
- await expect(page).toHaveURL(/view=team/);
+ await page.getByRole('tab',{name:'Search Growth'}).click();
+ await expect(page).toHaveURL(/view=today/);
  await expect(page).toHaveURL(/agent=search-growth/);
  await expect(page.getByRole('button',{name:'Record needed systems'})).toBeVisible();
  await expect(page.getByRole('button',{name:'Connect sources'})).toHaveCount(0);
- await page.getByRole('button',{name:/Technical SEO Monitor/}).first().click();
+ await page.getByRole('tab',{name:'Technical SEO Monitor'}).click();
  await expect(page).toHaveURL(/agent=technical-seo-monitor/);
- await expect(page.getByRole('region',{name:'Technical SEO Monitor workbench'})).toBeVisible();
+ await expect(page.getByRole('region',{name:'Technical SEO Monitor dashboard'})).toBeVisible();
  await expect(page.getByText('Copy these checks onto your site')).toBeVisible();
  await expect(page.getByRole('button',{name:'Company sources'})).toBeVisible();
  await page.getByRole('button',{name:'Prepare first draft'}).click();

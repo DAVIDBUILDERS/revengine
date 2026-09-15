@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { ArrowRight, FileText, Play, ShieldCheck } from "lucide-react";
 import type { AgentDefinition } from "@david/contracts";
 import { words } from "@david/ui";
 import { agentDelivery } from "@david/domain/delivery";
 import type { ScreenProps } from "./app-shell";
 import { ArtifactCopyOut } from "./artifact-copy-out";
-import { Badge, Button, dateTime, Drawer, Evidence } from "./ui";
+import { Badge, Button, dateTime, Drawer, Evidence, QuietWalkthroughContext } from "./ui";
 
 type AgentProps = Pick<ScreenProps, "state" | "act" | "busy" | "navigate">;
 
@@ -101,6 +101,7 @@ function AgentRecord({
   navigate,
   onClose,
 }: AgentProps & { agent: AgentDefinition; onClose: () => void }) {
+  const quiet = useContext(QuietWalkthroughContext);
   const [tab, setTab] = useState<"work" | "sources" | "rules">("work");
   const installation = state.installations.find(
     (item) => item.agentId === agent.id,
@@ -145,7 +146,7 @@ function AgentRecord({
           Definition {installation?.definitionVersion ?? agent.version}
         </span>
       </div>
-      {state.workspace.mode === "fixture" && (
+      {state.workspace.mode === "fixture" && !quiet && (
         <p className="agent-disclosure">
           Synthetic workspace. Preparation uses fixtures; action records do not
           represent real messages or bookings.

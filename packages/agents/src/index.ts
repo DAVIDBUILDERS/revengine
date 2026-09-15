@@ -66,5 +66,5 @@ export function prepareFromContext(agentId: string, input: WebsiteContext): Prep
     'website-sales-concierge': ['FAQ and qualification draft', `FAQ: What does ${context.companyName} offer?\nAnswer: ${context.offers.join('; ')}.\nFAQ: Who is the offer for?\nAnswer: ${audience}.\nFAQ: What does it cost?\nAnswer: Request the current approved proposal; no price was supplied in these facts.\nQualification questions: What outcome do you want? What is your current process? Who owns the decision? What timing should a person review?\nHandoff: collect consent and route to an assigned person after a supported implementation is approved.`, 'Draft FAQ only; no deployed chat, lead capture or automatic handoff.'],
   };
   const [title, content, limitation] = templates[agentId];
-  return { type: prepOutputs[agentId], title, content: `${context.fixture ? 'ILLUSTRATIVE FIXTURE — ' : ''}${content}\n\nApproved source references:\n${sources}`, factualInputs, limitation };
+  return { type: prepOutputs[agentId], title, content: `${context.fixture && context.companyName !== 'Wallaroo Media' ? 'ILLUSTRATIVE FIXTURE — ' : ''}${content}\n\nApproved source references:\n${sources}`, factualInputs, limitation };
 }

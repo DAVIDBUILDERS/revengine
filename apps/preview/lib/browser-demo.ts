@@ -18,17 +18,17 @@ export function createBrowserDemo(storage: () => Storage): WorkspaceDataSource {
   }
   function keyFor(workspace: string | null) {
     const key = workspace ?? DEFAULT_PREVIEW_WORKSPACE;
-    if (!isFixtureWorkspace(key)) throw new Error("Unknown demo workspace. Open the home page without a workspace parameter.");
+    if (!isFixtureWorkspace(key)) throw new Error("Unknown workspace. Open the home page without a workspace parameter.");
     return key;
   }
   async function session(key: string) {
     const existing = sessions.get(key);
     if (existing) return existing;
     const raw = storage().getItem(prefix + key);
-    if (raw && raw.length > maxBytes) throw new Error("Demo history is too large. Clear this site's session storage to restart.");
+    if (raw && raw.length > maxBytes) throw new Error("Workspace history is too large. Clear this site's session storage to restart.");
     let commands: Command[];
     try { commands = raw ? Journal.parse(JSON.parse(raw)).commands : []; }
-    catch { throw new Error("Demo history could not be validated. Clear this site's session storage to restart."); }
+    catch { throw new Error("Workspace history could not be validated. Clear this site's session storage to restart."); }
     const state = createFixtureState(key);
     for (const command of commands) await executeCommand(state, command);
     const result = { state, commands };
@@ -51,9 +51,9 @@ export function createBrowserDemo(storage: () => Storage): WorkspaceDataSource {
         const result = await executeCommand(candidate, command);
         if (command.type === "import_csv" && command.preview) return result;
         const commands = command.type === "reset" ? [] : [...current.commands, command];
-        if (commands.length > 300) throw new Error("Demo history is full. Reset this workspace in the operator console to continue.");
+        if (commands.length > 300) throw new Error("Workspace history is full. Refresh this page to start again.");
         const encoded = JSON.stringify({ version: 1, commands });
-        if (encoded.length > maxBytes) throw new Error("Demo storage limit reached. Reset this workspace before adding more sample data.");
+        if (encoded.length > maxBytes) throw new Error("Workspace storage limit reached. Refresh this page before adding more work.");
         try { storage().setItem(prefix + key, encoded); }
         catch { throw new Error("This change was not saved: browser session storage is unavailable or full."); }
         sessions.set(key, { state: candidate, commands });

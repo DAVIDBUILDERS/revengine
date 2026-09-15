@@ -1,16 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useContext, useState } from "react";
 import type { OnboardingAnswers } from "@david/contracts";
 import { onboardingFor } from "@david/domain/onboarding";
 import { companySystemDefinitions, type SystemKind } from "@david/domain/company-connections";
 import type { ScreenProps } from "./app-shell";
-import { Button, Drawer } from "./ui";
+import { Button, Drawer, QuietWalkthroughContext } from "./ui";
 
 type System = OnboardingAnswers["systems"][number];
 
 /** Inventory records explain setup work; they never stand in for provider access. */
 export function CompanySystemDetails({ state, act, busy, kind, onClose }: Pick<ScreenProps, "state" | "act" | "busy"> & { kind: SystemKind; onClose: () => void }) {
+  const quiet = useContext(QuietWalkthroughContext);
   const record = onboardingFor(state);
   const definition = companySystemDefinitions.find(system => system.kind === kind)!;
   const saved = record.answers.systems.filter(system => system.kind === kind);
@@ -45,7 +46,7 @@ export function CompanySystemDetails({ state, act, busy, kind, onClose }: Pick<S
       <details className="connections-setup-details"><summary>Resource details (optional)</summary><div className="stack"><label>Account, folder or resource<input value={draft.resource} maxLength={4000} onChange={event => patch({ resource: event.target.value })} /></label><label>Field mapping or setup notes<textarea value={draft.mapping} maxLength={1500} onChange={event => patch({ mapping: event.target.value })} /></label></div></details>
       {conflict && <div className="notice notice-warning" role="status"><p>The company setup changed while this was open. Reload the saved details before editing further.</p><Button onClick={() => load(draft.id)}>Reload saved details</Button></div>}
       {!canEdit && <p className="notice">A workspace owner or assigned operator can edit company systems.</p>}
-      {state.workspace.mode === "fixture" && <p className="help">Synthetic workspace. Changes affect this demonstration only.</p>}
+      {state.workspace.mode === "fixture" && !quiet && <p className="help">Synthetic workspace. Changes affect this demonstration only.</p>}
       {message && <p className="notice" role="status">{message}</p>}
       <Button variant="primary" disabled={!canEdit || busy || conflict || !draft.owner.trim() || (!saved.some(system => system.id === draft.id) && record.answers.systems.length >= 40)} onClick={() => void save()}>{busy ? "Saving…" : draft.availability === "admin_needed" ? "Save & request setup help" : "Save company system"}</Button>
     </div>

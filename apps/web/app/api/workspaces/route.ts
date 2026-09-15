@@ -12,9 +12,9 @@ export async function GET() {
       return json({
         mode: "fixture",
         workspaces: [
-          { id: "david", name: "DAVID AI · illustrative workspace" },
-          { id: "northstar", name: "northstar · illustrative workspace" },
-          { id: "wallaroo", name: "Wallaroo Media · illustrative workspace" },
+          { id: "david", name: "DAVID AI" },
+          { id: "northstar", name: "Northstar" },
+          { id: "wallaroo", name: "Wallaroo Media" },
         ],
         limited: false,
       });

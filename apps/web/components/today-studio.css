@@ -1,4 +1,4 @@
-/* Today shares the team studio's quiet work surface. Every status comes from saved records. */
+/* Dashboard: overview of work already done, plus a tab per active specialist. */
 .today-studio.today-page {
   max-width: 1500px;
   margin: 0 auto;
@@ -127,6 +127,129 @@
 @media (prefers-reduced-motion: reduce) {
   .today-studio .today-specialist { transition: none; }
   .today-studio .today-specialist:hover { transform: none; }
+}
+
+.dashboard-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  margin: -6px 0 4px;
+  scrollbar-width: thin;
+}
+.dashboard-tabs > button {
+  flex: 0 0 auto;
+  border: 1px solid #d8ddd0;
+  background: #f6f7f1;
+  color: #4f564c;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 550;
+  white-space: nowrap;
+}
+.dashboard-tabs > button[aria-selected="true"] {
+  background: #222925;
+  border-color: #222925;
+  color: #f3f5ec;
+}
+.dashboard-story {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 28px;
+  padding: 30px 32px;
+  background: #222925;
+  color: #f2f3eb;
+  border-radius: 20px;
+}
+.dashboard-story .today-kicker { color: #b7c0b2; }
+.dashboard-story h2 {
+  font: 500 clamp(26px, 2.8vw, 38px)/1.15 Georgia, serif;
+  letter-spacing: -.5px;
+  margin: 10px 0 12px;
+}
+.dashboard-story p { color: #c4ccbe; font-size: 14px; line-height: 1.7; margin: 0; max-width: 720px; }
+.dashboard-story-count { display: flex; align-items: center; gap: 14px; flex-shrink: 0; margin: 0; }
+.dashboard-story-count > strong { font: 400 56px/1 Georgia, serif; color: #dde5cd; letter-spacing: -2px; }
+.dashboard-story-count span { font-size: 12px; line-height: 1.7; color: #c5cdbb; }
+.dashboard-story-count small { display: block; font-size: 10px; color: #aeb8a6; }
+.dashboard-chart-card {
+  border: 1px solid #e1e3dc;
+  border-radius: 16px;
+  padding: 24px;
+  background: #fff;
+}
+.dashboard-chart { margin: 0; }
+.dashboard-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 12px;
+  font-size: 11px;
+  color: #66705f;
+}
+.dashboard-chart-legend i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+.dashboard-chart svg { width: 100%; height: auto; display: block; }
+.dashboard-chart-grid { stroke: #eceee6; stroke-width: 1; }
+.dashboard-chart-axis { stroke: #b7bdae; stroke-width: 1.2; }
+.dashboard-chart-tick, .dashboard-chart-x, .dashboard-chart-axis-label {
+  fill: #6d7466;
+  font-size: 11px;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+.dashboard-chart-axis-label { font-size: 10px; letter-spacing: .4px; }
+.dashboard-chart-points {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+  margin-top: 16px;
+}
+.dashboard-chart-points > button {
+  text-align: left;
+  border: 1px solid #e2e5db;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #f7f8f2;
+  color: #2b322a;
+}
+.dashboard-chart-points strong { display: block; font-size: 13px; margin-bottom: 4px; }
+.dashboard-chart-points span { font-size: 11px; color: #6a7264; }
+.dashboard-agent {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  border: 1px solid #dfe3d7;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #f3f4ee;
+  min-height: 420px;
+}
+.dashboard-agent-brief { padding: 28px 24px; }
+.dashboard-agent-brief h2 { font: 400 30px/1.12 Georgia, serif; margin: 12px 0; }
+.dashboard-agent-brief > p { font-size: 13px; line-height: 1.7; color: #5f675f; }
+.dashboard-agent-counts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0;
+  margin: 18px 0;
+  list-style: none;
+}
+.dashboard-agent-counts li { background: #e7ebde; border-radius: 10px; padding: 10px 8px; font-size: 10px; color: #66705f; }
+.dashboard-agent-counts strong { display: block; font: 400 22px/1 Georgia, serif; color: #243024; margin-bottom: 4px; }
+.dashboard-agent-work { background: #fff; padding: 28px; min-width: 0; }
+.dashboard-pending { margin-bottom: 22px; border: 1px solid #e2e5d9; border-radius: 14px; padding: 22px; }
+@media (max-width: 760px) {
+  .dashboard-story { flex-direction: column; align-items: flex-start; padding: 24px; }
+  .dashboard-agent { grid-template-columns: 1fr; }
+  .dashboard-tabs > button { font-size: 11px; padding: 8px 12px; }
 }
 
 .today-handoff { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 25px; padding: 24px 28px; margin-bottom: 28px; border: 1px solid #dbe2cf; border-radius: 16px; background: #f0f3e9; color: #273025; }

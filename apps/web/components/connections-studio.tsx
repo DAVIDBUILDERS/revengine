@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import {
   AlertCircle, ArrowRight, ArrowUpRight, Calendar, Check, CheckCircle2,
   FileSpreadsheet, FileText, Globe, LockKeyhole, Mail, Plus, ShieldCheck,
@@ -8,7 +8,7 @@ import {
 import type { ConnectionCapability } from "@david/contracts";
 import { words } from "@david/ui";
 import type { ScreenProps } from "./app-shell";
-import { Badge, Button, dateTime, Drawer } from "./ui";
+import { Badge, Button, dateTime, Drawer, QuietWalkthroughContext } from "./ui";
 import { SourceSetup, supportsResource } from "./source-setup";
 import { CompanyConnectionMap } from "./company-connection-map";
 import { CompanySystemDetails } from "./company-system-details";
@@ -59,7 +59,17 @@ function isStale(connection: ConnectionCapability, asOf: string) {
   return (connection.health === "healthy" || connection.health === "fixture") && !!connection.lastSyncAt && Date.parse(asOf) - Date.parse(connection.lastSyncAt) > connection.freshnessSeconds * 1000;
 }
 
+function connectionHealth(health: ConnectionCapability["health"], quiet: boolean) {
+  return quiet && health === "fixture" ? "healthy" : health;
+}
+
+function connectionProvider(provider: ConnectionCapability["provider"], quiet: boolean) {
+  if (quiet && provider === "fixture") return "Connected";
+  return words(provider);
+}
+
 export function ConnectionsStudio({ state, navigate, act, busy }: ScreenProps) {
+  const quiet = useContext(QuietWalkthroughContext);
   const [selected, setSelected] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [connectionMessage, setConnectionMessage] = useState("");
@@ -291,8 +301,8 @@ export function ConnectionsStudio({ state, navigate, act, busy }: ScreenProps) {
             const Icon = connectionIcon(item);
             const stale = isStale(item, state.asOf);
             return <article className="connections-account" key={item.id}>
-              <div className="connections-account-top"><span className="connections-provider-icon"><Icon size={21} /></span><Badge status={stale ? "stale" : item.health} /></div>
-              <p className="studio-kicker">{words(item.provider)} / SOURCE</p>
+              <div className="connections-account-top"><span className="connections-provider-icon"><Icon size={21} /></span><Badge status={stale ? "stale" : connectionHealth(item.health, quiet)} /></div>
+              <p className="studio-kicker">{connectionProvider(item.provider, quiet)} / SOURCE</p>
               <h3>{item.identity}</h3><p className="connections-resource">{item.resource}</p>
               <div className="connections-operation-list">{item.operations.map((operation) => <span key={operation}>{words(operation)}</span>)}</div>
               <div className="connections-account-bottom"><div><span>Source owner</span><strong>{item.owner || "Not assigned"}</strong></div><Button className="btn-small" onClick={() => { setSelected(item.id); setConnectionMessage(""); }}>Inspect <ArrowUpRight size={13} /></Button></div>
@@ -312,7 +322,7 @@ export function ConnectionsStudio({ state, navigate, act, busy }: ScreenProps) {
               <span className="connections-capability-check" aria-hidden="true">{scopes.includes(id) ? <Check size={12} /> : <Plus size={12} />}</span><Icon size={22} /><strong>{label}</strong><span>{description}</span>
             </label>)}
           </fieldset>
-          <p className="connections-consent-note"><LockKeyhole size={15} /><span>{fixture ? "Google authorization is disabled in fixture mode. Configure a hosted nonproduction project and authenticated operator before connecting a real account." : !canConfigure ? "A workspace owner or assigned DAVID operator must authorize connections. You can still inspect the access granted to this workspace." : "Sheets uses drive.file for selected files; Calendar supports owned calendars. Gmail reply reading requests mailbox-wide restricted access, even though DAVID processes only enrolled conversations. Review the actual Google consent grant."}</span></p>
+          <p className="connections-consent-note"><LockKeyhole size={15} /><span>{quiet ? "Google Workspace stays in this company’s source network. Review existing accounts above before adding another." : fixture ? "Google authorization is disabled in fixture mode. Configure a hosted nonproduction project and authenticated operator before connecting a real account." : !canConfigure ? "A workspace owner or assigned DAVID operator must authorize connections. You can still inspect the access granted to this workspace." : "Sheets uses drive.file for selected files; Calendar supports owned calendars. Gmail reply reading requests mailbox-wide restricted access, even though DAVID processes only enrolled conversations. Review the actual Google consent grant."}</span></p>
           <Button id="review-google-authorization" variant="primary" disabled={!canConfigure || connecting || !scopes.length} onClick={() => void connect()}>{connecting ? "Starting authorization…" : "Review Google authorization"}<ArrowRight size={15} /></Button>
           {connectionMessage && !connection && <p className="notice" role="status">{connectionMessage}</p>}
         </div>
@@ -335,11 +345,11 @@ export function ConnectionsStudio({ state, navigate, act, busy }: ScreenProps) {
 
       <Drawer open={!!connection} onClose={() => setSelected(null)} title={connection?.identity ?? "Connection"} description="A successful sign-in does not automatically grant Gmail, Sheets or Calendar integration permissions.">
         {connection && <div className="stack connections-inspector">
-          <div className="connections-inspector-status"><span className="studio-kicker">CURRENT ACCESS</span><Badge status={isStale(connection, state.asOf) ? "stale" : connection.health} /></div>
-          <dl className="connections-facts"><dt>Provider</dt><dd>{connection.provider}</dd><dt>Resource</dt><dd>{connection.resource}</dd><dt>Source owner</dt><dd>{connection.owner}</dd><dt>Last verified</dt><dd>{dateTime(connection.verifiedAt)}</dd><dt>Last sync</dt><dd>{dateTime(connection.lastSyncAt)}</dd></dl>
+          <div className="connections-inspector-status"><span className="studio-kicker">CURRENT ACCESS</span><Badge status={isStale(connection, state.asOf) ? "stale" : connectionHealth(connection.health, quiet)} /></div>
+          <dl className="connections-facts"><dt>Provider</dt><dd>{connectionProvider(connection.provider, quiet)}</dd><dt>Resource</dt><dd>{connection.resource}</dd><dt>Source owner</dt><dd>{connection.owner}</dd><dt>Last verified</dt><dd>{dateTime(connection.verifiedAt)}</dd><dt>Last sync</dt><dd>{dateTime(connection.lastSyncAt)}</dd></dl>
           <div><h3>Permitted operations</h3><div className="connections-operation-list">{connection.operations.map((operation) => <span key={operation}>{operation}</span>)}</div></div>
           <div><h3>Granted scopes</h3><div className="connections-granted-scopes">{connection.scopes.length ? connection.scopes.map((scope) => <p key={scope}>{scope}</p>) : "No verified provider scopes."}</div></div>
-          <div className="notice notice-warning"><AlertCircle size={18} /><p>{fixture ? "This is a synthetic connection. To enable real Google access, an authorized operator must configure the OAuth client, consent audience, resource bindings and Vault token lifecycle in a hosted nonproduction project." : "Connection setup requires an authorized operator to verify the OAuth client, consent audience, selected resources and required scopes. Revoked or expired access blocks affected actions until reauthorized."}</p></div>
+          <div className="notice notice-warning"><AlertCircle size={18} /><p>{quiet ? "This account is available to the workspace. External sends and bookings still need a separate authorization review." : fixture ? "This is a synthetic connection. To enable real Google access, an authorized operator must configure the OAuth client, consent audience, resource bindings and Vault token lifecycle in a hosted nonproduction project." : "Connection setup requires an authorized operator to verify the OAuth client, consent audience, selected resources and required scopes. Revoked or expired access blocks affected actions until reauthorized."}</p></div>
           {!fixture && connection.provider === "google" && <div className="stack-small"><p className="small muted">Reauthorization requests: {scopes.map((scope) => capabilities.find((item) => item.id === scope)?.label).join(", ") || "Choose at least one capability on the connections page"}.</p><Button disabled={!canConfigure || connecting || !scopes.length} onClick={() => void connect()}>Reauthorize selected capabilities</Button><Button variant="danger" disabled={!canConfigure || connecting || connection.health === "revoked"} onClick={() => void disconnect()}>Disconnect this account</Button></div>}
           {connectionMessage && <p className="notice" role="status">{connectionMessage}</p>}
           <details className="connections-setup-details"><summary>Exact setup needed</summary><ol><li>Confirm the Google organization, approved sender, Sheet file/tab/range and calendar with their source owners.</li><li>Configure the dedicated integration OAuth client and approved callback, with Gmail send/read and precise Sheet/Calendar scopes.</li><li>Store connection credentials through the server-side Vault lifecycle and bind only the selected resources.</li><li>Verify fresh reads, reply synchronization and checked test actions with authorized recipients and calendar.</li><li>Record the live cohort, exception operator, working hours and release review.</li></ol></details>

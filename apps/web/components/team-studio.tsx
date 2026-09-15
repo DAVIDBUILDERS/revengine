@@ -1,5 +1,5 @@
 "use client";
-import {useEffect,useState,type ReactNode} from 'react';
+import {useContext,useEffect,useState,type ReactNode} from 'react';
 import {ArrowUpRight,Plus,Play,ShieldCheck,FileText,Settings2} from 'lucide-react';
 import type {ScreenProps} from './app-shell';
 import {onboardingFor} from '@david/domain/onboarding';
@@ -7,9 +7,10 @@ import {agentDelivery, specialistWorkSnapshot} from '@david/domain/delivery';
 import {ALWAYS_ON_AGENT_ID, isIncludedAgent, workbenchAgentIds} from '@david/domain/team';
 import {AgentWorkspace} from './agent-workspace';
 import {ArtifactCopyOut} from './artifact-copy-out';
-import {Button,dateTime} from './ui';
+import {Button,dateTime,QuietWalkthroughContext} from './ui';
 
 export function TeamStudio(props:ScreenProps & {configuration:ReactNode}){
+ const quiet=useContext(QuietWalkthroughContext);
  const {state,act,busy,navigate,configuration}=props;
  const saved=onboardingFor(state);const ids=workbenchAgentIds(saved.revision?saved.answers.team:state.activation.selectedTeam);
  const [chosen,setChosen]=useState('');const [settings,setSettings]=useState(false);const [builderOpened,setBuilderOpened]=useState(false);const [inspect,setInspect]=useState(false);
@@ -49,7 +50,7 @@ export function TeamStudio(props:ScreenProps & {configuration:ReactNode}){
    {delivery&&<p className="studio-destination">{delivery.headline}</p>}
    <div className="studio-actions">{state.workspace.mode==='fixture'&&agent.releaseStatus==='planned'&&current?<Button variant="primary" onClick={()=>setInspect(true)}>Review saved work <ArrowUpRight size={14}/></Button>:agent.releaseStatus==='planned'?<p>This capability is not implemented yet.</p>:agent.modes.includes('preparation')?<Button variant="primary" disabled={busy||state.workspace.paused||!install} onClick={()=>void act({type:'prepare',agentId:agent.id})}><Play size={14}/>{busy?'Requesting…':'Prepare first draft'}</Button>:<Button variant="primary" onClick={()=>navigate('opportunities')}>Open customer work <ArrowUpRight size={14}/></Button>}
    <button className="studio-text-action" onClick={setup}>{state.workspace.mode==='fixture'&&agent.releaseStatus==='planned'?'Company sources':delivery?.mode==='engineering_required'||agent.releaseStatus==='planned'?'Record needed systems':delivery?.mode==='needs_access'?'Review source access':'Company sources'} <ArrowUpRight size={14}/></button><button className="studio-text-action" onClick={()=>setInspect(true)}><ShieldCheck size={15}/>Access, limits & history</button></div>
-   <p className="studio-footnote">{state.workspace.mode==='fixture'?'Synthetic workspace. Outputs are examples.':'Requests use approved sources. External actions require separate authorization.'}</p></aside>
+   <p className="studio-footnote">{quiet||state.workspace.mode!=='fixture'?'Requests use approved sources. External actions require separate authorization.':'Synthetic workspace. Outputs are examples.'}</p></aside>
    <div className="studio-document"><header><span><FileText size={15}/> WORK PRODUCT</span>{outputs.length>1&&<select aria-label="Choose saved output" value={current?.id} onChange={e=>setOutputId(e.target.value)}>{outputs.map(o=><option key={o.id} value={o.id}>{o.title}</option>)}</select>}<span>{current?'Saved':'No output yet'}</span></header>
    {current?<article className="studio-output"><p className="studio-kicker">{dateTime(current.createdAt)} · {current.reviewState}</p><h2>{current.title}</h2><div className="studio-output-content">{current.content}</div><p className="studio-footnote">{current.limitation}</p>{delivery&&<ArtifactCopyOut artifact={current} delivery={delivery}/>}<Button onClick={()=>setInspect(true)}>Review output & sources <ArrowUpRight size={14}/></Button></article>:<div className="studio-empty"><div className="studio-orbit" aria-hidden="true"><span>D</span></div><span className="studio-kicker">A PLACE FOR REAL WORK</span><h2>Work you can copy out<br/>belongs here.</h2><p>{!install?'Save your team and review its setup to begin.':state.workspace.paused?'Review workspace permissions and readiness before requesting work.':'Prepare work from approved sources, then copy it into your own tools.'}</p><button className="studio-text-action" onClick={()=>setInspect(true)}>See what’s needed <ArrowUpRight size={16}/></button></div>}
    </div>

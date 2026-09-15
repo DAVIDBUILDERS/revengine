@@ -45,6 +45,7 @@ import {
   Evidence,
   EvidenceAccessContext,
   FeedbackContext,
+  QuietWalkthroughContext,
 } from "./ui";
 import {
   Connections,
@@ -76,9 +77,10 @@ export type ScreenProps = {
     description: string,
     evidence: EvidenceRef[],
   ) => void;
+  browserDemo?: boolean;
 };
 const navigation = [
-  { id: "today", label: "Today", icon: LayoutDashboard },
+  { id: "today", label: "Dashboard", icon: LayoutDashboard },
   { id: "team", label: "Your team", icon: Users },
   { id: "opportunities", label: "Opportunities", icon: Target },
   {
@@ -224,17 +226,18 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
   useEffect(() => {
     const sync = () => {
       const value = new URLSearchParams(window.location.search).get("view");
+      const next = browserDemo && value === "operator" ? "today" : value;
       if (
         [...navigation.map((item) => item.id), "operator", "activation"].includes(
-          value ?? "",
+          next ?? "",
         )
       )
-        setPage(value as PageId);
+        setPage(next as PageId);
     };
     sync();
     window.addEventListener("popstate", sync);
     return () => window.removeEventListener("popstate", sync);
-  }, []);
+  }, [browserDemo]);
   const navigate = (next: PageId, focus?: { proposal?: string; agent?: string }) => {
     setPage(next);
     setMenu(false);
@@ -244,11 +247,11 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
       query.delete("google");
       query.delete("connection");
     }
-    if (next !== "team") {
-      query.delete("team");
-      query.delete("agent");
-    } else if (focus?.agent) query.set("agent", focus.agent);
-    else query.delete("agent");
+    if (next !== "team") query.delete("team");
+    if (next === "team" || next === "today") {
+      if (focus?.agent) query.set("agent", focus.agent);
+      else query.delete("agent");
+    } else query.delete("agent");
     if (next !== "opportunities") query.delete("import");
     query.delete("proposal");
     if (focus?.proposal) query.set("proposal", focus.proposal);
@@ -321,7 +324,7 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
       ? "Operator console"
       : page === "activation"
         ? "Company profile"
-        : (navigation.find((item) => item.id === page)?.label ?? "Today");
+        : (navigation.find((item) => item.id === page)?.label ?? "Dashboard");
   const pending = state ? activeApprovals(state).length : 0;
   const isOperator =
     state?.context.role === "david_operator" ||
@@ -363,16 +366,17 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
           )}
           <p className="tiny muted">
             {browserDemo
-              ? "Browser demo. Allow session storage to explore synthetic workspaces. Use sample data only."
+              ? "Loading the workspace."
               : "Setting up your own company? Create a workspace. Joining an existing company? Use the invitation from its owner."}
           </p>
         </div>
       </div>
     );
-  const props: ScreenProps = { state, act, busy, navigate, inspect };
+  const props: ScreenProps = { state, act, busy, navigate, inspect, browserDemo: !!browserDemo };
   if(page === "activation" && !(state.onboarding?.appliedRevision&&!state.onboarding.answers.briefing) && new URLSearchParams(window.location.search).get("mode") !== "profile") return <FeedbackContext.Provider value={notice}><PreparedOnboarding key={state.workspace.id} {...props}/></FeedbackContext.Provider>;
   return (
     <FeedbackContext.Provider value={notice}>
+      <QuietWalkthroughContext.Provider value={!!browserDemo}>
       <EvidenceAccessContext.Provider
         value={{ workspaceId: state.workspace.id, mode: state.workspace.mode }}
       >
@@ -502,7 +506,7 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
               ))}
             </nav>
             <div className="sidebar-bottom">
-              {isOperator && (
+              {isOperator && !browserDemo && (
                 <nav className="nav">
                   <a
                     href={`?${new URLSearchParams({ view: "activation", mode: "profile", ...(workspaceKey.current ? { workspace: workspaceKey.current } : {}) })}`}
@@ -544,11 +548,15 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
                   {state.workspace.mode === "fixture" ? "OP" : "DA"}
                 </span>
                 <div>
-                  {state.workspace.mode === "fixture"
-                    ? (browserDemo ? "Demo operator" : "Local operator")
+                  {browserDemo
+                    ? "Workspace owner"
+                    : state.workspace.mode === "fixture"
+                    ? "Local operator"
                     : words(state.context.role)}
                   <small>
-                    {state.workspace.mode === "fixture"
+                    {browserDemo
+                      ? state.workspace.name
+                      : state.workspace.mode === "fixture"
                       ? "Synthetic workspace"
                       : "Authenticated workspace"}
                   </small>
@@ -586,16 +594,18 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
                 <span className="tiny muted asof">
                   As of {dateTime(state.asOf)}
                 </span>
-                <Badge
-                  tone={
-                    state.workspace.mode === "live" ? "positive" : "warning"
-                  }
-                >
-                  <span className="environment-dot" />
-                  {state.workspace.mode === "fixture"
-                    ? "Fixture mode"
-                    : words(state.workspace.mode)}
-                </Badge>
+                {!browserDemo && (
+                  <Badge
+                    tone={
+                      state.workspace.mode === "live" ? "positive" : "warning"
+                    }
+                  >
+                    <span className="environment-dot" />
+                    {state.workspace.mode === "fixture"
+                      ? "Fixture mode"
+                      : words(state.workspace.mode)}
+                  </Badge>
+                )}
                 <button
                   className="icon-button"
                   onClick={() => void load()}
@@ -625,14 +635,12 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
                   </div>
                 </div>
               )}
-              {state.workspace.mode === "fixture" && (
+              {state.workspace.mode === "fixture" && !browserDemo && (
                 <div className="fixture-banner">
                   <FlaskConical size={14} />
                   <span>
-                    <strong>{browserDemo ? "Browser demo." : "Local demonstrator."}</strong>{" "}
-                    {browserDemo
-                      ? "Synthetic data stays in this browser tab. Use sample data only. No real messages or bookings."
-                      : "Synthetic records and outcomes. No real messages are sent or appointments booked."}
+                    <strong>Local demonstrator.</strong>{" "}
+                    Synthetic records and outcomes. No real messages are sent or appointments booked.
                   </span>
                 </div>
               )}
@@ -661,8 +669,10 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
                   <Pause size={18} />
                   <div>
                     <strong>Workspace paused.</strong> New dispatch is stopped.
-                    A provider call already in flight may still complete; review
-                    uncertain actions in the operator console.
+                    A provider call already in flight may still complete
+                    {browserDemo
+                      ? "."
+                      : "; review uncertain actions in the operator console."}
                   </div>
                 </div>
               )}
@@ -683,7 +693,7 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
               {page === "journey" && <CustomerJourney {...props} />}
               {page === "scenarios" && <Scenarios {...props} />}
               {page === "connections" && <Connections key={state.workspace.id} {...props} />}
-              {page === "operator" && <div className="stack"><OnboardingOperator {...props} /><Operator {...props} /></div>}
+              {page === "operator" && !browserDemo && <div className="stack"><OnboardingOperator {...props} /><Operator {...props} /></div>}
               <footer className="footer">
                 <span>
                   DAVID Engine <span style={{ margin: "0 7px" }}>·</span>{" "}
@@ -692,9 +702,9 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
                 <span>
                   {state.workspace.timeZone}{" "}
                   <span style={{ margin: "0 7px" }}>·</span>{" "}
-                  {state.workspace.mode === "fixture"
-                    ? "Synthetic evidence only"
-                    : "Source-linked evidence"}
+                  {browserDemo || state.workspace.mode !== "fixture"
+                    ? "Source-linked evidence"
+                    : "Synthetic evidence only"}
                 </span>
               </footer>
             </main>
@@ -761,6 +771,7 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
           </Drawer>
         </div>
       </EvidenceAccessContext.Provider>
+      </QuietWalkthroughContext.Provider>
     </FeedbackContext.Provider>
   );
 }

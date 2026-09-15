@@ -1,7 +1,7 @@
 import {describe,expect,it} from 'vitest';
 import {createFixtureState,snapshot} from '@david/domain';
 import {saveOnboarding} from '../packages/domain/src/onboarding';
-import {agentDelivery,agentDestinations,artifactCopyText,specialistWorkSnapshot} from '../packages/domain/src/delivery';
+import {agentDelivery,agentDestinations,artifactCopyText,specialistWorkSnapshot,teamActivityNarrative,teamActivitySeries} from '../packages/domain/src/delivery';
 import {onboardingFor} from '@david/domain';
 
 describe('agent delivery modes',()=>{
@@ -79,5 +79,13 @@ describe('agent delivery modes',()=>{
   }
   expect(specialistWorkSnapshot(state,'deal-follow-up').latestTitle).toBeTruthy();
   expect(specialistWorkSnapshot(state,'appointment-coordinator').latestTitle).toMatch(/calendar/i);
+ });
+ it('summarizes the active team on an x/y activity series',()=>{
+  const wallaroo=snapshot(createFixtureState('wallaroo'));
+  const series=teamActivitySeries(wallaroo);
+  expect(series.map(item=>item.agentId)).toEqual(wallaroo.activation.selectedTeam);
+  expect(series.every(item=>item.total>0)).toBe(true);
+  expect(teamActivityNarrative(wallaroo).headline).toMatch(/already ran/i);
+  expect(teamActivityNarrative(wallaroo).body).toMatch(/LinkedIn Outreach Assistant/);
  });
 });

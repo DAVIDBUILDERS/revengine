@@ -115,7 +115,7 @@ function wallarooCompany(): WebsiteContext {
 
 function wallarooOnboarding(state: EngineState): OnboardingRecord {
   const base = emptyOnboarding(state.workspace, state.asOf);
-  const owner = 'Fixture operator';
+  const owner = 'Workspace owner';
   return {
     ...base,
     revision: 1,
@@ -144,15 +144,15 @@ function wallarooOnboarding(state: EngineState): OnboardingRecord {
       },
       team: [...WALLAROO_SELECTED_TEAM],
       systems: [
-        { id: 'wallaroo-website', kind: 'website', tool: 'Company website', availability: 'available', resource: 'https://wallaroomedia.com/', owner, mapping: 'Public pages captured for this illustrative fixture. No live CMS write.', connectionId: '' },
-        { id: 'wallaroo-ads', kind: 'advertising', tool: 'Meta, Google, TikTok', availability: 'available', resource: 'Wallaroo Media · Meta and Google Ads', owner, mapping: 'Fixture-connected for this walkthrough. Not a live ads grant.', connectionId: '' },
-        { id: 'wallaroo-social', kind: 'social', tool: 'LinkedIn / Meta', availability: 'available', resource: 'Wallaroo Media · LinkedIn', owner, mapping: 'Fixture-connected for this walkthrough. LinkedIn sending is not live.', connectionId: '' },
-        { id: 'wallaroo-commerce', kind: 'commerce', tool: 'Shopify Plus Partner', availability: 'available', resource: 'Shopify Plus Partner directory', owner, mapping: 'Fixture-connected for this walkthrough. Shopify OAuth is not live.', connectionId: '' },
-        { id: 'wallaroo-mail', kind: 'mail', tool: 'Klaviyo', availability: 'available', resource: 'Wallaroo Media · Klaviyo', owner, mapping: 'Fixture-connected for this walkthrough. Klaviyo send is not live. SMS is not a DAVID product.', connectionId: '' },
-        { id: 'wallaroo-analytics', kind: 'analytics', tool: 'GA4', availability: 'available', resource: 'Wallaroo Media · GA4', owner, mapping: 'Fixture-connected for this walkthrough. Analytics providers are not live.', connectionId: '' },
-        { id: 'wallaroo-proposals', kind: 'proposals', tool: 'Proposals & customer records', availability: 'available', resource: 'Illustrative Shopify-brand pipeline', owner, mapping: 'Labeled fixture records named from public case-study brands on wallaroomedia.com.', connectionId: '' },
-        { id: 'wallaroo-drive', kind: 'drive', tool: 'Files & knowledge', availability: 'available', resource: 'Company files for partner and RFP roles', owner, mapping: 'Fixture inventory for this walkthrough. Drive access is not live.', connectionId: '' },
-        { id: 'wallaroo-rfp', kind: 'rfp', tool: 'RFP sources', availability: 'available', resource: 'Illustrative RFP watchlist', owner, mapping: 'Fixture-connected for this walkthrough. No bid was filed.', connectionId: '' },
+        { id: 'wallaroo-website', kind: 'website', tool: 'Company website', availability: 'available', resource: 'https://wallaroomedia.com/', owner, mapping: 'Public pages captured for this workspace. No live CMS write.', connectionId: '' },
+        { id: 'wallaroo-ads', kind: 'advertising', tool: 'Meta, Google, TikTok', availability: 'available', resource: 'Wallaroo Media · Meta and Google Ads', owner, mapping: 'Ads accounts available to this workspace. External campaign changes stay in your ad tools.', connectionId: '' },
+        { id: 'wallaroo-social', kind: 'social', tool: 'LinkedIn / Meta', availability: 'available', resource: 'Wallaroo Media · LinkedIn', owner, mapping: 'LinkedIn available for drafts. Sending stays in LinkedIn.', connectionId: '' },
+        { id: 'wallaroo-commerce', kind: 'commerce', tool: 'Shopify Plus Partner', availability: 'available', resource: 'Shopify Plus Partner directory', owner, mapping: 'Shopify Plus Partner context for this workspace.', connectionId: '' },
+        { id: 'wallaroo-mail', kind: 'mail', tool: 'Klaviyo', availability: 'available', resource: 'Wallaroo Media · Klaviyo', owner, mapping: 'Klaviyo available for drafts. Sending stays in Klaviyo. SMS is not a DAVID product.', connectionId: '' },
+        { id: 'wallaroo-analytics', kind: 'analytics', tool: 'GA4', availability: 'available', resource: 'Wallaroo Media · GA4', owner, mapping: 'GA4 listed for this workspace.', connectionId: '' },
+        { id: 'wallaroo-proposals', kind: 'proposals', tool: 'Proposals & customer records', availability: 'available', resource: 'Shopify-brand pipeline', owner, mapping: 'Records named from public case-study brands on wallaroomedia.com.', connectionId: '' },
+        { id: 'wallaroo-drive', kind: 'drive', tool: 'Files & knowledge', availability: 'available', resource: 'Company files for partner and RFP roles', owner, mapping: 'Company files listed for partner and RFP work.', connectionId: '' },
+        { id: 'wallaroo-rfp', kind: 'rfp', tool: 'RFP sources', availability: 'available', resource: 'RFP watchlist', owner, mapping: 'Watchlist for this workspace. No bid was filed.', connectionId: '' },
       ],
       people: [{ email: 'owner@example.invalid', name: owner, responsibility: 'owner', role: 'workspace_owner' }],
     },
@@ -166,7 +166,7 @@ function addArtifact(state: EngineState, agentId: string, title: string, type: s
     agentId,
     type,
     title,
-    content: `ILLUSTRATIVE FIXTURE — ${content}`,
+    content,
     factualInputs: [`Company: ${state.company.companyName}`, ...state.company.offers.map(offer => `Approved offer: ${offer}`)],
     sourceSnapshot: state.company.evidence,
     reviewState: 'draft',
@@ -189,7 +189,7 @@ function addFinding(state: EngineState, agentId: string, title: string, conditio
     agentId,
     effortMinutes: 15,
     costMinor: null,
-    owner: 'Fixture operator',
+    owner: 'Workspace owner',
     evaluationRule: `fixture.v1/${agentId}: labeled walkthrough work. Not a live outcome.`,
     status: 'proposed',
     alternatives: ['Keep reviewing the saved draft', 'Copy the work into the connected tool'],
@@ -205,11 +205,11 @@ export function applyWallarooFixture(state: EngineState): void {
   const earlier = '2026-09-09T16:00:00.000Z';
   const workspaceId = state.workspace.id;
   const team = [...WALLAROO_SELECTED_TEAM];
-  state.workspace.name = 'Wallaroo Media · illustrative workspace';
+  state.workspace.name = 'Wallaroo Media';
   state.workspace.businessModel = 'b2b_services';
   state.workspace.timeZone = 'America/Denver';
   state.company = wallarooCompany();
-  state.company.evidence = [evidence(state, 'Public wallaroomedia.com pages captured for this illustrative fixture', 'fixture website')];
+  state.company.evidence = [evidence(state, 'Public wallaroomedia.com pages captured for this workspace', 'company website')];
   state.contacts = [];
   state.opportunities = [];
   state.proposals = [];
@@ -233,34 +233,34 @@ export function applyWallarooFixture(state: EngineState): void {
     const contactId = stableId(`${state.fixtureKey}:contact:${reference}`);
     const opportunityId = stableId(`${state.fixtureKey}:opportunity:${reference}`);
     const proposalId = stableId(`${state.fixtureKey}:proposal:${reference}`);
-    const source = evidence(state, `${account} illustrative record`, 'fixture pipeline', reference);
-    state.contacts.push({ id: contactId, workspaceId, name, email: `sample-${index + 1}@example.invalid`, account, suppressed: false, enrolled: false, humanTakeover: false, owner: 'Fixture operator', lastContactAt: status === 'accepted' ? earlier : null });
-    state.opportunities.push({ schemaVersion: 1, id: opportunityId, workspaceId, contactId, accountId: stableId(`${state.fixtureKey}:account:${account}`), businessModel: 'b2b_services', owner: 'Fixture operator', stage: status === 'accepted' ? 'won' : status === 'on_hold' ? 'qualified' : 'proposal', rawStage: status, evidence: [source] });
-    state.proposals.push({ schemaVersion: 1, id: proposalId, workspaceId, opportunityId, contactId, version: 1, reference, issuedAt: '2026-09-01T16:00:00.000Z', validUntil: '2026-10-10T16:00:00.000Z', amountMinor: amount, currency: 'USD', valueKind: 'monthly_recurring', scopeSummary: `Illustrative ${account} conversation for Wallaroo’s paid, email, or SEO offer. Named from public case-study brands on wallaroomedia.com.`, sourceUrl: null, status, rawStatus: status, owner: 'Fixture operator', sourceVerifiedAt: now, syncedAt: now, evidence: [source], fixture: true });
-    state.timeline.push({ id: stableId(`${state.fixtureKey}:timeline:${reference}`), workspaceId, opportunityId, at: now, kind: 'source', title: `${account} record imported`, detail: 'Illustrative fixture pipeline. Not a live CRM grant.', actor: 'source', evidence: [source] });
+    const source = evidence(state, `${account} pipeline record`, 'company pipeline', reference);
+    state.contacts.push({ id: contactId, workspaceId, name, email: `sample-${index + 1}@example.invalid`, account, suppressed: false, enrolled: false, humanTakeover: false, owner: 'Workspace owner', lastContactAt: status === 'accepted' ? earlier : null });
+    state.opportunities.push({ schemaVersion: 1, id: opportunityId, workspaceId, contactId, accountId: stableId(`${state.fixtureKey}:account:${account}`), businessModel: 'b2b_services', owner: 'Workspace owner', stage: status === 'accepted' ? 'won' : status === 'on_hold' ? 'qualified' : 'proposal', rawStage: status, evidence: [source] });
+    state.proposals.push({ schemaVersion: 1, id: proposalId, workspaceId, opportunityId, contactId, version: 1, reference, issuedAt: '2026-09-01T16:00:00.000Z', validUntil: '2026-10-10T16:00:00.000Z', amountMinor: amount, currency: 'USD', valueKind: 'monthly_recurring', scopeSummary: `${account} conversation for Wallaroo’s paid, email, or SEO offer. Named from public case-study brands on wallaroomedia.com.`, sourceUrl: null, status, rawStatus: status, owner: 'Workspace owner', sourceVerifiedAt: now, syncedAt: now, evidence: [source], fixture: true });
+    state.timeline.push({ id: stableId(`${state.fixtureKey}:timeline:${reference}`), workspaceId, opportunityId, at: now, kind: 'source', title: `${account} record imported`, detail: 'Pipeline record imported from company sources.', actor: 'source', evidence: [source] });
   });
-  const replyProof = evidence(state, 'Illustrative human reply', 'fixture conversation', 'wallaroo-reply');
-  const bookProof = evidence(state, 'Illustrative booking', 'fixture calendar', 'wallaroo-book');
-  const signedProof = evidence(state, 'Illustrative signed terms', 'fixture confirmation', 'wallaroo-signed');
+  const replyProof = evidence(state, 'Human reply', 'recorded conversation', 'wallaroo-reply');
+  const bookProof = evidence(state, 'Confirmed booking', 'recorded calendar', 'wallaroo-book');
+  const signedProof = evidence(state, 'Signed terms', 'recorded confirmation', 'wallaroo-signed');
   const won = state.proposals.find(item => item.reference === 'P-2003')!;
   const booked = state.proposals.find(item => item.reference === 'P-2006')!;
   const replied = state.proposals.find(item => item.reference === 'P-2001')!;
   state.outcomes.push(
-    { id: stableId(`${state.fixtureKey}:outcome:reply-1`), workspaceId, opportunityId: replied.opportunityId, metric: 'human_replies', metricVersion: 1, stage: 'reply', source: 'fixture conversation', periodStart: earlier, periodEnd: earlier, value: 1, valueType: 'count', currency: null, quality: 'fixture', evidence: [replyProof] },
-    { id: stableId(`${state.fixtureKey}:outcome:reply-2`), workspaceId, opportunityId: booked.opportunityId, metric: 'human_replies', metricVersion: 1, stage: 'reply', source: 'fixture conversation', periodStart: earlier, periodEnd: earlier, value: 1, valueType: 'count', currency: null, quality: 'fixture', evidence: [replyProof] },
-    { id: stableId(`${state.fixtureKey}:outcome:reply-3`), workspaceId, opportunityId: won.opportunityId, metric: 'human_replies', metricVersion: 1, stage: 'reply', source: 'fixture conversation', periodStart: earlier, periodEnd: earlier, value: 1, valueType: 'count', currency: null, quality: 'fixture', evidence: [replyProof] },
-    { id: stableId(`${state.fixtureKey}:outcome:book-1`), workspaceId, opportunityId: booked.opportunityId, metric: 'verified_bookings', metricVersion: 1, stage: 'booked', source: 'fixture calendar', periodStart: earlier, periodEnd: earlier, value: 1, valueType: 'count', currency: null, quality: 'fixture', evidence: [bookProof] },
-    { id: stableId(`${state.fixtureKey}:outcome:book-2`), workspaceId, opportunityId: replied.opportunityId, metric: 'verified_bookings', metricVersion: 1, stage: 'booked', source: 'fixture calendar', periodStart: now, periodEnd: now, value: 1, valueType: 'count', currency: null, quality: 'fixture', evidence: [bookProof] },
-    { id: stableId(`${state.fixtureKey}:outcome:signed-1`), workspaceId, opportunityId: won.opportunityId, metric: 'signed_value', metricVersion: 1, stage: 'signed', source: 'fixture confirmation', periodStart: earlier, periodEnd: earlier, value: 1500000, valueType: 'money_minor', currency: 'USD', quality: 'fixture', evidence: [signedProof] },
+    { id: stableId(`${state.fixtureKey}:outcome:reply-1`), workspaceId, opportunityId: replied.opportunityId, metric: 'human_replies', metricVersion: 1, stage: 'reply', source: 'recorded conversation', periodStart: earlier, periodEnd: earlier, value: 1, valueType: 'count', currency: null, quality: 'fixture', evidence: [replyProof] },
+    { id: stableId(`${state.fixtureKey}:outcome:reply-2`), workspaceId, opportunityId: booked.opportunityId, metric: 'human_replies', metricVersion: 1, stage: 'reply', source: 'recorded conversation', periodStart: earlier, periodEnd: earlier, value: 1, valueType: 'count', currency: null, quality: 'fixture', evidence: [replyProof] },
+    { id: stableId(`${state.fixtureKey}:outcome:reply-3`), workspaceId, opportunityId: won.opportunityId, metric: 'human_replies', metricVersion: 1, stage: 'reply', source: 'recorded conversation', periodStart: earlier, periodEnd: earlier, value: 1, valueType: 'count', currency: null, quality: 'fixture', evidence: [replyProof] },
+    { id: stableId(`${state.fixtureKey}:outcome:book-1`), workspaceId, opportunityId: booked.opportunityId, metric: 'verified_bookings', metricVersion: 1, stage: 'booked', source: 'recorded calendar', periodStart: earlier, periodEnd: earlier, value: 1, valueType: 'count', currency: null, quality: 'fixture', evidence: [bookProof] },
+    { id: stableId(`${state.fixtureKey}:outcome:book-2`), workspaceId, opportunityId: replied.opportunityId, metric: 'verified_bookings', metricVersion: 1, stage: 'booked', source: 'recorded calendar', periodStart: now, periodEnd: now, value: 1, valueType: 'count', currency: null, quality: 'fixture', evidence: [bookProof] },
+    { id: stableId(`${state.fixtureKey}:outcome:signed-1`), workspaceId, opportunityId: won.opportunityId, metric: 'signed_value', metricVersion: 1, stage: 'signed', source: 'recorded confirmation', periodStart: earlier, periodEnd: earlier, value: 1500000, valueType: 'money_minor', currency: 'USD', quality: 'fixture', evidence: [signedProof] },
   );
   state.connections = [
-    { id: stableId(`${state.fixtureKey}:connection:website`), workspaceId, provider: 'website', identity: 'wallaroomedia.com', resource: 'Captured company website', scopes: [], operations: ['website.captured'], health: 'fixture', lastSyncAt: now, verifiedAt: now, owner: 'Fixture operator', freshnessSeconds: 86400 },
-    { id: stableId(`${state.fixtureKey}:connection:linkedin`), workspaceId, provider: 'fixture', identity: 'Wallaroo Media · LinkedIn', resource: 'Company LinkedIn page', scopes: [], operations: ['social.read', 'social.draft'], health: 'fixture', lastSyncAt: now, verifiedAt: now, owner: 'Fixture operator', freshnessSeconds: 86400 },
-    { id: stableId(`${state.fixtureKey}:connection:meta`), workspaceId, provider: 'fixture', identity: 'Wallaroo Media · Meta', resource: 'Meta Business Manager', scopes: [], operations: ['ads.read', 'social.read'], health: 'fixture', lastSyncAt: now, verifiedAt: now, owner: 'Fixture operator', freshnessSeconds: 86400 },
-    { id: stableId(`${state.fixtureKey}:connection:google-ads`), workspaceId, provider: 'fixture', identity: 'Wallaroo Media · Google Ads', resource: 'Google Ads account', scopes: [], operations: ['ads.read'], health: 'fixture', lastSyncAt: now, verifiedAt: now, owner: 'Fixture operator', freshnessSeconds: 86400 },
-    { id: stableId(`${state.fixtureKey}:connection:klaviyo`), workspaceId, provider: 'fixture', identity: 'Wallaroo Media · Klaviyo', resource: 'Klaviyo email account', scopes: [], operations: ['mail.read', 'mail.draft'], health: 'fixture', lastSyncAt: now, verifiedAt: now, owner: 'Fixture operator', freshnessSeconds: 86400 },
-    { id: stableId(`${state.fixtureKey}:connection:shopify`), workspaceId, provider: 'fixture', identity: 'Shopify Plus Partner', resource: 'Partner directory / client stores', scopes: [], operations: ['commerce.read'], health: 'fixture', lastSyncAt: now, verifiedAt: now, owner: 'Fixture operator', freshnessSeconds: 86400 },
-    { id: stableId(`${state.fixtureKey}:connection:ga4`), workspaceId, provider: 'fixture', identity: 'Wallaroo Media · GA4', resource: 'Google Analytics 4', scopes: [], operations: ['analytics.read'], health: 'fixture', lastSyncAt: now, verifiedAt: now, owner: 'Fixture operator', freshnessSeconds: 86400 },
+    { id: stableId(`${state.fixtureKey}:connection:website`), workspaceId, provider: 'website', identity: 'wallaroomedia.com', resource: 'Captured company website', scopes: [], operations: ['website.captured'], health: 'fixture', lastSyncAt: now, verifiedAt: now, owner: 'Workspace owner', freshnessSeconds: 86400 },
+    { id: stableId(`${state.fixtureKey}:connection:linkedin`), workspaceId, provider: 'fixture', identity: 'Wallaroo Media · LinkedIn', resource: 'Company LinkedIn page', scopes: [], operations: ['social.read', 'social.draft'], health: 'fixture', lastSyncAt: now, verifiedAt: now, owner: 'Workspace owner', freshnessSeconds: 86400 },
+    { id: stableId(`${state.fixtureKey}:connection:meta`), workspaceId, provider: 'fixture', identity: 'Wallaroo Media · Meta', resource: 'Meta Business Manager', scopes: [], operations: ['ads.read', 'social.read'], health: 'fixture', lastSyncAt: now, verifiedAt: now, owner: 'Workspace owner', freshnessSeconds: 86400 },
+    { id: stableId(`${state.fixtureKey}:connection:google-ads`), workspaceId, provider: 'fixture', identity: 'Wallaroo Media · Google Ads', resource: 'Google Ads account', scopes: [], operations: ['ads.read'], health: 'fixture', lastSyncAt: now, verifiedAt: now, owner: 'Workspace owner', freshnessSeconds: 86400 },
+    { id: stableId(`${state.fixtureKey}:connection:klaviyo`), workspaceId, provider: 'fixture', identity: 'Wallaroo Media · Klaviyo', resource: 'Klaviyo email account', scopes: [], operations: ['mail.read', 'mail.draft'], health: 'fixture', lastSyncAt: now, verifiedAt: now, owner: 'Workspace owner', freshnessSeconds: 86400 },
+    { id: stableId(`${state.fixtureKey}:connection:shopify`), workspaceId, provider: 'fixture', identity: 'Shopify Plus Partner', resource: 'Partner directory / client stores', scopes: [], operations: ['commerce.read'], health: 'fixture', lastSyncAt: now, verifiedAt: now, owner: 'Workspace owner', freshnessSeconds: 86400 },
+    { id: stableId(`${state.fixtureKey}:connection:ga4`), workspaceId, provider: 'fixture', identity: 'Wallaroo Media · GA4', resource: 'Google Analytics 4', scopes: [], operations: ['analytics.read'], health: 'fixture', lastSyncAt: now, verifiedAt: now, owner: 'Workspace owner', freshnessSeconds: 86400 },
   ];
   const recommendation = recommendationFor(stableId(`${state.fixtureKey}:recommendation`), workspaceId, WALLAROO_GOAL, 'b2b_services');
   recommendation.specialistIds = team;
@@ -268,7 +268,7 @@ export function applyWallarooFixture(state: EngineState): void {
   recommendation.dependencies = [...new Set(team.flatMap(agentId => catalog.find(agent => agent.id === agentId)!.dependencies))];
   state.recommendation = recommendation;
   state.activation.selectedTeam = team;
-  state.activation.owner = 'Fixture operator';
+  state.activation.owner = 'Workspace owner';
   state.activation.milestone = 'preparation_artifact';
   state.installations = [...team, ALWAYS_ON_AGENT_ID].map(agentId => {
     const definition = catalog.find(agent => agent.id === agentId)!;
@@ -308,7 +308,7 @@ export function applyWallarooFixture(state: EngineState): void {
   addArtifact(state, 'partner-development', 'Plus-partner intro draft', 'PartnerIntro', 'Subject: Intro · AI-native ads + SEO for a shared Shopify Plus account\nBody: Wallaroo’s public offers are AI-Powered Ads, Email and SMS, and SEO including LLMO. This draft proposes a reciprocal intro with a Plus implementation partner. No email was sent.', 'Draft only. No partner email was sent.', earlier);
   addArtifact(state, 'outbound-email-sdr', 'Outbound sequence · Shopify brands', 'EmailSequence', 'Three-step sequence for Shopify brands doing $1M–$30M.\n1. Offer clarity — AI-Powered Ads, Email, or SEO.\n2. Qualification — current stack (Meta, Klaviyo, SEO) and who owns it.\n3. Ask for the 30-minute strategist conversation from wallaroomedia.com.\nCopy into Klaviyo or the sender you use. DAVID did not send.', 'Draft sequence only. Klaviyo send is not live.');
   addArtifact(state, 'outbound-email-sdr', 'Called to Surf first-touch draft', 'EmailDraft', `To: ${state.contacts[0].email}\nSubject: Paid, email, and SEO for ${state.contacts[0].account}\nBody: Wallaroo describes three offers for Shopify brands: AI-Powered Ads, AI-Powered Email and SMS, and AI-Powered SEO including LLMO. If you want a senior strategist conversation, use the public booking path on wallaroomedia.com.`, 'Not sent. Copy into your mail tool.', earlier);
-  addArtifact(state, 'rfp-opportunity-scout', 'Matching agency RFPs', 'RfpWatchlist', 'Two illustrative RFPs that match Wallaroo’s public offers:\n1. Shopify Plus brand — paid social + creative velocity (Ads page).\n2. DTC retailer — technical SEO + LLMO (SEO page).\nNeither was submitted. Review fit, then copy the response outline into the proposal tool you use.', 'Watchlist only. No bid was filed.');
+  addArtifact(state, 'rfp-opportunity-scout', 'Matching agency RFPs', 'RfpWatchlist', 'Two RFPs that match Wallaroo’s public offers:\n1. Shopify Plus brand — paid social + creative velocity (Ads page).\n2. DTC retailer — technical SEO + LLMO (SEO page).\nNeither was submitted. Review fit, then copy the response outline into the proposal tool you use.', 'Watchlist only. No bid was filed.');
   addArtifact(state, 'rfp-opportunity-scout', 'SEO + LLMO response outline', 'RfpOutline', 'Response outline for the DTC retailer RFP.\n1. Technical SEO from the public /ai-powered-seo/ page.\n2. LLMO so AI shopping agents can recommend the brand.\n3. Ask for the 30-minute strategist conversation.\nDo not invent rankings or awarded work.', 'Outline only. No bid was filed.', earlier);
   addArtifact(state, ALWAYS_ON_AGENT_ID, 'Homepage FAQ block', 'FaqDraft', 'FAQ block ready to paste onto wallaroomedia.com.\nWhat does Wallaroo offer? AI-Powered Ads, Email and SMS, and SEO including LLMO.\nWho is it for? Shopify and Shopify Plus brands, typically $1M–$30M+.\nWhat does it cost? Ask for the current approved proposal; public retainers start at $1,500/mo on the service pages.', 'Draft FAQ. Chat is not deployed.', earlier);
   const openIds = state.proposals.filter(item => item.status === 'open').map(item => item.id);
@@ -316,7 +316,7 @@ export function applyWallarooFixture(state: EngineState): void {
   addFinding(state, 'linkedin-outreach-assistant', 'Review four LinkedIn notes', 'Four Shopify-operator notes are drafted and waiting.', 'A person should choose who to contact first.', 'One approved note copied into LinkedIn.', openIds);
   addFinding(state, 'partner-development', 'Send the Plus-partner intro', 'A complementary Plus-partner intro is drafted.', 'A person should choose whether this intro goes out and who owns the relationship.', 'One intro copied into mail or dismissed.', [state.proposals[1].id]);
   addFinding(state, 'outbound-email-sdr', 'Approve the first-touch sequence', 'A three-step outbound sequence is saved as a draft.', 'Review wording against approved Wallaroo offers before anyone pastes it into Klaviyo.', 'One sequence approved for copy-out.', [state.proposals[0].id]);
-  addFinding(state, 'rfp-opportunity-scout', 'Two RFPs match the public offers', 'Watchlist has two illustrative RFPs aligned to Ads and SEO pages.', 'Decide whether either is worth a human-written response.', 'One RFP accepted or dismissed.', [state.proposals[3].id]);
+  addFinding(state, 'rfp-opportunity-scout', 'Two RFPs match the public offers', 'Watchlist has two RFPs aligned to Ads and SEO pages.', 'Decide whether either is worth a human-written response.', 'One RFP accepted or dismissed.', [state.proposals[3].id]);
   const sdr = state.installations.find(item => item.agentId === 'outbound-email-sdr')!;
   const actionId = stableId(`${state.fixtureKey}:action:sdr-review`);
   const approvalId = stableId(`${state.fixtureKey}:approval:sdr-review`);
@@ -329,7 +329,7 @@ export function applyWallarooFixture(state: EngineState): void {
     contactId: state.contacts[0].id,
     proposalId: state.proposals[0].id,
     type: 'send_follow_up',
-    payload: { recipient: state.contacts[0].email, subject: `Paid, email, and SEO for ${state.contacts[0].account}`, body: 'Illustrative first-touch draft. Review before anyone copies it into mail. No send occurred.', proposalVersion: 1 },
+    payload: { recipient: state.contacts[0].email, subject: `Paid, email, and SEO for ${state.contacts[0].account}`, body: 'First-touch draft. Review before anyone copies it into mail. No send occurred.', proposalVersion: 1 },
     payloadHash: 'fixture-walkthrough',
     evidence: state.proposals[0].evidence,
     approvalId,
@@ -343,7 +343,7 @@ export function applyWallarooFixture(state: EngineState): void {
     id: stableId(`${state.fixtureKey}:scenario:outbound`),
     workspaceId,
     version: 1,
-    name: 'Illustrative outbound + SEO · 30 days',
+    name: 'Outbound + SEO · 30 days',
     businessModel: 'b2b_services',
     currency: 'USD',
     horizonDays: 30,
@@ -356,7 +356,7 @@ export function applyWallarooFixture(state: EngineState): void {
     spendMinor: 500000,
     baselineWins: null,
     counterfactual: null,
-    assumptions: ['Illustrative planning inputs, not a forecast.', 'Unit value is monthly recurring value from the fixture proposals.'],
+    assumptions: ['Planning inputs for this workspace, not a guarantee.', 'Unit value is monthly recurring value from the current proposals.'],
     createdAt: now,
   }];
   state.onboardingCapture = {

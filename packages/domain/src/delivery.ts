@@ -71,3 +71,50 @@ export function specialistWorkSnapshot(state:AppSnapshot,agentId:string):Special
  const actions=state.actions.filter(item=>item.installationId===installation?.id).length;
  return {agentId,latestTitle:artifacts[0]?.title??findings[0]?.title??null,artifacts:artifacts.length,actions,findings:findings.length,counts:[artifacts.length,actions,findings.length],delivery:agentDelivery(state,agentId)};
 }
+
+export type TeamActivityPoint = {
+ agentId:string;name:string;shortLabel:string;latestTitle:string|null;
+ artifacts:number;actions:number;findings:number;total:number;
+};
+
+export function shortAgentLabel(name:string){
+ return name
+  .replace(/ Assistant$/,'')
+  .replace(/ Monitor$/,'')
+  .replace(/ Coordinator$/,'')
+  .replace(/ Opportunity Scout$/,'')
+  .replace(/ Email SDR$/,'')
+  .replace(/^Technical /,'')
+  .replace(/^Website Sales /,'');
+}
+
+export function teamActivitySeries(state:AppSnapshot):TeamActivityPoint[] {
+ return state.activation.selectedTeam.map(agentId=>{
+  const agent=state.catalog.find(item=>item.id===agentId);
+  const work=specialistWorkSnapshot(state,agentId);
+  return {
+   agentId,
+   name:agent?.name??agentId,
+   shortLabel:shortAgentLabel(agent?.name??agentId),
+   latestTitle:work.latestTitle,
+   artifacts:work.artifacts,
+   actions:work.actions,
+   findings:work.findings,
+   total:work.artifacts+work.actions+work.findings,
+  };
+ });
+}
+
+export function teamActivityNarrative(state:AppSnapshot){
+ const points=teamActivitySeries(state);
+ const active=points.filter(point=>point.total>0);
+ const replies=state.metrics.find(item=>item.key==='human_replies')?.value;
+ const bookings=state.metrics.find(item=>item.key==='verified_bookings')?.value;
+ const headline=active.length
+  ?`The team already ran. ${active.length} specialist${active.length===1?'':'s'} left work you can open.`
+  :'The team has not saved work yet.';
+ const sentences=active.map(point=>point.latestTitle?`${point.name} — ${point.latestTitle}.`:`${point.name} recorded ${point.artifacts} draft${point.artifacts===1?'':'s'}.`);
+ if(typeof replies==='number'&&replies>0)sentences.push(`${replies} human ${replies===1?'reply is':'replies are'} already on the record.`);
+ if(typeof bookings==='number'&&bookings>0)sentences.push(`${bookings} ${bookings===1?'booking was':'bookings were'} recorded.`);
+ return {headline,body:sentences.join(' ')};
+}

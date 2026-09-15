@@ -46,7 +46,7 @@ describe("hosted browser demo isolation", () => {
     tab.setItem("revengine.browser-demo.v1.wallaroo", JSON.stringify({ version: 1, commands: [{ type: "pause", paused: true, role: "admin" }] }));
     const demo = createBrowserDemo(() => tab);
     await expect(demo.read(null)).rejects.toThrow("could not be validated");
-    await expect(demo.read("customer-production")).rejects.toThrow("Unknown demo workspace");
+    await expect(demo.read("customer-production")).rejects.toThrow("Unknown workspace");
   });
 
   it("does not commit a change when browser storage rejects it", async () => {

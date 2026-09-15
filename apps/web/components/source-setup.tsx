@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import type { AppSnapshot, ConnectionCapability, EvidenceRef } from "@david/contracts";
 import {
   AlertCircle,
@@ -13,7 +13,7 @@ import {
   Globe,
   ShieldCheck,
 } from "lucide-react";
-import { Badge, Button, Drawer, Evidence, dateTime } from "./ui";
+import { Badge, Button, Drawer, Evidence, QuietWalkthroughContext, dateTime } from "./ui";
 import "./source-setup.css";
 
 type Capture = {
@@ -76,6 +76,7 @@ function usableGoogle(connection: ConnectionCapability, workspaceId: string) {
 }
 
 export function SourceSetup({ state, launch, websiteRequest }: { state: AppSnapshot; launch?: SourceSetupLaunch; websiteRequest?: number }) {
+  const quiet = useContext(QuietWalkthroughContext);
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<"website" | "google">("website");
   const [busy, setBusy] = useState(false);
@@ -113,7 +114,9 @@ export function SourceSetup({ state, launch, websiteRequest }: { state: AppSnaps
     !fixture &&
     ["workspace_owner", "david_operator"].includes(state.context.role) && state.context.workspaceId === state.workspace.id;
   const unavailable = fixture
-    ? "Real source setup is unavailable in fixture mode. Bounded preparation uses the approved synthetic source already supplied. No website is fetched and no Google resource is bound."
+    ? quiet
+      ? "Source setup for this workspace is already in place. Review the connected accounts on this page."
+      : "Real source setup is unavailable in fixture mode. Bounded preparation uses the approved synthetic source already supplied. No website is fetched and no Google resource is bound."
     : !authorized
       ? "A workspace owner or assigned DAVID operator must approve sources and confirm company facts."
       : "";

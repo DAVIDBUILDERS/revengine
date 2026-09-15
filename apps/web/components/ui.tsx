@@ -30,6 +30,9 @@ export const EvidenceAccessContext = createContext<{
   mode: string;
 } | null>(null);
 
+/** Hosted walkthrough: hide chrome that announces a demo or synthetic session. */
+export const QuietWalkthroughContext = createContext(false);
+
 export function DavidSilhouette({ className = "" }: { className?: string }) {
   return <span className={`david-silhouette ${className}`.trim()} aria-hidden="true" />;
 }
@@ -196,6 +199,7 @@ export function Drawer({
   );
 }
 export function Evidence({ items }: { items: EvidenceRef[] }) {
+  const quiet = useContext(QuietWalkthroughContext);
   if (!items.length)
     return (
       <div className="notice notice-warning">
@@ -212,9 +216,9 @@ export function Evidence({ items }: { items: EvidenceRef[] }) {
         <div key={e.id} className="evidence">
           <div className="between">
             <strong>{e.label}</strong>
-            <Badge status={e.quality} />
+            <Badge status={quiet && e.quality === "fixture" ? "verified" : e.quality} />
           </div>
-          <div className="muted">{e.source}</div>
+          <div className="muted">{quiet ? e.source.replace(/^fixture /i, "") : e.source}</div>
           <div className="tiny muted">Captured {dateTime(e.capturedAt)}</div>
           {e.url && /^https?:\/\//.test(e.url) && (
             <a

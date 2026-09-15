@@ -2,11 +2,12 @@ import { test, expect } from "@playwright/test";
 
 test("customer navigation does not include Activation", async ({ page }) => {
   await page.goto("/?view=today");
-  await expect(page.getByRole("link", { name: "Today", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Dashboard", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Activation", exact: true })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Open Account Intelligence work" })).toContainText("Company positioning profile");
-  await expect(page.getByRole("button", { name: "Open Deal Follow-up work" })).toContainText(/proposal/i);
-  await expect(page.getByRole("button", { name: "Open Appointment Coordinator work" })).toContainText(/calendar/i);
+  await expect(page.getByRole("tab", { name: "Overview" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Account Intelligence" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Deal Follow-up" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Appointment Coordinator" })).toBeVisible();
 });
 
 test("all operational screens fit a narrow viewport", async ({ page }) => {
@@ -52,14 +53,12 @@ test("Today previews prepared work and opens the exact customer record", async (
       .getByRole("button", { name: "Approve exact action" }),
   ).toBeVisible();
   await page.keyboard.press("Escape");
-  await page.getByRole("link", { name: "Today", exact: true }).click();
+  await page.getByRole("link", { name: "Dashboard", exact: true }).click();
+  await page.getByRole("tab", { name: "Deal Follow-up" }).click();
   await expect(page.locator(".message-preview")).toContainText(
     "example.invalid",
   );
   await expect(page.locator(".message-preview")).toContainText("Subject");
-  expect(
-    await page.locator(".decision-queue > button[aria-pressed]").count(),
-  ).toBeLessThanOrEqual(3);
   await page.getByRole("button", { name: "Review exact action" }).click();
   await expect(page).toHaveURL(/view=opportunities.*proposal=/);
   await expect(
@@ -76,14 +75,11 @@ test("agent workspace exposes recorded outputs, sources, limits and working paus
   page,
 }) => {
   await page.goto("/?view=today");
-  const opener = page.getByRole("button", {
-    name: "Open Account Intelligence work",
-  });
-  await opener.click();
-  await expect(page).toHaveURL(/view=team/);
+  await page.getByRole("tab", { name: "Account Intelligence" }).click();
+  await expect(page).toHaveURL(/view=today/);
   await expect(page).toHaveURL(/agent=account-intelligence/);
   await expect(
-    page.getByRole("region", { name: "Account Intelligence workbench" }),
+    page.getByRole("region", { name: "Account Intelligence dashboard" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Access, limits & history" }).click();
   const dialog = page.getByRole("dialog");
@@ -126,7 +122,7 @@ test("agent workspace exposes recorded outputs, sources, limits and working paus
   ).toBeDisabled();
   await expect(dialog.getByRole("button", { name: "Copy", exact: true }).first()).toBeVisible();
   await page.keyboard.press("Escape");
-  await page.getByRole("link", { name: "Today", exact: true }).click();
+  await page.getByRole("link", { name: "Dashboard", exact: true }).click();
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(
     page
@@ -143,7 +139,7 @@ test("agent workspace exposes recorded outputs, sources, limits and working paus
   await page.getByLabel("Switch workspace").selectOption("northstar");
   await expect(page).toHaveURL(/workspace=northstar/);
   await expect(
-    page.getByRole("heading", { name: "Today", exact: true }),
+    page.getByRole("heading", { name: "Dashboard", exact: true }),
   ).toBeVisible();
   expect(
     await page.evaluate(
@@ -158,7 +154,7 @@ test("assigned workspace picker preserves isolation through navigation and comma
   await page.goto("/?view=opportunities");
   await expect(page.getByLabel("Active workspace")).toBeEnabled();
   await page.getByLabel("Active workspace").selectOption("northstar");
-  await expect(page.locator(".workspace-chip")).toContainText("northstar");
+  await expect(page.locator(".workspace-chip")).toContainText("Northstar");
   await page
     .getByRole("row")
     .filter({ hasText: "P-1001" })
@@ -181,14 +177,14 @@ test("assigned workspace picker preserves isolation through navigation and comma
       .getByRole("button", { name: "Approve exact action" }),
   ).toBeVisible();
   await page.keyboard.press("Escape");
-  await page.getByRole("link", { name: "Today", exact: true }).click();
+  await page.getByRole("link", { name: "Dashboard", exact: true }).click();
   await expect(page).toHaveURL(/workspace=northstar/);
   const other = await page.request.get("/api/state?workspace=david");
   expect((await other.json()).actions).toHaveLength(0);
   await page.getByLabel("Active workspace").selectOption("david");
   await expect(page).toHaveURL(/workspace=david/);
   await expect(
-    page.getByRole("heading", { name: "Today", exact: true }),
+    page.getByRole("heading", { name: "Dashboard", exact: true }),
   ).toBeVisible();
   await expect(page.locator(".workspace-chip")).toContainText("DAVID AI");
 });
@@ -274,7 +270,7 @@ test("proposal approval, reply, booking and outcome stages remain distinct", asy
     page.getByText("1 fixture observation", { exact: true }),
   ).toHaveCount(2);
   await expect(page.getByText("No evidence", { exact: true })).toHaveCount(5);
-  await page.getByRole("link", { name: "Today", exact: true }).click();
+  await page.getByRole("link", { name: "Dashboard", exact: true }).click();
   await page.screenshot({
     path: "test-results/screenshots/desktop-today.png",
     fullPage: true,
@@ -343,7 +339,7 @@ test("catalog selections, saved scenarios and evidence keyboard navigation", asy
   await expect(page.getByLabel("Scenario name", { exact: true })).toHaveValue(
     "E2E reviewed planning case",
   );
-  await page.getByRole("link", { name: "Today", exact: true }).click();
+  await page.getByRole("link", { name: "Dashboard", exact: true }).click();
   const metric = page.locator(".metric-card").first();
   await metric.focus();
   await page.keyboard.press("Enter");
@@ -357,7 +353,7 @@ test("mobile navigation and operator forms remain usable", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: "Today", exact: true }),
+    page.getByRole("heading", { name: "Dashboard", exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Toggle navigation" }).click();
   await page.getByRole("link", { name: "Operator console" }).click();

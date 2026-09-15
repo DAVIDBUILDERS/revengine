@@ -41,7 +41,7 @@ test('late website response after a different saved URL is ignored and OAuth-sty
 test('new owners enter company connections, existing work returns to dashboard, and viewer controls remain read-only',async({page})=>{
  const {fixture}=await apiFixture(page);
  await page.goto('/');await expect(page.getByRole('heading',{name:'Connections',exact:true})).toBeVisible();
- fixture.activation.milestone='preparation_artifact';await page.goto('/');await expect(page.getByRole('heading',{name:'Today',exact:true})).toBeVisible();
+ fixture.activation.milestone='preparation_artifact';await page.goto('/');await expect(page.getByRole('heading',{name:'Dashboard',exact:true})).toBeVisible();
  fixture.context.role='workspace_viewer';await page.goto('/?view=activation');await expect(page.getByRole('button',{name:'Let’s begin'})).toBeDisabled();await expect(page.getByText(/A workspace owner must save answers/)).toBeVisible();
 });
 test('choice shortcuts and Enter work from the heading; website input autosaves before continuing',async({page})=>{
