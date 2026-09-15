@@ -82,7 +82,7 @@ try{
  check('Actual HTTPS capture supports a reviewed company summary; owner supplied missing facts');
  await expect(page.getByText('Saved to this workspace',{exact:true})).toBeVisible();await page.reload();await expect(page.getByRole('heading',{name:/We’ve saved what we learned/})).toBeVisible();
  check('Finished briefing resumes from Supabase without a first-task permission');
- await page.getByRole('button',{name:'Open my workspace'}).click();await expect(page.getByRole('heading',{name:'Your team',exact:true})).toBeVisible({timeout:60000});
+ await page.getByRole('button',{name:'Open my workspace'}).click();await expect(page.getByRole('heading',{name:'AI agents',exact:true})).toBeVisible({timeout:60000});
  const state=await api('/api/state?workspace='+a);expect(state.status).toBe(200);expect(state.body.workspace.mode).toBe('shadow');expect(state.body.workspace.paused).toBe(true);expect(state.body.onboardingCapture.fixture).toBe(false);expect(state.body.onboarding.answers.briefing.finished).toBe(true);
  check('Reviewed briefing finished with execution paused');
  }

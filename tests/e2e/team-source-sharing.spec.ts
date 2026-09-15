@@ -90,7 +90,7 @@ test("CSV setup link opens the importer once and closing consumes the URL intent
   await expect(page.getByRole("dialog")).toHaveCount(0);
   expect(new URL(page.url()).searchParams.has("import")).toBe(false);
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Opportunities", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Pipeline", exact: true })).toBeVisible();
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });
 

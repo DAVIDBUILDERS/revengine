@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ArrowRight, ArrowUpRight, FileText, Pause, Play, ShieldCheck } from "lucide-react";
-import type { AgentDefinition, Metric } from "@david/contracts";
+import type { AgentDefinition } from "@david/contracts";
 import { money, words } from "@david/ui";
 import { specialistWorkSnapshot } from "@david/domain/delivery";
 import { isIncludedAgent } from "@david/domain/team";
@@ -60,17 +60,6 @@ export function Today(props: ScreenProps & { showBrief: () => Promise<void> }) {
       )?.agentId
     : currentFinding?.agentId;
   const currentAgent = state.catalog.find((item) => item.id === assigned);
-  const allEvidence = [
-    ...state.proposals.flatMap((p) => p.evidence),
-    ...state.outcomes.flatMap((o) => o.evidence),
-    ...state.receipts.flatMap((r) => r.evidence),
-  ];
-  const inspectMetric = (metric: Metric) =>
-    inspect(
-      metric.label,
-      `${metric.stage} · ${metric.unit} · As of ${dateTime(state.asOf)}. ${metric.limitation ?? "Based on recorded source evidence."}`,
-      allEvidence.filter((e) => metric.evidenceIds.includes(e.id)),
-    );
   const date = new Intl.DateTimeFormat("en-US", {
     weekday: "long",
     month: "long",
@@ -81,12 +70,8 @@ export function Today(props: ScreenProps & { showBrief: () => Promise<void> }) {
     <div className="today-page today-studio">
       <PageHeading
         eyebrow={date}
-        title="Today"
-        description={
-          decisions.length
-            ? `${decisions.length} ${decisions.length === 1 ? "item needs" : "items need"} your review. See the work, check the evidence, decide what happens next.`
-            : "Nothing waiting for your review. Your team’s recorded work is below."
-        }
+        title="Dashboard"
+        description="What the team already produced, then the results. Open a specialist for that recap."
         action={
           <Button onClick={() => void props.showBrief()} disabled={busy}>
             <FileText size={14} />
@@ -98,19 +83,19 @@ export function Today(props: ScreenProps & { showBrief: () => Promise<void> }) {
       <section className="decision-desk" aria-labelledby="attention-heading">
         <div className="today-focus-header">
           <div>
-            <span className="today-kicker">YOUR ATTENTION</span>
+            <span className="today-kicker">THE TEAM</span>
             <h2 id="attention-heading">
-              {decisions.length ? "Make the next move." : "Room for your next move."}
+              {decisions.length ? "Prepared work is on the record." : "Room for the next result."}
             </h2>
             <p>
               {decisions.length
-                ? "Prepared work, ready for your judgment."
+                ? "Open pipeline to see the leads. A specialist can inspect the exact record."
                 : "Choose a specialist and give it a piece of work."}
             </p>
           </div>
           <div className="today-review-count">
             <strong>{String(decisions.length).padStart(2, "0")}</strong>
-            <span>Decisions needed<small>{approvalCount} approvals · {decisions.length - approvalCount} recommendations</small></span>
+            <span>On the record<small>{approvalCount} prepared actions · {decisions.length - approvalCount} recommendations</small></span>
           </div>
         </div>
         {current ? (
@@ -131,8 +116,8 @@ export function Today(props: ScreenProps & { showBrief: () => Promise<void> }) {
                 </button>
               ))}
               {decisions.length > 3 && (
-                <Button onClick={() => navigate("decisions")}>
-                  View all {decisions.length} decisions <ArrowRight size={14} />
+                <Button onClick={() => navigate("opportunities")}>
+                  Open pipeline <ArrowRight size={14} />
                 </Button>
               )}
             </div>
@@ -288,7 +273,7 @@ export function Today(props: ScreenProps & { showBrief: () => Promise<void> }) {
               <span className="count-label">{state.installations.length}</span>
             </h2>
             <button className="link-button" onClick={() => navigate("team")}>
-              Manage team <ArrowUpRight size={12} />
+              AI agents <ArrowUpRight size={12} />
             </button>
           </div>
           <div className="today-team-grid">
@@ -331,13 +316,13 @@ export function Today(props: ScreenProps & { showBrief: () => Promise<void> }) {
             {state.workspace.mode === "fixture"
               ? "Illustrative fixture records"
               : "Source-linked records"}{" "}
-            · Select to inspect
+            · Open pipeline
           </p>
           {state.metrics.slice(0, 4).map((metric) => (
             <button
               key={metric.key}
               className="metric-card ledger-metric"
-              onClick={() => inspectMetric(metric)}
+              onClick={() => navigate("opportunities")}
             >
               <span>
                 {metric.label}
@@ -433,40 +418,6 @@ export function Today(props: ScreenProps & { showBrief: () => Promise<void> }) {
       </section>
       </div>
 
-      <section className="recent-records">
-        <div className="section-heading">
-          <h2>Recent activity</h2>
-          <button className="link-button" onClick={() => navigate("journey")}>
-            Customer journeys <ArrowUpRight size={12} />
-          </button>
-        </div>
-        <div className="today-record-grid">{state.timeline
-          .slice()
-          .sort((a, b) => b.at.localeCompare(a.at))
-          .slice(0, 4)
-          .map((event) => (
-            <article className="record-row" key={event.id}>
-              <div className="today-record-top"><span className="record-actor">{words(event.actor)}</span><time className="tiny muted">{dateTime(event.at)}</time></div>
-              <div>
-                <h3>{event.title}</h3>
-                <p>{event.detail}</p>
-              </div>
-              <button
-                className="link-button tiny"
-                onClick={() =>
-                  inspect(event.title, event.detail, event.evidence)
-                }
-              >
-                Evidence <ArrowUpRight size={11} />
-              </button>
-            </article>
-          ))}</div>
-        {!state.timeline.length && (
-          <p className="small muted">
-            No recorded activity. Import current proposal records to begin.
-          </p>
-        )}
-      </section>
       <p className="tiny muted">
         Loaded coverage: {state.contacts.length} contacts ·{" "}
         {state.proposals.length} proposal records · Financial measurement{" "}

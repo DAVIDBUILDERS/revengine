@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 test('studio focuses on one agent, keeps configuration optional, and fits mobile',async({page})=>{
  await page.goto('/?view=team');
- await expect(page.getByRole('heading',{name:'Your team',exact:true})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'AI agents',exact:true})).toBeVisible();
  await expect(page.locator('.agent-card')).toHaveCount(0);
  await page.getByRole('button',{name:/Account Intelligence.*saved|Account Intelligence.*Awaiting/}).click();
  await expect(page.getByRole('region',{name:'Account Intelligence workbench'})).toBeVisible();
@@ -36,9 +36,9 @@ test('Today opens a specialist workbench and copy-out is available without a des
  await expect(page).toHaveURL(/agent=search-growth/);
  await expect(page.getByRole('button',{name:'Record needed systems'})).toBeVisible();
  await expect(page.getByRole('button',{name:'Connect sources'})).toHaveCount(0);
- await page.getByRole('button',{name:/Technical SEO Monitor/}).first().click();
+ await page.getByRole('button',{name:/Technical SEO/}).first().click();
  await expect(page).toHaveURL(/agent=technical-seo-monitor/);
- await expect(page.getByRole('region',{name:'Technical SEO Monitor workbench'})).toBeVisible();
+ await expect(page.getByRole('region',{name:'Technical SEO workbench'})).toBeVisible();
  await expect(page.getByText('Copy these checks onto your site')).toBeVisible();
  await expect(page.getByRole('button',{name:'Company sources'})).toBeVisible();
  await page.getByRole('button',{name:'Prepare first draft'}).click();
