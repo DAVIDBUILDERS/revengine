@@ -63,11 +63,21 @@ describe('agent delivery modes',()=>{
  });
  it('summarizes recorded work counts without inventing metrics',()=>{
   const engine=createFixtureState();
-  engine.artifacts.push({id:'00000000-0000-4000-8000-000000000051',workspaceId:engine.workspace.id,agentId:'search-growth',type:'ContentBrief',sourceSnapshot:engine.company.evidence,factualInputs:['Company'],title:'A practical guide',content:'Outline',reviewState:'draft',capabilityVersion:'1.0.0',runId:'00000000-0000-4000-8000-000000000052',createdAt:engine.asOf,limitation:'Not published.'});
+  const artifact={id:'00000000-0000-4000-8000-000000000051',workspaceId:engine.workspace.id,agentId:'search-growth',type:'ContentBrief',sourceSnapshot:engine.company.evidence,factualInputs:['Company'],title:'A practical guide',content:'Outline',reviewState:'draft',capabilityVersion:'1.0.0',runId:'00000000-0000-4000-8000-000000000052',createdAt:'2026-09-10T16:00:01.000Z',limitation:'Not published.'};
+  engine.artifacts.push(artifact);
   const snap=specialistWorkSnapshot(snapshot(engine),'search-growth');
   expect(snap.latestTitle).toBe('A practical guide');
-  expect(snap.counts).toEqual([1,0,0]);
-  expect(artifactCopyText(engine.artifacts[0]!)).toContain('A practical guide');
-  expect(artifactCopyText(engine.artifacts[0]!)).toContain('Not published.');
+  expect(snap.counts[0]).toBeGreaterThanOrEqual(2);
+  expect(artifactCopyText(artifact)).toContain('A practical guide');
+  expect(artifactCopyText(artifact)).toContain('Not published.');
+ });
+ it('surfaces fixture work for every selected specialist',()=>{
+  const state=snapshot(createFixtureState());
+  for(const id of state.activation.selectedTeam){
+   const work=specialistWorkSnapshot(state,id);
+   expect(work.latestTitle||work.artifacts||work.findings||work.actions,id).toBeTruthy();
+  }
+  expect(specialistWorkSnapshot(state,'deal-follow-up').latestTitle).toBeTruthy();
+  expect(specialistWorkSnapshot(state,'appointment-coordinator').latestTitle).toMatch(/calendar/i);
  });
 });

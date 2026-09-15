@@ -9,6 +9,8 @@ test('studio focuses on one agent, keeps configuration optional, and fits mobile
  await expect(page.getByRole('dialog')).toBeVisible();
  await page.getByRole('button',{name:'Close details'}).click();
  await page.getByRole('button',{name:'Build your team',exact:true}).click();
+ await expect(page.getByText('Included with every workspace · does not use a slot')).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Add beyond the included five.'})).toBeVisible();
  await expect(page.locator('.agent-card')).toHaveCount(32);
  await page.screenshot({path:'artifacts/team-builder-desktop.png'});
  await page.getByRole('button',{name:'Recommend my five',exact:true}).click();
@@ -29,11 +31,16 @@ test('Today opens a specialist workbench and copy-out is available without a des
  await page.goto('/?view=today');
  const resume=page.getByRole('button',{name:'Check readiness & resume'});
  if(await resume.isVisible())await resume.click();
- await page.getByRole('button',{name:'Open Technical SEO Monitor work'}).click();
+ await page.getByRole('button',{name:'Open Search Growth work'}).click();
  await expect(page).toHaveURL(/view=team/);
+ await expect(page).toHaveURL(/agent=search-growth/);
+ await expect(page.getByRole('button',{name:'Record needed systems'})).toBeVisible();
+ await expect(page.getByRole('button',{name:'Connect sources'})).toHaveCount(0);
+ await page.getByRole('button',{name:/Technical SEO Monitor/}).first().click();
  await expect(page).toHaveURL(/agent=technical-seo-monitor/);
  await expect(page.getByRole('region',{name:'Technical SEO Monitor workbench'})).toBeVisible();
  await expect(page.getByText('Copy these checks onto your site')).toBeVisible();
+ await expect(page.getByRole('button',{name:'Company sources'})).toBeVisible();
  await page.getByRole('button',{name:'Prepare first draft'}).click();
  await expect(page.locator('.studio-output h2')).toContainText('Captured-page technical check');
  await expect(page.locator('.studio-output-content')).toContainText('ILLUSTRATIVE FIXTURE');

@@ -62,8 +62,8 @@ export function artifactCopyText(artifact:{title:string;content:string;limitatio
 
 export function specialistWorkSnapshot(state:AppSnapshot,agentId:string):SpecialistWorkSnapshot {
  const artifacts=state.artifacts.filter(item=>item.agentId===agentId).slice().sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+ const findings=state.findings.filter(item=>item.agentId===agentId).slice().sort((a,b)=>b.reviewAt.localeCompare(a.reviewAt));
  const installation=state.installations.find(item=>item.agentId===agentId);
  const actions=state.actions.filter(item=>item.installationId===installation?.id).length;
- const findings=state.findings.filter(item=>item.agentId===agentId).length;
- return {agentId,latestTitle:artifacts[0]?.title??null,artifacts:artifacts.length,actions,findings,counts:[artifacts.length,actions,findings],delivery:agentDelivery(state,agentId)};
+ return {agentId,latestTitle:artifacts[0]?.title??findings[0]?.title??null,artifacts:artifacts.length,actions,findings:findings.length,counts:[artifacts.length,actions,findings.length],delivery:agentDelivery(state,agentId)};
 }

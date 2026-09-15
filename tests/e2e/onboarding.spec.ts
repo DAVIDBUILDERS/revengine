@@ -51,7 +51,7 @@ test('onboarding collects reusable answers, resumes, isolates workspaces and exp
  await expect(page.getByRole('status')).toContainText('Demo operating settings applied');
  await page.getByRole('button',{name:'Resume after readiness checks',exact:true}).click();
  await page.getByRole('button',{name:'Prepare with Account Intelligence',exact:true}).click();
- await page.getByText(/Company positioning profile · draft/).click();
+ await page.getByText(/Company positioning profile · draft/).last().click();
  await page.getByRole('button',{name:'Mark output reviewed',exact:true}).click();
  await expect(page.getByText(/Company positioning profile · reviewed/)).toBeVisible();
  await expect(page.getByText('5 of 6 sections complete',{exact:true})).toBeVisible();

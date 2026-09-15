@@ -27,7 +27,8 @@ describe('prepared onboarding',()=>{
  });
  it('requires an explicit budget and review, saves a revision, and never starts work on acceptance',async()=>{
   const state=await proposed();await expect(executeCommand(state,{type:'accept_setup',generation:1,expectedRevision:0,answers:state.preparedSetup!.answers})).rejects.toThrow('Review missing');
-  await executeCommand(state,{type:'accept_setup',generation:1,expectedRevision:0,answers:approved(state)});expect(onboardingFor(state).revision).toBe(1);expect(state.preparedSetup!.acceptedRevision).toBe(1);expect(state.workspace.paused).toBe(true);expect(state.artifacts).toHaveLength(0);
+  const seeded=state.artifacts.length;
+  await executeCommand(state,{type:'accept_setup',generation:1,expectedRevision:0,answers:approved(state)});expect(onboardingFor(state).revision).toBe(1);expect(state.preparedSetup!.acceptedRevision).toBe(1);expect(state.workspace.paused).toBe(true);expect(state.artifacts).toHaveLength(seeded);
  });
  it('only derives baselines from independently verified evidence and never invents missing zeroes',async()=>{
   const state=await proposed();state.workspace.mode='shadow';state.context.environment='shadow';state.setupIdentity=undefined;

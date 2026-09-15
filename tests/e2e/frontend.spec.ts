@@ -1,5 +1,14 @@
 import { test, expect } from "@playwright/test";
 
+test("customer navigation does not include Activation", async ({ page }) => {
+  await page.goto("/?view=today");
+  await expect(page.getByRole("link", { name: "Today", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Activation", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Open Account Intelligence work" })).toContainText("Company positioning profile");
+  await expect(page.getByRole("button", { name: "Open Deal Follow-up work" })).toContainText(/proposal/i);
+  await expect(page.getByRole("button", { name: "Open Appointment Coordinator work" })).toContainText(/calendar/i);
+});
+
 test("all operational screens fit a narrow viewport", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   for (const view of [
@@ -82,9 +91,10 @@ test("agent workspace exposes recorded outputs, sources, limits and working paus
     dialog.getByText("None verified", { exact: true }),
   ).toBeVisible();
   await dialog.getByRole("button", { name: "Run bounded preparation" }).click();
-  await expect(dialog.locator(".prose")).toContainText("ILLUSTRATIVE FIXTURE");
+  await expect(dialog.locator(".prose").first()).toContainText("ILLUSTRATIVE FIXTURE");
   await dialog
     .getByText("Factual inputs & provenance", { exact: true })
+    .first()
     .click();
   await expect(dialog.locator(".evidence").first()).toBeVisible();
   await dialog.getByRole("button", { name: "Inputs & access" }).click();
@@ -114,7 +124,7 @@ test("agent workspace exposes recorded outputs, sources, limits and working paus
   await expect(
     dialog.getByRole("button", { name: "Run bounded preparation" }),
   ).toBeDisabled();
-  await expect(dialog.getByRole("button", { name: "Copy", exact: true })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Copy", exact: true }).first()).toBeVisible();
   await page.keyboard.press("Escape");
   await page.getByRole("link", { name: "Today", exact: true }).click();
   await page.setViewportSize({ width: 390, height: 844 });
@@ -395,7 +405,7 @@ test("activation resumes and preparation leads to a bounded reviewed initiative"
   await expect(page.getByRole("dialog").getByRole("status")).toContainText(
     "No publishing or external account action occurred",
   );
-  await expect(page.getByRole("dialog").locator(".prose")).toBeVisible();
+  await expect(page.getByRole("dialog").locator(".prose").first()).toBeVisible();
   await page.keyboard.press("Escape");
   await page.getByRole("link", { name: "Decisions & initiatives" }).click();
   await page

@@ -79,7 +79,6 @@ export type ScreenProps = {
 const navigation = [
   { id: "today", label: "Today", icon: LayoutDashboard },
   { id: "team", label: "Your team", icon: Users },
-  { id: "activation", label: "Activation", icon: ListChecks },
   { id: "opportunities", label: "Opportunities", icon: Target },
   {
     id: "decisions",
@@ -225,7 +224,9 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
     const sync = () => {
       const value = new URLSearchParams(window.location.search).get("view");
       if (
-        [...navigation.map((item) => item.id), "operator"].includes(value ?? "")
+        [...navigation.map((item) => item.id), "operator", "activation"].includes(
+          value ?? "",
+        )
       )
         setPage(value as PageId);
     };
@@ -317,7 +318,9 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
   const currentLabel =
     page === "operator"
       ? "Operator console"
-      : (navigation.find((item) => item.id === page)?.label ?? "Today");
+      : page === "activation"
+        ? "Company profile"
+        : (navigation.find((item) => item.id === page)?.label ?? "Today");
   const pending = state ? activeApprovals(state).length : 0;
   const isOperator =
     state?.context.role === "david_operator" ||
@@ -500,6 +503,20 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
             <div className="sidebar-bottom">
               {isOperator && (
                 <nav className="nav">
+                  <a
+                    href={`?${new URLSearchParams({ view: "activation", mode: "profile", ...(workspaceKey.current ? { workspace: workspaceKey.current } : {}) })}`}
+                    aria-current={page === "activation" ? "page" : undefined}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      const url = new URL(window.location.href);
+                      url.searchParams.set("mode", "profile");
+                      window.history.replaceState({}, "", url.pathname + url.search);
+                      navigate("activation");
+                    }}
+                  >
+                    <ListChecks />
+                    Company profile
+                  </a>
                   <a
                     href={`?${new URLSearchParams({ view: "operator", ...(workspaceKey.current ? { workspace: workspaceKey.current } : {}) })}`}
                     aria-current={page === "operator" ? "page" : undefined}

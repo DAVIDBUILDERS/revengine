@@ -1,5 +1,5 @@
 import { emptyOnboarding, OnboardingAnswers, type AppSnapshot, OnboardingRecord, type Command } from '../../contracts/src/index';
-
+import {slotAgentIds} from './team';
 import {agentSystemRequirements, configurationBoundary, hasConfiguredCompanySource, hasCurrentCapabilitySource, onboardingConfiguration, type SystemKind} from './company-connections';
 
 export function onboardingFor(state:AppSnapshot):OnboardingRecord {return state.onboarding ? OnboardingRecord.parse(state.onboarding) : emptyOnboarding(state.workspace,state.asOf);}
@@ -52,7 +52,7 @@ export function onboardingReport(state:AppSnapshot) {
 export function saveOnboarding(state:AppSnapshot,answers:OnboardingAnswers,expectedRevision:number):OnboardingRecord {
  const old=onboardingFor(state);if(old.revision!==expectedRevision)throw new Error('Setup changed in another session. Reload before saving; your changes were not applied.');
  const a=OnboardingAnswers.parse(answers);
- if(a.team.length>(state.workspace.entitlement??5))throw new Error('Selected team exceeds the configured workspace allowance.');
+ if(slotAgentIds(a.team).length>(state.workspace.entitlement??5))throw new Error('Selected team exceeds the configured workspace allowance.');
  if(a.team.some(id=>!state.catalog.some(c=>c.id===id)))throw new Error('Unknown agent selected.');
  const initialized=old.configurationRevision!==undefined&&old.configurationUpdatedAt!==undefined;
  const material=(old.revision===0&&!initialized)||JSON.stringify(onboardingConfiguration(old.answers))!==JSON.stringify(onboardingConfiguration(a));

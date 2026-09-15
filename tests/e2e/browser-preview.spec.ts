@@ -15,7 +15,7 @@ test("hosted workspace works without an operational API and survives refresh", a
   await page.getByRole("button", { name: "Access, limits & history" }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByRole("button", { name: "Run bounded preparation" }).click();
-  await expect(dialog.locator(".prose")).toContainText("ILLUSTRATIVE FIXTURE");
+  await expect(dialog.locator(".prose").first()).toContainText("ILLUSTRATIVE FIXTURE");
   await dialog.getByRole("button", { name: "Rules & limits" }).click();
   await dialog.getByRole("button", { name: "Pause workspace", exact: true }).click();
   await expect(dialog.getByRole("button", { name: "Workspace paused", exact: true })).toBeDisabled();

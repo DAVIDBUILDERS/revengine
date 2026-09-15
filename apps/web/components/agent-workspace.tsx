@@ -386,7 +386,7 @@ function AgentRecord({
               to publish.
             </p>
             <Button onClick={() => go("connections")}>
-              Review company destinations <ArrowRight size={14} />
+              {delivery.mode === "engineering_required" ? "Record the systems this role would need" : "Review company destinations"} <ArrowRight size={14} />
             </Button>
           </section>
           <section className="agent-section">

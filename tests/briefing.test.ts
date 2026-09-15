@@ -35,9 +35,9 @@ describe('conversational briefing',()=>{
   state.catalog.forEach(a=>a.releaseStatus='planned');expect(recommendedTask(state,b)).toBeUndefined();
  });
  it('autosaves and resumes briefing without authorizing execution or inventing evidence',async()=>{
-  const state=createFixtureState(),a=onboardingFor(state).answers;a.briefing=Briefing.parse({version:1,step:'goal',description:'Our own business description',noWebsite:true});
+  const state=createFixtureState(),a=onboardingFor(state).answers,seeded=state.artifacts.length;a.briefing=Briefing.parse({version:1,step:'goal',description:'Our own business description',noWebsite:true});
   await executeCommand(state,{type:'save_onboarding',expectedRevision:0,answers:a});
-  expect(briefingFor(state).step).toBe('goal');expect(onboardingFor(state).answers.operations.modelDailyBudgetMinor).toBeNull();expect(onboardingFor(state).answers.operations.policyAcknowledged).toBe(false);expect(state.artifacts).toHaveLength(0);expect(state.onboardingCapture).toBeUndefined();
+  expect(briefingFor(state).step).toBe('goal');expect(onboardingFor(state).answers.operations.modelDailyBudgetMinor).toBeNull();expect(onboardingFor(state).answers.operations.policyAcknowledged).toBe(false);expect(state.artifacts).toHaveLength(seeded);expect(state.onboardingCapture).toBeUndefined();
   expect(briefingFor(createFixtureState('other')).description).toBe('');
   await expect(executeCommand(state,{type:'save_onboarding',expectedRevision:0,answers:a})).rejects.toThrow('another session');
  });

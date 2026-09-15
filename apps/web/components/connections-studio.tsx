@@ -343,7 +343,7 @@ export function ConnectionsStudio({ state, navigate, act, busy }: ScreenProps) {
           {!fixture && connection.provider === "google" && <div className="stack-small"><p className="small muted">Reauthorization requests: {scopes.map((scope) => capabilities.find((item) => item.id === scope)?.label).join(", ") || "Choose at least one capability on the connections page"}.</p><Button disabled={!canConfigure || connecting || !scopes.length} onClick={() => void connect()}>Reauthorize selected capabilities</Button><Button variant="danger" disabled={!canConfigure || connecting || connection.health === "revoked"} onClick={() => void disconnect()}>Disconnect this account</Button></div>}
           {connectionMessage && <p className="notice" role="status">{connectionMessage}</p>}
           <details className="connections-setup-details"><summary>Exact setup needed</summary><ol><li>Confirm the Google organization, approved sender, Sheet file/tab/range and calendar with their source owners.</li><li>Configure the dedicated integration OAuth client and approved callback, with Gmail send/read and precise Sheet/Calendar scopes.</li><li>Store connection credentials through the server-side Vault lifecycle and bind only the selected resources.</li><li>Verify fresh reads, reply synchronization and checked test actions with authorized recipients and calendar.</li><li>Record the live cohort, exception operator, working hours and release review.</li></ol></details>
-          <Button onClick={() => { setSelected(null); openSetup(); }}>Open activation prerequisites <ArrowRight size={14} /></Button>
+          <Button onClick={() => { setSelected(null); openSetup(); }}>Open company profile <ArrowRight size={14} /></Button>
         </div>}
       </Drawer>
     </div>

@@ -10,6 +10,10 @@ const groups = [
   ['Retain and expand', ['Abandoned Cart Recovery', 'Lifecycle Email Manager', 'Customer Win-back', 'Expansion Opportunity Scout', 'Renewal and Retention', 'Review and Referral Manager']],
 ] as const;
 export const preparationIds = ['account-intelligence', 'technical-seo-monitor', 'search-growth', 'creative-performance', 'landing-page-optimizer', 'social-content-publisher', 'video-script-producer', 'local-search-manager', 'website-sales-concierge'] as const;
+/** Included with every workspace. Does not consume a paid team slot. */
+export const ALWAYS_ON_AGENT_ID = 'website-sales-concierge' as const;
+export const TEAM_SWAP_COOLDOWN_HOURS = 12;
+export const EXTRA_AGENT_PRICE_MINOR = 100_000;
 export const aliases: Record<string, string> = { 'Account Prospector': 'account-intelligence', 'SEO Content Writer': 'search-growth', 'Ad Creative Studio': 'creative-performance', 'Proposal Builder': 'proposal-operations', 'Proposal Follow-up': 'deal-follow-up' };
 export function canonicalAgentId(value: string): string { return aliases[value] ?? value; }
 const prepOutputs: Record<string, string> = { 'account-intelligence': 'WebsiteProfile', 'technical-seo-monitor': 'CapturedPageAudit', 'search-growth': 'ContentBrief', 'creative-performance': 'AdCopyConcepts', 'landing-page-optimizer': 'PageCopyHypothesis', 'social-content-publisher': 'SocialDraft', 'video-script-producer': 'VideoScript', 'local-search-manager': 'LocationChecklist', 'website-sales-concierge': 'FaqDraft' };
@@ -22,14 +26,22 @@ export const catalog: AgentDefinition[] = groups.flatMap(([category, names]) => 
 }));
 
 export function recommendedAgentIds(goal: string, businessModel: Archetype): string[] {
-  if (businessModel === 'commerce') return ['account-intelligence', 'creative-performance', 'search-growth', 'product-merchandiser', 'abandoned-cart-recovery'];
-  if (businessModel === 'home_services') return ['account-intelligence', 'local-search-manager', 'website-sales-concierge', 'appointment-coordinator', 'estimate-recovery'];
-  if (/demand|traffic|content|awareness/i.test(goal)) return ['account-intelligence', 'search-growth', 'technical-seo-monitor', 'creative-performance', 'landing-page-optimizer'];
-  return ['deal-follow-up', 'appointment-coordinator', 'account-intelligence', 'search-growth', 'technical-seo-monitor'];
+  const ids = businessModel === 'commerce' ? ['account-intelligence', 'creative-performance', 'search-growth', 'product-merchandiser', 'abandoned-cart-recovery']
+    : businessModel === 'home_services' ? ['account-intelligence', 'local-search-manager', 'appointment-coordinator', 'estimate-recovery', 'search-growth']
+    : /demand|traffic|content|awareness/i.test(goal) ? ['account-intelligence', 'search-growth', 'technical-seo-monitor', 'creative-performance', 'landing-page-optimizer']
+    : ['deal-follow-up', 'appointment-coordinator', 'account-intelligence', 'search-growth', 'technical-seo-monitor'];
+  return ids.filter(id => id !== ALWAYS_ON_AGENT_ID);
+}
+export function nextAgentIds(goal: string, businessModel: Archetype, selected: string[], count = 3): string[] {
+  const taken = new Set([...selected, ALWAYS_ON_AGENT_ID].map(canonicalAgentId));
+  const rank = (id: string) => { const agent = catalog.find(item => item.id === id); return agent?.releaseStatus === 'implemented' ? 0 : agent?.releaseStatus === 'pilot' ? 1 : 2; };
+  const recommended = recommendedAgentIds(goal, businessModel).filter(id => !taken.has(id));
+  const rest = catalog.filter(agent => agent.supportedArchetypes.includes(businessModel) && !taken.has(agent.id) && !recommended.includes(agent.id)).sort((a, b) => rank(a.id) - rank(b.id) || a.name.localeCompare(b.name)).map(agent => agent.id);
+  return [...recommended, ...rest].slice(0, count);
 }
 export function recommendationFor(id: string, workspaceId: string, goal: string, businessModel: Archetype): TeamRecommendation {
   const specialistIds = recommendedAgentIds(goal, businessModel);
-  return { id, workspaceId, goal, businessModel, specialistIds, rationale: Object.fromEntries(specialistIds.map(agentId => [agentId, catalog.find(a => a.id === agentId)!.responsibility])), dependencies: [...new Set(specialistIds.flatMap(agentId => catalog.find(a => a.id === agentId)!.dependencies))], limitations: ['Five selected responsibilities do not establish action readiness.', 'Planned capabilities need engineering; preparation drafts do not publish or prove revenue.'] };
+  return { id, workspaceId, goal, businessModel, specialistIds, rationale: Object.fromEntries(specialistIds.map(agentId => [agentId, catalog.find(a => a.id === agentId)!.responsibility])), dependencies: [...new Set(specialistIds.flatMap(agentId => catalog.find(a => a.id === agentId)!.dependencies))], limitations: ['Five selected responsibilities do not establish action readiness.', 'Website Sales Concierge is included with every workspace and does not use a team slot.', 'Planned capabilities need engineering; preparation drafts do not publish or prove revenue.'] };
 }
 
 export const WebsiteContext = z.object({ operatingGuidance: z.object({brand:z.string().max(4000),forbiddenClaims:z.string().max(4000),objective:z.string().max(4000).optional(),desiredAction:z.string().max(4000).optional()}).strict().optional(), companyName: z.string().min(1), confirmed: z.boolean(), offers: z.array(z.string().min(1)).min(1), customerTypes: z.array(z.string().min(1)).min(1), locations: z.array(z.string()), pages: z.array(z.object({ url: z.url(), title: z.string(), description: z.string(), text: z.string().max(100000), capturedAt: z.iso.datetime() }).strict()).min(1).max(10), evidence: z.array(EvidenceRef).min(1), fixture: z.boolean() }).strict();

@@ -48,6 +48,8 @@ test('inventory and admin help resume without claiming a planned system is conne
   const ads = page.locator('[data-system="advertising"]');
   await expect(ads).toHaveAttribute('data-status', 'engineering_required');
   await ads.getByRole('button', { name: 'Manage system inventory' }).click();
+  await expect(page.getByRole('dialog')).toContainText('does not connect LinkedIn, Meta, Shopify');
+  await expect(page.getByRole('dialog').getByRole('button', { name: /authorize|sign in|oauth/i })).toHaveCount(0);
   await page.getByLabel('System or tool name').fill('Fixture advertising account');
   await page.getByLabel('Availability', { exact: true }).selectOption('admin_needed');
   await page.getByRole('button', { name: 'Save & request setup help' }).click();

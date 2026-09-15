@@ -76,7 +76,7 @@ export function CompanyConnectionMap({ state, onSetup, onChooseTeam, onManageSys
           <span className="company-map-kicker">{system.supported ? "CURRENT COVERAGE" : "WHAT’S AVAILABLE"}</span>
           <p>{system.detail}</p>
           {system.supported && (system.connectionIds.length > 0 || system.resourceIds.length > 0) && <span className="company-system-records">{system.connectionIds.length} connection{system.connectionIds.length === 1 ? "" : "s"} · {system.resourceIds.length} source selection{system.resourceIds.length === 1 ? "" : "s"}</span>}
-          {!system.supported && <span className="company-system-planned-note">Inventory can be saved now. An implemented integration is still required for agents to use this system.</span>}
+          {!system.supported && <span className="company-system-planned-note">Inventory can be saved now. There is no OAuth or live account connection for this system yet.</span>}
         </div>
         {sharedRoles.length > 0 ? <details className="company-system-sharing">
           <summary><Network size={14} /><span>Shared by {sharedRoles.length} specialist{sharedRoles.length === 1 ? "" : "s"}{selectedShared > 0 && <small>{selectedShared} on your team</small>}</span><ChevronDown size={14} /></summary>
@@ -122,7 +122,7 @@ export function CompanyConnectionMap({ state, onSetup, onChooseTeam, onManageSys
 
       <details className="company-map-planning">
         <summary><span className="company-map-planning-icon"><Layers3 size={22} strokeWidth={1.5} /></span><span><strong>Plan other systems</strong><small>Ads, social, analytics, documents and the rest of your company’s tools.</small></span><span className="company-map-plan-count">{planned.length} system groups</span><ChevronDown size={19} /></summary>
-        <div className="company-map-planning-body"><p className="company-map-planning-note">These systems appear in the full roles’ requirements. Record what you use, who owns it and whether administrator help is needed. Provider integration work is still required; adding an inventory entry does not connect an account.</p><div className="company-map-system-grid">{planned.map(renderSystem)}</div></div>
+        <div className="company-map-planning-body"><p className="company-map-planning-note">These systems appear in the full roles’ requirements. Record what you use, who owns it and whether administrator help is needed. There is no live sign-in for ads, social, commerce or the other planned systems; adding an inventory entry does not connect an account.</p><div className="company-map-system-grid">{planned.map(renderSystem)}</div></div>
       </details>
 
       <footer className="company-map-next"><div><span className="company-map-kicker">YOUR COMPANY. YOUR TEAM.</span><h2>Build the team around the work.</h2><p>You can choose specialists now and return to source setup as needed. Missing inputs and implementation gaps stay visible for every role.</p></div><Button variant="primary" onClick={onChooseTeam}>{chooseLabel}<ArrowRight size={15} /></Button></footer>

@@ -2,7 +2,7 @@ import {buildPreparedSetup,validateSetupAcceptance} from '../../../packages/doma
 import {randomUUID,randomBytes,createHash} from 'node:crypto';
 import {z} from 'zod';
 import * as C from '../../../packages/contracts/src/index';
-import {catalog,recommendationFor} from '../../../packages/agents/src/index';
+import {catalog,recommendationFor,ALWAYS_ON_AGENT_ID} from '../../../packages/agents/src/index';
 import {parseCsvImport,forecastCases} from '../../../packages/domain/src/index';
 import {authClient,authorize} from './auth';
 import {HttpError} from './http';
@@ -43,7 +43,8 @@ export async function operationalSnapshot(requested:string|null):Promise<C.AppSn
  state.setupDocuments=(setupSources??[]).filter(r=>r.kind==='setup_document').map(r=>C.SetupDocument.parse(r.payload));
  const prepared=(setupSources??[]).find(r=>r.kind==='prepared_setup');if(prepared)state.preparedSetup=C.PreparedSetup.parse(prepared.payload);
  if(context.role==='workspace_owner'){const {data}=await client.auth.getUser();if(data.user?.email&&data.user.email_confirmed_at)state.setupIdentity={email:data.user.email,name:String(data.user.user_metadata?.full_name??data.user.user_metadata?.name??'').slice(0,200)};}
- state.activation.selectedTeam=installations.filter(i=>i.status!=='paused').map(i=>i.agentId).slice(0,32);
+ state.activation.selectedTeam=installations.filter(i=>i.status!=='paused'&&i.agentId!==ALWAYS_ON_AGENT_ID).map(i=>i.agentId).slice(0,32);
+ state.activation.teamSelectedAt=date(w,'team_selected_at')??undefined;
  const {data:latestCapture}=await client.from('product_records').select('payload').eq('workspace_id',workspaceId).eq('kind','company_context').order('created_at',{ascending:false}).limit(1).maybeSingle();
  const capture=latestCapture?.payload as {requestId?:string;id:string;sourceHash:string;context:{evidence:C.EvidenceRef[];confirmed:boolean;fixture:boolean;pages:NonNullable<C.AppSnapshot['onboardingCapture']>['pages']}}|undefined;
  if(capture)state.onboardingCapture={evidence:capture.context.evidence,requestId:capture.requestId,id:capture.id,sourceHash:capture.sourceHash,fixture:capture.context.fixture,pages:capture.context.pages};

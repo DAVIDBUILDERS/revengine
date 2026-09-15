@@ -5,6 +5,7 @@ import { ArrowRight, ArrowUpRight, FileText, Pause, Play, ShieldCheck } from "lu
 import type { AgentDefinition, Metric } from "@david/contracts";
 import { money, words } from "@david/ui";
 import { specialistWorkSnapshot } from "@david/domain/delivery";
+import { isIncludedAgent } from "@david/domain/team";
 import { PageHeading, type ScreenProps } from "./app-shell";
 import { activeApprovals } from "./approval-state";
 import { AgentWorkspace } from "./agent-workspace";
@@ -291,14 +292,20 @@ export function Today(props: ScreenProps & { showBrief: () => Promise<void> }) {
             </button>
           </div>
           <div className="today-team-grid">
-            {state.installations.map((installation, index) => {
+            {state.installations.map((installation) => {
               const specialist = state.catalog.find((item) => item.id === installation.agentId);
               if (!specialist) return null;
               const work = specialistWorkSnapshot(state, specialist.id);
               const max = Math.max(1, ...work.counts);
+              const slot = state.installations.filter((item) => !isIncludedAgent(item.agentId)).findIndex((item) => item.id === installation.id);
+              const detail = installation.blockers[0]
+                ?? work.latestTitle
+                ?? (work.artifacts || work.actions || work.findings
+                  ? `${work.artifacts} saved outputs · ${work.actions} action records${work.findings ? ` · ${work.findings} recommendation${work.findings === 1 ? "" : "s"}` : ""}`
+                  : "No saved work yet");
               return (
                 <button key={installation.id} className="today-specialist" onClick={() => navigate("team", { agent: specialist.id })} aria-label={`Open ${specialist.name} work`}>
-                  <span className="today-specialist-top"><span className="today-kicker">{String(index + 1).padStart(2, "0")} / {words(installation.mode)}</span><ArrowUpRight size={16} /></span>
+                  <span className="today-specialist-top"><span className="today-kicker">{isIncludedAgent(specialist.id) ? "Included" : `${String(slot + 1).padStart(2, "0")} / ${words(installation.mode)}`}</span><ArrowUpRight size={16} /></span>
                   <strong>{specialist.name}</strong>
                   <span className="today-specialist-status">{state.workspace.paused ? "Workspace paused" : words(installation.status)}</span>
                   <svg className="today-spark" viewBox="0 0 36 18" aria-hidden="true">
@@ -307,7 +314,7 @@ export function Today(props: ScreenProps & { showBrief: () => Promise<void> }) {
                       return <rect key={bar} x={bar * 12 + 2} y={18 - height} width="8" height={height} rx="1" />;
                     })}
                   </svg>
-                  <span className="today-specialist-detail">{installation.blockers[0] ?? (work.latestTitle ? work.latestTitle : work.artifacts || work.actions ? `${work.artifacts} saved outputs · ${work.actions} action records` : "Awaiting its first piece of work")}</span>
+                  <span className="today-specialist-detail">{detail}</span>
                   <span className="today-specialist-footer">{work.delivery.cardLabel} <ArrowRight size={14} /></span>
                 </button>
               );
@@ -388,7 +395,7 @@ export function Today(props: ScreenProps & { showBrief: () => Promise<void> }) {
                   </div>
                   <Button
                     className="btn-small"
-                    onClick={() => navigate("activation")}
+                    onClick={() => navigate("connections")}
                   >
                     Review <ArrowRight size={12} />
                   </Button>
