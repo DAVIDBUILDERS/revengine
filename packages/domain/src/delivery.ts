@@ -25,6 +25,10 @@ export const agentDestinations: Partial<Record<string, DestinationGuide>> = {
  'website-sales-concierge':{kind:'website',headline:'Copy these answers onto your site',takeaway:'Live chat is not deployed. Copy the FAQ onto your site or help center.',connectedNote:'Your website is captured as a source. Copy these answers onto the live site; chat is not deployed.'},
  'account-intelligence':{kind:'drive',headline:'Copy this company brief',takeaway:'This is an internal brief. Copy it into your notes or share it with the team.',connectedNote:'A files destination is connected. Copy this brief; DAVID does not file it automatically.'},
  'product-merchandiser':{kind:'commerce',headline:'Copy this into your store',takeaway:'Commerce is not connected. Copy merchandising notes into Shopify or your catalog tools.',connectedNote:'A commerce destination is connected. Copy this for now; catalog writes after review are not implemented.'},
+ 'linkedin-outreach-assistant':{kind:'social',headline:'Copy these notes into LinkedIn',takeaway:'LinkedIn sending is not live. Copy approved notes into the company LinkedIn account.',connectedNote:'A social destination is connected. Copy these notes; sending after review is not implemented.'},
+ 'partner-development':{kind:'mail',headline:'Copy this partner intro',takeaway:'No partner email was sent. Copy the intro into the mail tool you use.',connectedNote:'Email is connected as a source. Copy this intro; DAVID does not send it.'},
+ 'outbound-email-sdr':{kind:'mail',headline:'Copy this sequence into mail',takeaway:'No outbound email was sent. Copy the sequence into Klaviyo or the sender you use.',connectedNote:'Email is connected as a source. Copy this sequence; DAVID does not send it.'},
+ 'rfp-opportunity-scout':{kind:'rfp',headline:'Copy this RFP response outline',takeaway:'No bid was filed. Copy the watchlist into the proposal tool you use.',connectedNote:'An RFP destination is connected. Copy this outline; filing after review is not implemented.'},
 };
 
 function systemLabel(kind:SystemKind){return companySystemDefinitions.find(item=>item.kind===kind)?.label??kind;}

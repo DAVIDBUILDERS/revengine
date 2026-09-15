@@ -67,7 +67,7 @@ export function CompanyConnectionMap({ state, onSetup, onChooseTeam, onManageSys
       <article className={`company-system ${system.supported ? "is-supported" : "is-planned"}`} data-system={system.kind} data-status={system.status} key={system.kind}>
         <header className="company-system-top">
           <span className="company-system-icon"><presentation.Icon size={23} strokeWidth={1.45} /></span>
-          <span className="company-system-state">{statusLabels[system.status]}</span>
+          <span className="company-system-state">{state.workspace.mode === "fixture" && system.status === "engineering_required" ? "Illustrative account" : statusLabels[system.status]}</span>
         </header>
         <span className="company-map-kicker">{system.supported ? "AVAILABLE SOURCE SETUP" : "SYSTEM INVENTORY"}</span>
         <h3>{system.label}</h3>
@@ -76,7 +76,7 @@ export function CompanyConnectionMap({ state, onSetup, onChooseTeam, onManageSys
           <span className="company-map-kicker">{system.supported ? "CURRENT COVERAGE" : "WHAT’S AVAILABLE"}</span>
           <p>{system.detail}</p>
           {system.supported && (system.connectionIds.length > 0 || system.resourceIds.length > 0) && <span className="company-system-records">{system.connectionIds.length} connection{system.connectionIds.length === 1 ? "" : "s"} · {system.resourceIds.length} source selection{system.resourceIds.length === 1 ? "" : "s"}</span>}
-          {!system.supported && <span className="company-system-planned-note">Inventory can be saved now. There is no OAuth or live account connection for this system yet.</span>}
+          {!system.supported && <span className="company-system-planned-note">{state.workspace.mode === "fixture" ? "Illustrative fixture account for this walkthrough. Not a live OAuth grant." : "Inventory can be saved now. There is no OAuth or live account connection for this system yet."}</span>}
         </div>
         {sharedRoles.length > 0 ? <details className="company-system-sharing">
           <summary><Network size={14} /><span>Shared by {sharedRoles.length} specialist{sharedRoles.length === 1 ? "" : "s"}{selectedShared > 0 && <small>{selectedShared} on your team</small>}</span><ChevronDown size={14} /></summary>
