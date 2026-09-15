@@ -34,7 +34,7 @@ export const EvidenceAccessContext = createContext<{
 export const QuietWalkthroughContext = createContext(false);
 
 export function DavidSilhouette({ className = "" }: { className?: string }) {
-  return <span className={`david-silhouette ${className}`.trim()} aria-hidden="true" />;
+  return <div className={`david-silhouette ${className}`.trim()} aria-hidden="true" />;
 }
 
 export function Button({

@@ -74,11 +74,11 @@ body:has([role="dialog"]) .toast {
   color: #454a43;
   padding: 18px 10px 0;
 }
-.sidebar-david {
-  width: 34px;
-  height: auto;
+.sidebar-help .sidebar-david {
+  width: 42px;
+  height: calc(42px * 973 / 719);
   color: #222925;
-  margin-bottom: 8px;
+  margin: 2px 0 12px;
 }
 .sidebar-help span {
   color: var(--muted);
