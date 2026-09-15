@@ -95,8 +95,8 @@ test('finished briefing exits to team and remaining setup without repeating perm
  await executeCommand(fixture,{type:'save_onboarding',expectedRevision:0,answers});
  await page.goto('/?view=activation&step=finish');
  await page.getByRole('button',{name:'Open my workspace',exact:true}).click();
- await expect(page).toHaveURL(/view=team/);await expect(page.getByRole('heading',{name:'Your team',exact:true})).toBeVisible();
- await page.reload();await expect(page.getByRole('heading',{name:'Your team',exact:true})).toBeVisible();
+ await expect(page).toHaveURL(/view=team/);await expect(page.getByRole('heading',{name:'AI agents',exact:true})).toBeVisible();
+ await page.reload();await expect(page.getByRole('heading',{name:'AI agents',exact:true})).toBeVisible();
  await page.goto('/?view=activation&step=finish');
  await page.getByRole('button',{name:'Continue setup',exact:true}).click();
  await expect(page).toHaveURL(/mode=profile/);await expect(page).toHaveURL(/setup=5/);
@@ -118,5 +118,5 @@ test('a saved permission screen opens the saved briefing instead of recycling a 
  await expect(page.getByText('I approve this internal preparation limit and accept responsibility for reviewing its output.')).toHaveCount(0);
  await page.getByRole('button',{name:'Open my workspace',exact:true}).click();
  await expect(page).toHaveURL(/view=team/);
- await expect(page.getByRole('heading',{name:'Your team',exact:true})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'AI agents',exact:true})).toBeVisible();
 });

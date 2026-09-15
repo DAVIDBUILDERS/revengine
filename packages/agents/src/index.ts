@@ -4,7 +4,7 @@ import { AgentDefinition, type BusinessModel, type TeamRecommendation, EvidenceR
 type Archetype = z.infer<typeof BusinessModel>;
 const groups = [
   ['Find demand', ['Account Intelligence', 'Buying Signal Scout', 'Outbound Email SDR', 'LinkedIn Outreach Assistant', 'Partner Development', 'RFP Opportunity Scout', 'Competitor Intelligence']],
-  ['Create demand', ['Search Growth', 'Technical SEO Monitor', 'Local Search Manager', 'Creative Performance', 'Paid Campaign Operator', 'Landing Page Optimizer', 'Social Content Publisher', 'Video Script Producer', 'Product Merchandiser']],
+  ['Create demand', ['Search Growth', 'Technical SEO', 'Local Search Manager', 'Creative Performance', 'Paid Campaign Operator', 'Landing Page Optimizer', 'Social Content Publisher', 'Video Script Producer', 'Product Merchandiser']],
   ['Convert demand', ['Speed-to-Lead Responder', 'AI Receptionist', 'Website Sales Concierge', 'Appointment Coordinator', 'Lead Qualification']],
   ['Close revenue', ['Proposal Operations', 'Deal Follow-up', 'Sales Call Coach', 'Estimate Recovery', 'Revenue Experiment Manager']],
   ['Retain and expand', ['Abandoned Cart Recovery', 'Lifecycle Email Manager', 'Customer Win-back', 'Expansion Opportunity Scout', 'Renewal and Retention', 'Review and Referral Manager']],
@@ -14,11 +14,11 @@ export const preparationIds = ['account-intelligence', 'technical-seo-monitor', 
 export const ALWAYS_ON_AGENT_ID = 'website-sales-concierge' as const;
 export const TEAM_SWAP_COOLDOWN_HOURS = 12;
 export const EXTRA_AGENT_PRICE_MINOR = 100_000;
-export const aliases: Record<string, string> = { 'Account Prospector': 'account-intelligence', 'SEO Content Writer': 'search-growth', 'Ad Creative Studio': 'creative-performance', 'Proposal Builder': 'proposal-operations', 'Proposal Follow-up': 'deal-follow-up' };
+export const aliases: Record<string, string> = { 'Account Prospector': 'account-intelligence', 'SEO Content Writer': 'search-growth', 'Ad Creative Studio': 'creative-performance', 'Proposal Builder': 'proposal-operations', 'Proposal Follow-up': 'deal-follow-up', 'Technical SEO Monitor': 'technical-seo-monitor' };
 export function canonicalAgentId(value: string): string { return aliases[value] ?? value; }
 const prepOutputs: Record<string, string> = { 'account-intelligence': 'WebsiteProfile', 'technical-seo-monitor': 'CapturedPageAudit', 'search-growth': 'ContentBrief', 'creative-performance': 'AdCopyConcepts', 'landing-page-optimizer': 'PageCopyHypothesis', 'social-content-publisher': 'SocialDraft', 'video-script-producer': 'VideoScript', 'local-search-manager': 'LocationChecklist', 'website-sales-concierge': 'FaqDraft' };
 export const catalog: AgentDefinition[] = groups.flatMap(([category, names]) => names.map(name => {
-  const id = name.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-');
+  const id = name === 'Technical SEO' ? 'technical-seo-monitor' : name.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-');
   const preparation = id in prepOutputs;
   const execution = id === 'deal-follow-up' || id === 'appointment-coordinator';
   const archetypes: Archetype[] = ['product-merchandiser','abandoned-cart-recovery'].includes(id) ? ['commerce'] : id === 'estimate-recovery' ? ['home_services'] : ['b2b_services', 'home_services', 'commerce'];

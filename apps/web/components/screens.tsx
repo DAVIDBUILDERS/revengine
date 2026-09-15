@@ -24,7 +24,6 @@ import {
   ShieldCheck,
   ArrowLeftRight,
   ListChecks,
-  Target,
   Upload,
   UserRound,
   Users,
@@ -188,11 +187,10 @@ function TeamConfiguration(props: ScreenProps) {
 }
 
 export function Opportunities(props: ScreenProps) {
-  const { state, act, busy, navigate, inspect } = props;
+  const { state, act, busy } = props;
   const quiet = useContext(QuietWalkthroughContext);
   const floor = isWalkthroughFloor(state, quiet);
   const outreach = workspaceOutreach(state);
-  const [tab, setTab] = useState<"sales" | "findings">("sales");
   const [proposalId, setProposalId] = useState<string | null>(() =>
     typeof window === "undefined"
       ? null
@@ -213,9 +211,9 @@ export function Opportunities(props: ScreenProps) {
   return (
     <div className="stack workspace-studio opportunities-studio">
       <PageHeading
-        eyebrow="Focus on the next useful action"
-        title="Opportunities"
-        description="Sales records track customer opportunities. The work inbox holds evidence-backed findings your team can investigate; it never adds to pipeline totals."
+        eyebrow="Leads the team already moved"
+        title="Pipeline"
+        description="Every lead the agents produced — from yesterday and the day before. This is a lightweight list, not a CRM."
         action={
           <Button onClick={() => setImportOpen(true)}>
             <Upload size={14} />
@@ -231,25 +229,13 @@ export function Opportunities(props: ScreenProps) {
             <div className="studio-signal"><span>Meetings booked</span><strong>{outreach.meetingsBooked}</strong><small>From a book-a-meeting CTA</small></div>
           </div>
         ) : (
-          <div className="studio-signal-grid" aria-label="Filter proposal records">{[['all','All records'],['open','Open'],['on_hold','On hold'],['accepted','Accepted']].map(([value,label])=><button key={value} className="studio-signal" aria-pressed={recordStatus===value&&tab==='sales'} onClick={()=>{setRecordStatus(value);setTab('sales');}}><span>{label}</span><strong>{state.proposals.filter(p=>value==='all'||p.status===value).length}</strong><small>View records <ArrowUpRight size={12}/></small></button>)}</div>
+          <div className="studio-signal-grid" aria-label="Filter proposal records">{[['all','All records'],['open','Open'],['on_hold','On hold'],['accepted','Accepted']].map(([value,label])=><button key={value} className="studio-signal" aria-pressed={recordStatus===value} onClick={()=>setRecordStatus(value)}><span>{label}</span><strong>{state.proposals.filter(p=>value==='all'||p.status===value).length}</strong><small>View records <ArrowUpRight size={12}/></small></button>)}</div>
         )}
       </WorkspaceOverview>
-      <div className="pill-tabs" aria-label="Opportunity views">
-        <button aria-pressed={tab === "sales"} onClick={() => setTab("sales")}>
-          Sales records · {state.proposals.length}
-        </button>
-        <button
-          aria-pressed={tab === "findings"}
-          onClick={() => setTab("findings")}
-        >
-          Work inbox · {state.findings.length}
-        </button>
-      </div>
-      {tab === "sales" && (
-        <section className="card">
+      <section className="card">
           <div className="card-head">
             <div>
-              <h2>Proposal follow-up</h2>
+              <h2>Leads</h2>
               <p className="help" style={{ marginTop: 6 }}>
                 Current source status and contact permissions are checked before
                 dispatch.
@@ -349,51 +335,6 @@ export function Opportunities(props: ScreenProps) {
             </Empty>
           )}
         </section>
-      )}
-      {tab === "findings" && (
-        <div className="grid-two">
-          {state.findings.map((f) => (
-            <article className="card card-body" key={f.id}>
-              <div className="between">
-                <Badge status={f.status} />
-                <Target size={19} color="var(--accent)" />
-              </div>
-              <h3 style={{ fontSize: 18, margin: "16px 0 10px" }}>{f.title}</h3>
-              <p className="small muted">{f.observedCondition}</p>
-              <p className="small" style={{ marginTop: 14 }}>
-                {f.hypothesis}
-              </p>
-              <div className="help" style={{ margin: "14px 0" }}>
-                Specialist:{" "}
-                {state.catalog.find((a) => a.id === f.agentId)?.name}
-                <br />
-                Owner: {f.owner} · {f.effortMinutes} minutes ·{" "}
-                {money(f.costMinor)}
-                <br />
-                Success rule: {f.evaluationRule}
-              </div>
-              <div className="flex wrap">
-                <button
-                  className="link-button"
-                  onClick={() =>
-                    inspect(f.title, f.observedCondition, f.evidence)
-                  }
-                >
-                  Inspect evidence
-                  <ArrowUpRight size={12} />
-                </button>
-                <Button
-                  className="btn-small"
-                  onClick={() => navigate("decisions")}
-                >
-                  Review decision
-                  <ArrowRight size={12} />
-                </Button>
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
       <Drawer
         open={!!proposal}
         onClose={() => setProposalId(null)}
@@ -1590,8 +1531,8 @@ export function Scenarios({ state, act, busy }: ScreenProps) {
     <div className="stack workspace-studio scenarios-studio">
       <PageHeading
         eyebrow="Planning, with the assumptions in view"
-        title="One funnel. Three possible cases."
-        description="Explore low, base and high cases with a shared cohort and a real capacity constraint. These are planning scenarios, separate from recorded business outcomes."
+        title="Forecast"
+        description="Change the inputs. Low, base and high cases share a cohort and a capacity constraint. This is a planning forecast, separate from recorded results."
         action={
           <Button
             variant="primary"

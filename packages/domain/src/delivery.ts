@@ -1,5 +1,6 @@
 import type {AppSnapshot} from '../../contracts/src/index';
 import {companyConnectionCoverage, companySystemDefinitions, type SystemKind} from './company-connections';
+import {workbenchAgentIds} from './team';
 
 export type DeliveryMode = 'copy_out' | 'needs_access' | 'connected' | 'engineering_required';
 export type DestinationGuide = {kind:SystemKind;headline:string;takeaway:string;connectedNote:string};
@@ -22,7 +23,7 @@ export const agentDestinations: Partial<Record<string, DestinationGuide>> = {
  'paid-campaign-operator':{kind:'advertising',headline:'Copy this into your ads account',takeaway:'Advertising is not connected. Copy this plan into the ads account you use.',connectedNote:'An advertising destination is connected. Copy this plan for now; campaign execution after review is not implemented.'},
  'video-script-producer':{kind:'drive',headline:'Copy this script for production',takeaway:'No video is rendered. Copy the script and shot list into your production tools.',connectedNote:'A files destination is connected. Copy this script for now; rendering is not implemented.'},
  'local-search-manager':{kind:'local',headline:'Copy this into your listings',takeaway:'Listing changes are not connected. Copy this checklist into Google Business or your local profiles.',connectedNote:'A listings destination is connected. Copy this checklist for now; listing writes after review are not implemented.'},
- 'website-sales-concierge':{kind:'website',headline:'Copy these answers onto your site',takeaway:'Live chat is not deployed. Copy the FAQ onto your site or help center.',connectedNote:'Your website is captured as a source. Copy these answers onto the live site; chat is not deployed.'},
+ 'website-sales-concierge':{kind:'website',headline:'Watch the website conversation',takeaway:'This workspace records the chat. Live chat is not deployed on the public site.',connectedNote:'Your website is captured as a source. Open the recorded conversation; chat is not deployed to the live site.'},
  'account-intelligence':{kind:'drive',headline:'Copy this company brief',takeaway:'This is an internal brief. Copy it into your notes or share it with the team.',connectedNote:'A files destination is connected. Copy this brief; DAVID does not file it automatically.'},
  'product-merchandiser':{kind:'commerce',headline:'Copy this into your store',takeaway:'Commerce is not connected. Copy merchandising notes into Shopify or your catalog tools.',connectedNote:'A commerce destination is connected. Copy this for now; catalog writes after review are not implemented.'},
  'linkedin-outreach-assistant':{kind:'social',headline:'Copy these notes into LinkedIn',takeaway:'LinkedIn sending is not live. Copy approved notes into the company LinkedIn account.',connectedNote:'A social destination is connected. Copy these notes; sending after review is not implemented.'},
@@ -89,7 +90,7 @@ export function shortAgentLabel(name:string){
 }
 
 export function teamActivitySeries(state:AppSnapshot):TeamActivityPoint[] {
- return state.activation.selectedTeam.map(agentId=>{
+ return workbenchAgentIds(state.activation.selectedTeam).map(agentId=>{
   const agent=state.catalog.find(item=>item.id===agentId);
   const work=specialistWorkSnapshot(state,agentId);
   return {
@@ -114,7 +115,7 @@ export function teamActivityNarrative(state:AppSnapshot){
  const headline=active.length
   ? onPass
    ?`The team ran overnight. One specialist is still on a pass.`
-   :`The team already ran. ${active.length} specialist${active.length===1?'':'s'} left work you can open.`
+   :`The team already ran. ${active.length} specialist${active.length===1?'':'s'} left results you can open.`
   :'The team has not saved work yet.';
  const sentences=active.map(point=>point.latestTitle?`${point.name} — ${point.latestTitle}.`:`${point.name} recorded ${point.artifacts} draft${point.artifacts===1?'':'s'}.`);
  if(typeof replies==='number'&&replies>0)sentences.push(`${replies} human ${replies===1?'reply is':'replies are'} already on the record.`);
@@ -242,6 +243,18 @@ export function conversationThread(state:AppSnapshot,opportunityId:string):Conve
   body:item.detail,
   eventLabel:EVENT_KINDS[item.kind],
  }));
+}
+
+export function agentConversationLabel(agentId:string){
+ if(agentId==='website-sales-concierge')return 'Watch this conversation';
+ if(agentId==='linkedin-outreach-assistant'||agentId==='outbound-email-sdr')return 'See the conversation';
+ return null;
+}
+
+export function conversationProposalForAgent(state:AppSnapshot,agentId:string){
+ const channel:ConversationChannel|null=agentId==='website-sales-concierge'?'website':agentId==='linkedin-outreach-assistant'?'linkedin':agentId==='outbound-email-sdr'?'email':null;
+ if(!channel)return state.proposals[0]?.id??null;
+ return state.proposals.find(item=>conversationThread(state,item.opportunityId).some(message=>message.channel===channel))?.id??null;
 }
 
 function timelineFor(state:AppSnapshot,opportunityId?:string){

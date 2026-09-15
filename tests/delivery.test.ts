@@ -1,7 +1,7 @@
 import {describe,expect,it} from 'vitest';
 import {createFixtureState,snapshot} from '@david/domain';
 import {saveOnboarding} from '../packages/domain/src/onboarding';
-import {agentDelivery,agentDestinations,agentFloorStatus,artifactCopyText,conversationThread,specialistWorkSnapshot,teamActivityFeed,teamActivityNarrative,teamActivitySeries} from '../packages/domain/src/delivery';
+import {agentConversationLabel,agentDelivery,agentDestinations,agentFloorStatus,artifactCopyText,conversationProposalForAgent,conversationThread,specialistWorkSnapshot,teamActivityFeed,teamActivityNarrative,teamActivitySeries} from '../packages/domain/src/delivery';
 import {onboardingFor} from '@david/domain';
 
 describe('agent delivery modes',()=>{
@@ -83,7 +83,7 @@ describe('agent delivery modes',()=>{
  it('summarizes the active team on an x/y activity series',()=>{
   const wallaroo=snapshot(createFixtureState('wallaroo'));
   const series=teamActivitySeries(wallaroo);
-  expect(series.map(item=>item.agentId)).toEqual(wallaroo.activation.selectedTeam);
+  expect(series.map(item=>item.agentId)).toEqual(['website-sales-concierge',...wallaroo.activation.selectedTeam]);
   expect(series.every(item=>item.total>0)).toBe(true);
   expect(teamActivityNarrative(wallaroo).headline).toMatch(/ran overnight/i);
   expect(teamActivityNarrative(wallaroo).body).toMatch(/LinkedIn Outreach Assistant/);
@@ -100,5 +100,8 @@ describe('agent delivery modes',()=>{
   const called=wallaroo.proposals.find(item=>item.reference==='P-2001')!;
   expect(conversationThread(wallaroo,called.opportunityId).some(item=>item.channel==='email'&&item.body.includes('Book 30 minutes'))).toBe(true);
   expect(conversationThread(wallaroo,called.opportunityId).some(item=>item.eventLabel==='Connection accepted')).toBe(true);
+  expect(agentConversationLabel('website-sales-concierge')).toBe('Watch this conversation');
+  const website=conversationProposalForAgent(wallaroo,'website-sales-concierge');
+  expect(wallaroo.proposals.find(item=>item.id===website)?.reference).toBe('P-2005');
  });
 });

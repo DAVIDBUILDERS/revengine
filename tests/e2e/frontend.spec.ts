@@ -7,7 +7,7 @@ test("customer navigation does not include Activation", async ({ page }) => {
   await expect(page.getByRole("tab", { name: "Overview" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Account Intelligence" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Deal Follow-up" })).toBeVisible();
-  await expect(page.getByRole("tab", { name: "Appointment Coordinator" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Appointment" })).toBeVisible();
 });
 
 test("all operational screens fit a narrow viewport", async ({ page }) => {
@@ -130,11 +130,11 @@ test("agent workspace exposes recorded outputs, sources, limits and working paus
       .getByRole("img", { name: "David Engine", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Your team", exact: true }),
+    page.getByRole("link", { name: "AI Agents", exact: true }),
   ).toHaveCount(0);
   await page.getByRole("button", { name: "Toggle navigation" }).click();
   await expect(
-    page.getByRole("link", { name: "Your team", exact: true }),
+    page.getByRole("link", { name: "AI Agents", exact: true }),
   ).toBeVisible();
   await page.getByLabel("Switch workspace").selectOption("northstar");
   await expect(page).toHaveURL(/workspace=northstar/);
@@ -263,13 +263,9 @@ test("proposal approval, reply, booking and outcome stages remain distinct", asy
     drawer.getByText("confirmed", { exact: true }).first(),
   ).toBeVisible();
   await page.keyboard.press("Escape");
-  await page
-    .getByRole("link", { name: "Customer journey", exact: true })
-    .click();
-  await expect(
-    page.getByText("1 fixture observation", { exact: true }),
-  ).toHaveCount(2);
-  await expect(page.getByText("No evidence", { exact: true })).toHaveCount(5);
+  await page.getByRole("link", { name: "Pipeline", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Pipeline", exact: true })).toBeVisible();
+  await expect(page.getByRole("row").filter({ hasText: "P-1001" })).toBeVisible();
   await page.getByRole("link", { name: "Dashboard", exact: true }).click();
   await page.screenshot({
     path: "test-results/screenshots/desktop-today.png",
@@ -327,7 +323,7 @@ test("catalog selections, saved scenarios and evidence keyboard navigation", asy
   await expect(page.locator(".agent-card")).toHaveCount(32);
   await page.getByRole("button", { name: "Recommend my five" }).click();
   await expect(page.getByRole("status").filter({hasText:"Recommended team selected below"})).toBeVisible();
-  await page.getByRole("link", { name: "Scenarios", exact: true }).click();
+  await page.getByRole("link", { name: "Forecast", exact: true }).click();
   await page
     .getByLabel("Scenario name", { exact: true })
     .fill("E2E reviewed planning case");
@@ -341,12 +337,8 @@ test("catalog selections, saved scenarios and evidence keyboard navigation", asy
   );
   await page.getByRole("link", { name: "Dashboard", exact: true }).click();
   const metric = page.locator(".metric-card").first();
-  await metric.focus();
-  await page.keyboard.press("Enter");
-  await expect(page.getByRole("dialog")).toBeVisible();
-  await page.keyboard.press("Escape");
-  await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(metric).toBeFocused();
+  await metric.click();
+  await expect(page.getByRole("heading", { name: "Pipeline", exact: true })).toBeVisible();
 });
 
 test("mobile navigation and operator forms remain usable", async ({ page }) => {
@@ -382,7 +374,7 @@ test("activation resumes and preparation leads to a bounded reviewed initiative"
   await page.getByRole("button", { name: /3\. Systems & sources/ }).click();
   await page.reload();
   await expect(page.getByRole("heading", { name: "Systems & sources", exact: true })).toBeVisible();
-  await page.getByRole("link", { name: "Your team", exact: true }).click();
+  await page.getByRole("link", { name: "AI Agents", exact: true }).click();
   await page.getByRole("button",{name:"Build your team",exact:true}).click();
   await page
     .locator(".agent-card")
@@ -403,7 +395,7 @@ test("activation resumes and preparation leads to a bounded reviewed initiative"
   );
   await expect(page.getByRole("dialog").locator(".prose").first()).toBeVisible();
   await page.keyboard.press("Escape");
-  await page.getByRole("link", { name: "Decisions & initiatives" }).click();
+  await page.goto("/?view=decisions");
   await page
     .getByRole("button", { name: "Approve initiative" })
     .first()

@@ -900,6 +900,16 @@
 @media(max-width:850px){.studio-workbench{grid-template-columns:1fr}.studio-brief{padding:24px}.studio-actions{flex-direction:row;flex-wrap:wrap}.studio-brief h2{margin:10px 0}.studio-mission{padding:24px;align-items:flex-start}.studio-heading{align-items:flex-start}.studio-heading .btn{font-size:11px;white-space:nowrap;flex-shrink:0}.studio-mission>.studio-text-action{display:none}.studio-empty{min-height:340px}.studio-configuration{padding:12px}}
 @media(prefers-reduced-motion:reduce){.studio-specialist{transition:none}.studio-specialist:hover{transform:none}}
 
+.agent-browse{margin:42px 0 12px;display:grid;gap:22px}
+.agent-browse-intro h2{font:400 clamp(26px,3vw,40px)/1.12 Georgia,serif;margin:10px 0}
+.agent-browse-intro p{max-width:640px;font-size:13px;line-height:1.8;color:#687069}
+.agent-browse h3{font-size:13px;letter-spacing:.4px;text-transform:uppercase;color:#6a7368;margin:8px 0 0}
+.agent-browse-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.agent-browse-card{min-width:0;border:1px solid var(--studio-line);border-radius:14px;padding:18px;background:#f6f6f1;display:flex;flex-direction:column;gap:10px}
+.agent-browse-card strong{font-size:16px;line-height:1.3}
+.agent-browse-card p{font-size:12px;line-height:1.7;color:#687069;margin:0}
+.agent-browse-card .studio-text-action{margin-top:auto}
+
 /* Team assembly shares the workbench's quiet, precise visual language. */
 .team-builder{display:grid;gap:28px}
 .builder-objective{background:#222925;color:#f3f4ec;border-radius:18px;padding:32px;display:grid;grid-template-columns:1fr 1fr;gap:40px}

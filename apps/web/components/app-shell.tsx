@@ -18,7 +18,6 @@ import { activeApprovals } from "./approval-state";
 import {
   AlertCircle,
   BarChart3,
-  BriefcaseBusiness,
   Check,
   ChevronRight,
   CircleHelp,
@@ -30,10 +29,9 @@ import {
   Pause,
   Plug,
   RefreshCw,
-  Route,
   Settings2,
+  Sparkles,
   Target,
-  Users,
   X,
 } from "lucide-react";
 import {
@@ -81,17 +79,12 @@ export type ScreenProps = {
 };
 const navigation = [
   { id: "today", label: "Dashboard", icon: LayoutDashboard },
-  { id: "team", label: "Your team", icon: Users },
-  { id: "opportunities", label: "Opportunities", icon: Target },
-  {
-    id: "decisions",
-    label: "Decisions & initiatives",
-    icon: BriefcaseBusiness,
-  },
-  { id: "journey", label: "Customer journey", icon: Route },
-  { id: "scenarios", label: "Scenarios", icon: BarChart3 },
+  { id: "opportunities", label: "Pipeline", icon: Target },
+  { id: "scenarios", label: "Forecast", icon: BarChart3 },
+  { id: "team", label: "AI Agents", icon: Sparkles },
   { id: "connections", label: "Connections", icon: Plug },
 ] as const;
+const hiddenPages = ["decisions", "journey"] as const;
 
 export type WorkspaceDataSource = {
   list(): Promise<{ workspaces: { id: string; name: string }[]; limited?: boolean }>;
@@ -228,9 +221,12 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
       const value = new URLSearchParams(window.location.search).get("view");
       const next = browserDemo && value === "operator" ? "today" : value;
       if (
-        [...navigation.map((item) => item.id), "operator", "activation"].includes(
-          next ?? "",
-        )
+        [
+          ...navigation.map((item) => item.id),
+          ...hiddenPages,
+          "operator",
+          "activation",
+        ].includes(next ?? "")
       )
         setPage(next as PageId);
     };
@@ -324,7 +320,11 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
       ? "Operator console"
       : page === "activation"
         ? "Company profile"
-        : (navigation.find((item) => item.id === page)?.label ?? "Dashboard");
+        : page === "decisions"
+          ? "Decisions"
+          : page === "journey"
+            ? "Journey"
+            : (navigation.find((item) => item.id === page)?.label ?? "Dashboard");
   const pending = state ? activeApprovals(state).length : 0;
   const isOperator =
     state?.context.role === "david_operator" ||

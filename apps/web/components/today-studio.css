@@ -361,12 +361,34 @@
 .run-row[data-kind="held"], .run-log .studio-output[data-kind="held"] { border-color: #ead9a8; }
 .run-toggle time, .run-toggle span { font-size: 11px; color: #66705f; }
 .run-toggle strong { font-size: 13px; }
+.agent-activity {
+  margin-top: 8px;
+  padding: 18px 4px 4px;
+  border-top: 1px solid #e2e5d9;
+}
+.agent-activity ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.agent-activity button {
+  display: grid;
+  grid-template-columns: 140px 140px minmax(0, 1fr);
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  padding: 10px 12px;
+  color: inherit;
+  align-items: baseline;
+}
+.agent-activity button[aria-pressed="true"] { background: #f3f5ee; border-color: #dfe3d4; }
+.agent-activity time, .agent-activity span { font-size: 11px; color: #66705f; }
+.agent-activity strong { font-size: 13px; }
 @media (max-width: 760px) {
   .dashboard-story { grid-template-columns: 1fr; align-items: flex-start; padding: 24px; }
   .dashboard-agent { grid-template-columns: 1fr; }
   .dashboard-tabs > button { font-size: 11px; padding: 8px 12px; }
   .floor-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .activity-feed button, .run-toggle { grid-template-columns: 1fr; gap: 4px; }
+  .activity-feed button, .run-toggle, .agent-activity button { grid-template-columns: 1fr; gap: 4px; }
 }
 
 .today-handoff { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 25px; padding: 24px 28px; margin-bottom: 28px; border: 1px solid #dbe2cf; border-radius: 16px; background: #f0f3e9; color: #273025; }

@@ -31,7 +31,7 @@ test('website briefing saves business context and opens the workspace on desktop
  await page.screenshot({path:info.outputPath('briefing-finish-desktop.png'),fullPage:true});
  await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
  await page.screenshot({path:info.outputPath('briefing-finish-mobile.png'),fullPage:true});
- await page.getByRole('button',{name:'Open my workspace'}).click();await expect(page.getByRole('heading',{name:'Your team',exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'Open my workspace'}).click();await expect(page.getByRole('heading',{name:'AI agents',exact:true})).toBeVisible();
  expect(errors).toEqual([]);expect(calls).toEqual([]);
 });
 test('manual fallback, backtracking and refresh preserve answers without claiming execution',async({page},info)=>{
