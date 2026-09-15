@@ -62,3 +62,15 @@ describe('CSV import, strategy and scenarios',()=>{
   it('keeps unknown margin unavailable and separates setup, support and R&D',async()=>{const {state}=valid();await executeCommand(state,{type:'log_time',category:'setup',minutes:120,costMinor:20000,note:'Initial operator configuration'});await executeCommand(state,{type:'log_time',category:'research',minutes:60,costMinor:10000,note:'Reusable engineering'});await executeCommand(state,{type:'log_time',category:'recurring_support',minutes:30,costMinor:null,note:'Founder support, rate not recorded'});const economics=deliveryEconomics(500000,state.usage);expect(economics.categories.setup.recordedCostMinor).toBe(20000);expect(economics.categories.research.recordedCostMinor).toBe(10000);expect(economics.recurringMarginMinor).toBeNull();expect(economics.customerGrossProfitMinor).toBeNull();});
   it('SHA-256 payload hashes are stable and include recipient and policy authority',async()=>{const {action}=await approved();expect(action.payloadHash).toMatch(/^[a-f0-9]{64}$/);expect(await actionHash({...action,payload:{...action.payload}},1)).toBe(action.payloadHash);expect(await actionHash(action,2)).not.toBe(action.payloadHash);});
 });
+
+describe('fixture conversation log',()=>{
+  it('appends an owner note only after takeover',async()=>{
+    const state=createFixtureState('wallaroo');
+    const proposal=state.proposals[0];
+    await expect(executeCommand(state,{type:'human_note',proposalId:proposal.id,text:'Holding this in the log.'})).rejects.toThrow(/Take over/);
+    await executeCommand(state,{type:'takeover',contactId:state.contacts[0].id,enabled:true});
+    const result=await executeCommand(state,{type:'human_note',proposalId:proposal.id,text:'Holding this in the workspace log.'});
+    expect(result.message).toMatch(/No message was sent/);
+    expect(state.timeline.some(item=>item.kind==='message_note'&&item.detail.includes('workspace log'))).toBe(true);
+  });
+});

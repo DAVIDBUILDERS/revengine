@@ -102,6 +102,7 @@ export const Command = z.discriminatedUnion('type', [
   z.object({type: z.literal('book'), proposalId: Id, startAt: Utc, timeZone: TimeZone}).strict(),
   z.object({type: z.literal('pause'), paused: z.boolean()}).strict(),
   z.object({type: z.literal('takeover'), contactId: Id, enabled: z.boolean()}).strict(),
+  z.object({type: z.literal('human_note'), proposalId: Id, text: z.string().min(1).max(8000)}).strict(),
   z.object({type: z.literal('select_team'), agentIds: z.array(z.string()).max(32)}).strict(),
   z.object({type: z.literal('recommend_team'), goal: z.string().min(3).max(300), businessModel: BusinessModel}).strict(),
   z.object({type: z.literal('activation'), step: z.number().int().min(1).max(6), confirmedFacts: z.boolean()}).strict(),

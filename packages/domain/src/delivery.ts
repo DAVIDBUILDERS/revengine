@@ -110,11 +110,95 @@ export function teamActivityNarrative(state:AppSnapshot){
  const active=points.filter(point=>point.total>0);
  const replies=state.metrics.find(item=>item.key==='human_replies')?.value;
  const bookings=state.metrics.find(item=>item.key==='verified_bookings')?.value;
+ const onPass=isWalkthroughFloor(state)&&active.some(point=>agentFloorStatus(state,point.agentId,defaultHumanReview(point.agentId))==='on_pass');
  const headline=active.length
-  ?`The team already ran. ${active.length} specialist${active.length===1?'':'s'} left work you can open.`
+  ? onPass
+   ?`The team ran overnight. One specialist is still on a pass.`
+   :`The team already ran. ${active.length} specialist${active.length===1?'':'s'} left work you can open.`
   :'The team has not saved work yet.';
  const sentences=active.map(point=>point.latestTitle?`${point.name} — ${point.latestTitle}.`:`${point.name} recorded ${point.artifacts} draft${point.artifacts===1?'':'s'}.`);
  if(typeof replies==='number'&&replies>0)sentences.push(`${replies} human ${replies===1?'reply is':'replies are'} already on the record.`);
  if(typeof bookings==='number'&&bookings>0)sentences.push(`${bookings} ${bookings===1?'booking was':'bookings were'} recorded.`);
  return {headline,body:sentences.join(' ')};
+}
+
+export type FloorStatus = 'completed' | 'on_pass' | 'held' | 'idle';
+export type ActivityKind = 'draft' | 'recommendation' | 'action' | 'held';
+export type TeamActivityEvent = {
+ id:string;at:string;agentId:string;name:string;kind:ActivityKind;title:string;verb:string;
+};
+export type SpecialistRun = {
+ id:string;at:string;kind:ActivityKind;title:string;detail:string;limitation?:string;
+ artifactId?:string;findingId?:string;actionId?:string;
+};
+export type ConversationMessage = {
+ id:string;at:string;kind:'message_out'|'message_in'|'message_note';actor:'david'|'human'|'source';title:string;body:string;
+};
+
+const ON_PASS_AGENT = 'technical-seo-monitor';
+const MESSAGE_KINDS = new Set(['message_out','message_in','message_note','reply']);
+
+export function defaultHumanReview(agentId:string){
+ return agentId === 'outbound-email-sdr';
+}
+
+export function isWalkthroughFloor(state:Pick<AppSnapshot,'workspace'>,quiet?:boolean){
+ return !!quiet || state.workspace.name === 'Wallaroo Media';
+}
+
+export function agentFloorStatus(state:AppSnapshot,agentId:string,humanReview=defaultHumanReview(agentId)):FloorStatus {
+ const work=specialistWorkSnapshot(state,agentId);
+ const installation=state.installations.find(item=>item.agentId===agentId);
+ const held=humanReview && state.actions.some(item=>item.installationId===installation?.id && item.status==='not_attempted' && state.approvals.some(approval=>approval.actionId===item.id && approval.status==='pending'));
+ if(held)return 'held';
+ if(agentId===ON_PASS_AGENT && (work.artifacts||work.actions||work.findings))return 'on_pass';
+ if(work.artifacts||work.actions||work.findings)return 'completed';
+ return 'idle';
+}
+
+export function floorStatusLabel(status:FloorStatus){
+ return status==='on_pass'?'On pass':status==='held'?'Held for review':status==='completed'?'Completed overnight':'Idle';
+}
+
+function findingNoticedAt(reviewAt:string){
+ return new Date(Date.parse(reviewAt)-7*86400000).toISOString();
+}
+
+export function activityLabel(kind:ActivityKind){
+ return kind==='held'?'Held for review':kind==='recommendation'?'Flagged':kind==='action'?'Recorded an action':'Wrote to the log';
+}
+
+export function specialistRunLog(state:AppSnapshot,agentId:string,humanReview=defaultHumanReview(agentId)):SpecialistRun[] {
+ const installation=state.installations.find(item=>item.agentId===agentId);
+ const runs:SpecialistRun[]=[];
+ for(const artifact of state.artifacts.filter(item=>item.agentId===agentId)){
+  runs.push({id:artifact.id,at:artifact.createdAt,kind:'draft',title:artifact.title,detail:artifact.content,limitation:artifact.limitation,artifactId:artifact.id});
+ }
+ for(const finding of state.findings.filter(item=>item.agentId===agentId)){
+  runs.push({id:finding.id,at:findingNoticedAt(finding.reviewAt),kind:'recommendation',title:finding.title,detail:finding.observedCondition,findingId:finding.id});
+ }
+ for(const action of state.actions.filter(item=>item.installationId===installation?.id)){
+  const held=humanReview && action.status==='not_attempted' && state.approvals.some(approval=>approval.actionId===action.id && approval.status==='pending');
+  runs.push({id:action.id,at:action.createdAt,kind:held?'held':'action',title:action.payload.subject,detail:action.payload.body,actionId:action.id});
+ }
+ return runs.sort((a,b)=>b.at.localeCompare(a.at)||a.title.localeCompare(b.title));
+}
+
+export function teamActivityFeed(state:AppSnapshot,humanReviewFor:(agentId:string)=>boolean=defaultHumanReview):TeamActivityEvent[] {
+ return state.activation.selectedTeam.flatMap(agentId=>{
+  const agent=state.catalog.find(item=>item.id===agentId);
+  const name=agent?.name??agentId;
+  return specialistRunLog(state,agentId,humanReviewFor(agentId)).map(run=>({id:run.id,at:run.at,agentId,name,kind:run.kind,title:run.title,verb:activityLabel(run.kind)}));
+ }).sort((a,b)=>b.at.localeCompare(a.at)||a.name.localeCompare(b.name));
+}
+
+export function conversationThread(state:AppSnapshot,opportunityId:string):ConversationMessage[] {
+ return state.timeline.filter(item=>item.opportunityId===opportunityId && MESSAGE_KINDS.has(item.kind)).slice().sort((a,b)=>a.at.localeCompare(b.at)).map(item=>({
+  id:item.id,
+  at:item.at,
+  kind:item.kind==='message_note'?'message_note':item.kind==='message_out'?'message_out':'message_in',
+  actor:item.actor,
+  title:item.title,
+  body:item.detail,
+ }));
 }

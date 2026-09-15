@@ -127,6 +127,8 @@
 @media (prefers-reduced-motion: reduce) {
   .today-studio .today-specialist { transition: none; }
   .today-studio .today-specialist:hover { transform: none; }
+  .floor-chip[data-status="on_pass"] .floor-dot { animation: none; }
+  .activity-feed ol > li { animation: none; }
 }
 
 .dashboard-tabs {
@@ -246,10 +248,117 @@
 .dashboard-agent-counts strong { display: block; font: 400 22px/1 Georgia, serif; color: #243024; margin-bottom: 4px; }
 .dashboard-agent-work { background: #fff; padding: 28px; min-width: 0; }
 .dashboard-pending { margin-bottom: 22px; border: 1px solid #e2e5d9; border-radius: 14px; padding: 22px; }
+.floor-strip {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+.floor-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  text-align: left;
+  padding: 14px 16px;
+  border: 1px solid #e1e3dc;
+  border-radius: 14px;
+  background: #fff;
+  color: #243024;
+}
+.floor-chip strong { font-size: 13px; }
+.floor-chip span:last-child { font-size: 11px; color: #66705f; }
+.floor-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #7a8668;
+}
+.floor-chip[data-status="held"] .floor-dot { background: #c9a227; }
+.floor-chip[data-status="on_pass"] .floor-dot {
+  background: #bb292d;
+  animation: floor-breathe 2.4s ease-in-out infinite;
+}
+.floor-chip[data-status="idle"] .floor-dot { background: #c5c9be; }
+@keyframes floor-breathe {
+  50% { opacity: .35; transform: scale(1.35); }
+}
+.activity-feed {
+  border: 1px solid #e1e3dc;
+  border-radius: 16px;
+  padding: 24px;
+  background: #fff;
+}
+.activity-feed ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.activity-feed ol > li {
+  animation: feed-enter 420ms ease both;
+}
+@keyframes feed-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.activity-feed button {
+  display: grid;
+  grid-template-columns: 150px minmax(120px, 180px) minmax(110px, 160px) minmax(0, 1fr);
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 12px 14px;
+  border: 1px solid #e7eadf;
+  border-radius: 12px;
+  background: #f7f8f2;
+  color: #243024;
+  align-items: baseline;
+}
+.activity-feed button[data-kind="held"] { border-color: #ead9a8; background: #fbf6e8; }
+.activity-feed time, .activity-feed .activity-agent { font-size: 11px; color: #66705f; }
+.activity-feed strong { font-size: 12px; }
+.activity-feed .activity-title { font-size: 12px; color: #4f564c; overflow-wrap: anywhere; }
+.human-review {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 4px 0 16px;
+  font-size: 12px;
+}
+.human-review input { margin-top: 3px; accent-color: #222925; }
+.human-review strong { display: block; }
+.human-review small { display: block; color: #66705f; margin-top: 2px; }
+.run-log { display: flex; flex-direction: column; gap: 10px; }
+.run-toggle {
+  display: grid;
+  grid-template-columns: 140px 140px minmax(0, 1fr);
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  padding: 0 0 8px;
+  color: inherit;
+  align-items: baseline;
+}
+.run-row, .run-log .studio-output {
+  border: 1px solid #e2e5d9;
+  border-radius: 14px;
+  padding: 16px 18px;
+  background: #fbfbf7;
+}
+.run-log .studio-output { background: #fff; }
+.run-row[data-kind="held"], .run-log .studio-output[data-kind="held"] { border-color: #ead9a8; }
+.run-toggle time, .run-toggle span { font-size: 11px; color: #66705f; }
+.run-toggle strong { font-size: 13px; }
 @media (max-width: 760px) {
   .dashboard-story { flex-direction: column; align-items: flex-start; padding: 24px; }
   .dashboard-agent { grid-template-columns: 1fr; }
   .dashboard-tabs > button { font-size: 11px; padding: 8px 12px; }
+  .floor-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .activity-feed button, .run-toggle { grid-template-columns: 1fr; gap: 4px; }
 }
 
 .today-handoff { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 25px; padding: 24px 28px; margin-bottom: 28px; border: 1px solid #dbe2cf; border-radius: 16px; background: #f0f3e9; color: #273025; }

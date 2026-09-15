@@ -989,6 +989,49 @@ details > summary:focus-visible {
 .guided-recommendation { border-bottom:1px solid var(--border); padding:12px 0; }
 .guided-setup .prose { white-space:pre-wrap; overflow-wrap:anywhere; }
 
+.conversation-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #f7f8f2;
+}
+.conversation-thread .today-kicker {
+  font: 500 10px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: 1.8px;
+  color: #767e73;
+}
+.conversation-log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.conversation-log > li {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e4e7dc;
+}
+.conversation-log > li[data-actor="david"] { border-left: 3px solid #222925; }
+.conversation-log > li[data-actor="human"] { border-left: 3px solid #7a8668; }
+.conversation-log > li[data-kind="message_note"] { background: #fbf6e8; }
+.conversation-log > li > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+  font-size: 11px;
+  color: #66705f;
+}
+.conversation-log p { margin: 0; font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
+.conversation-composer { display: flex; flex-direction: column; gap: 10px; }
+.conversation-composer label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
+
 /* Review-first setup: keep discovered answers legible and corrections optional. */
 .setup-summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
 .setup-summary{min-width:0;padding:20px;border:1px solid var(--border,#e0e4eb);border-radius:4px;display:flex;flex-direction:column;gap:12px}

@@ -39,6 +39,9 @@ describe('Wallaroo Media walkthrough fixture', () => {
     expect(state.findings.filter(item => item.status === 'proposed' && item.evaluationRule.startsWith('fixture.v1/'))).toHaveLength(5);
     expect(state.findings.some(item => item.evaluationRule.startsWith('strategy.v1/'))).toBe(false);
     expect(state.approvals.some(item => item.status === 'pending')).toBe(true);
+    expect(state.installations.find(item => item.agentId === 'outbound-email-sdr')?.lastBusinessActionAt).toBe('2026-09-10T14:05:00.000Z');
+    expect(state.installations.filter(item => item.agentId !== 'outbound-email-sdr').every(item => item.lastBusinessActionAt === null)).toBe(true);
+    expect(new Set(state.installations.map(item => item.lastPreparationAt)).size).toBeGreaterThan(3);
     expect(state.metrics.find(item => item.key === 'human_replies')?.value).toBe(3);
     expect(state.metrics.find(item => item.key === 'verified_bookings')?.value).toBe(2);
     expect(state.metrics.find(item => item.key === 'signed_value')?.value).toBe(1500000);

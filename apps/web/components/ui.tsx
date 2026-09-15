@@ -321,7 +321,7 @@ function ProtectedEvidenceFile({ id }: { id: string }) {
     </div>
   );
 }
-export function dateTime(value: string | null) {
+export function dateTime(value: string | null, timeZone?: string) {
   return value
     ? new Intl.DateTimeFormat("en-US", {
         month: "short",
@@ -329,6 +329,7 @@ export function dateTime(value: string | null) {
         hour: "numeric",
         minute: "2-digit",
         timeZoneName: "short",
+        ...(timeZone ? { timeZone } : {}),
       }).format(new Date(value))
     : "Not yet verified";
 }

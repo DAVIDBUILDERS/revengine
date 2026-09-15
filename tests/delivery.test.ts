@@ -1,7 +1,7 @@
 import {describe,expect,it} from 'vitest';
 import {createFixtureState,snapshot} from '@david/domain';
 import {saveOnboarding} from '../packages/domain/src/onboarding';
-import {agentDelivery,agentDestinations,artifactCopyText,specialistWorkSnapshot,teamActivityNarrative,teamActivitySeries} from '../packages/domain/src/delivery';
+import {agentDelivery,agentDestinations,agentFloorStatus,artifactCopyText,conversationThread,specialistWorkSnapshot,teamActivityFeed,teamActivityNarrative,teamActivitySeries} from '../packages/domain/src/delivery';
 import {onboardingFor} from '@david/domain';
 
 describe('agent delivery modes',()=>{
@@ -85,7 +85,21 @@ describe('agent delivery modes',()=>{
   const series=teamActivitySeries(wallaroo);
   expect(series.map(item=>item.agentId)).toEqual(wallaroo.activation.selectedTeam);
   expect(series.every(item=>item.total>0)).toBe(true);
-  expect(teamActivityNarrative(wallaroo).headline).toMatch(/already ran/i);
+  expect(teamActivityNarrative(wallaroo).headline).toMatch(/ran overnight/i);
   expect(teamActivityNarrative(wallaroo).body).toMatch(/LinkedIn Outreach Assistant/);
+  expect(teamActivityNarrative(snapshot(createFixtureState())).headline).toMatch(/already ran/i);
+ });
+ it('orders the Wallaroo activity feed and holds SDR while SEO stays on a pass',()=>{
+  const wallaroo=snapshot(createFixtureState('wallaroo'));
+  const feed=teamActivityFeed(wallaroo);
+  expect(feed[0]?.at>=feed[1]?.at).toBe(true);
+  expect(feed.some(item=>item.kind==='held'&&item.agentId==='outbound-email-sdr')).toBe(true);
+  expect(feed.filter(item=>item.kind==='held')).toHaveLength(1);
+  expect(agentFloorStatus(wallaroo,'technical-seo-monitor')).toBe('on_pass');
+  expect(agentFloorStatus(wallaroo,'outbound-email-sdr')).toBe('held');
+  expect(agentFloorStatus(wallaroo,'linkedin-outreach-assistant')).toBe('completed');
+  expect(agentFloorStatus(wallaroo,'outbound-email-sdr',false)).toBe('completed');
+  const called=wallaroo.proposals.find(item=>item.reference==='P-2001')!;
+  expect(conversationThread(wallaroo,called.opportunityId).map(item=>item.kind)).toEqual(['message_out','message_in','message_out']);
  });
 });

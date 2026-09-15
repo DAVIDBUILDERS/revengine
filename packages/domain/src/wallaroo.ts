@@ -177,7 +177,7 @@ function addArtifact(state: EngineState, agentId: string, title: string, type: s
   });
 }
 
-function addFinding(state: EngineState, agentId: string, title: string, condition: string, hypothesis: string, target: string, affectedIds: string[]) {
+function addFinding(state: EngineState, agentId: string, title: string, condition: string, hypothesis: string, target: string, affectedIds: string[], at = state.asOf) {
   state.findings.push({
     id: stableId(`${state.fixtureKey}:finding:${agentId}:${title}`),
     workspaceId: state.workspace.id,
@@ -195,7 +195,22 @@ function addFinding(state: EngineState, agentId: string, title: string, conditio
     alternatives: ['Keep reviewing the saved draft', 'Copy the work into the connected tool'],
     baseline: 'No live send or publish has occurred.',
     target,
-    reviewAt: new Date(Date.parse(state.asOf) + 7 * 86400000).toISOString(),
+    reviewAt: new Date(Date.parse(at) + 7 * 86400000).toISOString(),
+  });
+}
+
+function addMessage(state: EngineState, opportunityId: string, at: string, kind: 'message_out' | 'message_in', actor: 'david' | 'human', title: string, body: string) {
+  const source = state.proposals.find(item => item.opportunityId === opportunityId)?.evidence ?? [];
+  state.timeline.push({
+    id: stableId(`${state.fixtureKey}:message:${kind}:${title}:${at}`),
+    workspaceId: state.workspace.id,
+    opportunityId,
+    at,
+    kind,
+    title,
+    detail: body,
+    actor,
+    evidence: source,
   });
 }
 
@@ -203,6 +218,23 @@ function addFinding(state: EngineState, agentId: string, title: string, conditio
 export function applyWallarooFixture(state: EngineState): void {
   const now = state.asOf;
   const earlier = '2026-09-09T16:00:00.000Z';
+  const night = {
+    concierge: '2026-09-10T03:40:00.000Z',
+    seoCheck: '2026-09-10T04:14:00.000Z',
+    seoFixes: '2026-09-10T05:02:00.000Z',
+    linkedinFollow: '2026-09-10T06:41:00.000Z',
+    linkedinNotes: '2026-09-10T07:18:00.000Z',
+    partnerList: '2026-09-10T08:05:00.000Z',
+    partnerIntro: '2026-09-10T08:47:00.000Z',
+    rfpWatch: '2026-09-10T10:18:00.000Z',
+    rfpOutline: '2026-09-10T11:02:00.000Z',
+    sdrSeq: '2026-09-10T11:51:00.000Z',
+    sdrDraft: '2026-09-10T12:20:00.000Z',
+    firstTouch: '2026-09-10T12:28:00.000Z',
+    reply: '2026-09-10T13:12:00.000Z',
+    qualify: '2026-09-10T13:40:00.000Z',
+    sdrHold: '2026-09-10T14:05:00.000Z',
+  };
   const workspaceId = state.workspace.id;
   const team = [...WALLAROO_SELECTED_TEAM];
   state.workspace.name = 'Wallaroo Media';
@@ -282,8 +314,8 @@ export function applyWallarooFixture(state: EngineState): void {
       sourceMappings: agentId === 'technical-seo-monitor' || agentId === ALWAYS_ON_AGENT_ID ? ['fixture-website'] : agentId === 'linkedin-outreach-assistant' ? ['fixture-linkedin'] : agentId === 'outbound-email-sdr' ? ['fixture-klaviyo'] : agentId === 'partner-development' ? ['fixture-mail'] : ['fixture-rfp'],
       policyVersion: 1,
       dailyCapacity: 4,
-      lastPreparationAt: now,
-      lastBusinessActionAt: now,
+      lastPreparationAt: null,
+      lastBusinessActionAt: null,
       blockers: [],
     };
   });
@@ -298,25 +330,25 @@ export function applyWallarooFixture(state: EngineState): void {
       reviewState: 'draft',
       capabilityVersion: '1.0.0',
       runId: stableId(`${state.fixtureKey}:artifact-run:${agentId}`),
-      createdAt: now,
+      createdAt: agentId === 'technical-seo-monitor' ? now : night.concierge,
     });
   }
-  addArtifact(state, 'technical-seo-monitor', 'Title and description fixes', 'CapturedPageAudit', 'Priority fixes from the captured Wallaroo pages:\n1. /ai-powered-email/ — keep the Klaviyo/Shopify offer in the first 160 characters of the description.\n2. /ai-powered-seo/ — title already names SEO and LLMO; keep both terms.\n3. Home — “AI-native agency for eCommerce” is the clearest offer line.\nCopy these into the CMS. DAVID does not write the live site.', 'Only captured pages were checked. No ranking or crawl claim.', earlier);
-  addArtifact(state, 'linkedin-outreach-assistant', 'LinkedIn notes for Shopify operators', 'OutreachDraft', 'Four connection notes for Shopify brand operators in the $1M–$30M range.\n1. Called to Surf — ask how they evaluate paid + SEO together.\n2. Kaja Beauty — ask who owns creative velocity.\n3. Bullstrap — ask about Klaviyo flow coverage.\n4. Stately — ask about LLMO / AI-search visibility.\nNo InMail was sent. Review and copy into LinkedIn.', 'Saved draft only. LinkedIn sending is not live.');
-  addArtifact(state, 'linkedin-outreach-assistant', 'Follow-up angles after first reply', 'OutreachDraft', 'If a connection accepts: ask one qualification question (current stack, monthly ad spend band, or SEO owner) and offer the 30-minute strategist conversation from the public site. Do not invent pricing.', 'Draft only. No LinkedIn send.', earlier);
-  addArtifact(state, 'partner-development', 'Partner intro shortlist', 'PartnerBrief', 'Complementary partners Wallaroo can introduce or receive from:\n• Creative studios that already produce Meta/TikTok volume\n• Shopify Plus implementation partners\n• Email/SMS operators who need SEO/LLMO coverage\nProposed first intro: a Plus-partner studio that wants AI-native ads without building the SEO practice. Draft intro is saved; no email was sent.', 'Internal shortlist. No partner email was sent.');
-  addArtifact(state, 'partner-development', 'Plus-partner intro draft', 'PartnerIntro', 'Subject: Intro · AI-native ads + SEO for a shared Shopify Plus account\nBody: Wallaroo’s public offers are AI-Powered Ads, Email and SMS, and SEO including LLMO. This draft proposes a reciprocal intro with a Plus implementation partner. No email was sent.', 'Draft only. No partner email was sent.', earlier);
-  addArtifact(state, 'outbound-email-sdr', 'Outbound sequence · Shopify brands', 'EmailSequence', 'Three-step sequence for Shopify brands doing $1M–$30M.\n1. Offer clarity — AI-Powered Ads, Email, or SEO.\n2. Qualification — current stack (Meta, Klaviyo, SEO) and who owns it.\n3. Ask for the 30-minute strategist conversation from wallaroomedia.com.\nCopy into Klaviyo or the sender you use. DAVID did not send.', 'Draft sequence only. Klaviyo send is not live.');
-  addArtifact(state, 'outbound-email-sdr', 'Called to Surf first-touch draft', 'EmailDraft', `To: ${state.contacts[0].email}\nSubject: Paid, email, and SEO for ${state.contacts[0].account}\nBody: Wallaroo describes three offers for Shopify brands: AI-Powered Ads, AI-Powered Email and SMS, and AI-Powered SEO including LLMO. If you want a senior strategist conversation, use the public booking path on wallaroomedia.com.`, 'Not sent. Copy into your mail tool.', earlier);
-  addArtifact(state, 'rfp-opportunity-scout', 'Matching agency RFPs', 'RfpWatchlist', 'Two RFPs that match Wallaroo’s public offers:\n1. Shopify Plus brand — paid social + creative velocity (Ads page).\n2. DTC retailer — technical SEO + LLMO (SEO page).\nNeither was submitted. Review fit, then copy the response outline into the proposal tool you use.', 'Watchlist only. No bid was filed.');
-  addArtifact(state, 'rfp-opportunity-scout', 'SEO + LLMO response outline', 'RfpOutline', 'Response outline for the DTC retailer RFP.\n1. Technical SEO from the public /ai-powered-seo/ page.\n2. LLMO so AI shopping agents can recommend the brand.\n3. Ask for the 30-minute strategist conversation.\nDo not invent rankings or awarded work.', 'Outline only. No bid was filed.', earlier);
-  addArtifact(state, ALWAYS_ON_AGENT_ID, 'Homepage FAQ block', 'FaqDraft', 'FAQ block ready to paste onto wallaroomedia.com.\nWhat does Wallaroo offer? AI-Powered Ads, Email and SMS, and SEO including LLMO.\nWho is it for? Shopify and Shopify Plus brands, typically $1M–$30M+.\nWhat does it cost? Ask for the current approved proposal; public retainers start at $1,500/mo on the service pages.', 'Draft FAQ. Chat is not deployed.', earlier);
+  addArtifact(state, 'technical-seo-monitor', 'Title and description fixes', 'CapturedPageAudit', 'Priority fixes from the captured Wallaroo pages:\n1. /ai-powered-email/ — keep the Klaviyo/Shopify offer in the first 160 characters of the description.\n2. /ai-powered-seo/ — title already names SEO and LLMO; keep both terms.\n3. Home — “AI-native agency for eCommerce” is the clearest offer line.\nCopy these into the CMS. DAVID does not write the live site.', 'Only captured pages were checked. No ranking or crawl claim.', night.seoFixes);
+  addArtifact(state, 'linkedin-outreach-assistant', 'LinkedIn notes for Shopify operators', 'OutreachDraft', 'Four connection notes for Shopify brand operators in the $1M–$30M range.\n1. Called to Surf — ask how they evaluate paid + SEO together.\n2. Kaja Beauty — ask who owns creative velocity.\n3. Bullstrap — ask about Klaviyo flow coverage.\n4. Stately — ask about LLMO / AI-search visibility.\nNo InMail was sent. Review and copy into LinkedIn.', 'Saved draft only. LinkedIn sending is not live.', night.linkedinNotes);
+  addArtifact(state, 'linkedin-outreach-assistant', 'Follow-up angles after first reply', 'OutreachDraft', 'If a connection accepts: ask one qualification question (current stack, monthly ad spend band, or SEO owner) and offer the 30-minute strategist conversation from the public site. Do not invent pricing.', 'Draft only. No LinkedIn send.', night.linkedinFollow);
+  addArtifact(state, 'partner-development', 'Partner intro shortlist', 'PartnerBrief', 'Complementary partners Wallaroo can introduce or receive from:\n• Creative studios that already produce Meta/TikTok volume\n• Shopify Plus implementation partners\n• Email/SMS operators who need SEO/LLMO coverage\nProposed first intro: a Plus-partner studio that wants AI-native ads without building the SEO practice. Draft intro is saved; no email was sent.', 'Internal shortlist. No partner email was sent.', night.partnerList);
+  addArtifact(state, 'partner-development', 'Plus-partner intro draft', 'PartnerIntro', 'Subject: Intro · AI-native ads + SEO for a shared Shopify Plus account\nBody: Wallaroo’s public offers are AI-Powered Ads, Email and SMS, and SEO including LLMO. This draft proposes a reciprocal intro with a Plus implementation partner. No email was sent.', 'Draft only. No partner email was sent.', night.partnerIntro);
+  addArtifact(state, 'outbound-email-sdr', 'Outbound sequence · Shopify brands', 'EmailSequence', 'Three-step sequence for Shopify brands doing $1M–$30M.\n1. Offer clarity — AI-Powered Ads, Email, or SEO.\n2. Qualification — current stack (Meta, Klaviyo, SEO) and who owns it.\n3. Ask for the 30-minute strategist conversation from wallaroomedia.com.\nCopy into Klaviyo or the sender you use. DAVID did not send.', 'Draft sequence only. Klaviyo send is not live.', night.sdrSeq);
+  addArtifact(state, 'outbound-email-sdr', 'Called to Surf first-touch draft', 'EmailDraft', `To: ${state.contacts[0].email}\nSubject: Paid, email, and SEO for ${state.contacts[0].account}\nBody: Wallaroo describes three offers for Shopify brands: AI-Powered Ads, AI-Powered Email and SMS, and AI-Powered SEO including LLMO. If you want a senior strategist conversation, use the public booking path on wallaroomedia.com.`, 'Not sent. Copy into your mail tool.', night.sdrDraft);
+  addArtifact(state, 'rfp-opportunity-scout', 'Matching agency RFPs', 'RfpWatchlist', 'Two RFPs that match Wallaroo’s public offers:\n1. Shopify Plus brand — paid social + creative velocity (Ads page).\n2. DTC retailer — technical SEO + LLMO (SEO page).\nNeither was submitted. Review fit, then copy the response outline into the proposal tool you use.', 'Watchlist only. No bid was filed.', night.rfpWatch);
+  addArtifact(state, 'rfp-opportunity-scout', 'SEO + LLMO response outline', 'RfpOutline', 'Response outline for the DTC retailer RFP.\n1. Technical SEO from the public /ai-powered-seo/ page.\n2. LLMO so AI shopping agents can recommend the brand.\n3. Ask for the 30-minute strategist conversation.\nDo not invent rankings or awarded work.', 'Outline only. No bid was filed.', night.rfpOutline);
+  addArtifact(state, ALWAYS_ON_AGENT_ID, 'Homepage FAQ block', 'FaqDraft', 'FAQ block ready to paste onto wallaroomedia.com.\nWhat does Wallaroo offer? AI-Powered Ads, Email and SMS, and SEO including LLMO.\nWho is it for? Shopify and Shopify Plus brands, typically $1M–$30M+.\nWhat does it cost? Ask for the current approved proposal; public retainers start at $1,500/mo on the service pages.', 'Draft FAQ. Chat is not deployed.', '2026-09-10T03:55:00.000Z');
   const openIds = state.proposals.filter(item => item.status === 'open').map(item => item.id);
-  addFinding(state, 'technical-seo-monitor', 'Copy title fixes onto the live site', 'Captured pages have reviewable title and description checks.', 'Copying the saved checks onto wallaroomedia.com is the next human step.', 'Titles and descriptions updated in the CMS by a person.', openIds.slice(0, 1));
-  addFinding(state, 'linkedin-outreach-assistant', 'Review four LinkedIn notes', 'Four Shopify-operator notes are drafted and waiting.', 'A person should choose who to contact first.', 'One approved note copied into LinkedIn.', openIds);
-  addFinding(state, 'partner-development', 'Send the Plus-partner intro', 'A complementary Plus-partner intro is drafted.', 'A person should choose whether this intro goes out and who owns the relationship.', 'One intro copied into mail or dismissed.', [state.proposals[1].id]);
-  addFinding(state, 'outbound-email-sdr', 'Approve the first-touch sequence', 'A three-step outbound sequence is saved as a draft.', 'Review wording against approved Wallaroo offers before anyone pastes it into Klaviyo.', 'One sequence approved for copy-out.', [state.proposals[0].id]);
-  addFinding(state, 'rfp-opportunity-scout', 'Two RFPs match the public offers', 'Watchlist has two RFPs aligned to Ads and SEO pages.', 'Decide whether either is worth a human-written response.', 'One RFP accepted or dismissed.', [state.proposals[3].id]);
+  addFinding(state, 'technical-seo-monitor', 'Copy title fixes onto the live site', 'Captured pages have reviewable title and description checks.', 'Copying the saved checks onto wallaroomedia.com is the next human step.', 'Titles and descriptions updated in the CMS by a person.', openIds.slice(0, 1), night.seoCheck);
+  addFinding(state, 'linkedin-outreach-assistant', 'Review four LinkedIn notes', 'Four Shopify-operator notes are drafted and waiting.', 'A person should choose who to contact first.', 'One approved note copied into LinkedIn.', openIds, night.linkedinNotes);
+  addFinding(state, 'partner-development', 'Send the Plus-partner intro', 'A complementary Plus-partner intro is drafted.', 'A person should choose whether this intro goes out and who owns the relationship.', 'One intro copied into mail or dismissed.', [state.proposals[1].id], night.partnerIntro);
+  addFinding(state, 'outbound-email-sdr', 'Approve the first-touch sequence', 'A three-step outbound sequence is saved as a draft.', 'Review wording against approved Wallaroo offers before anyone pastes it into Klaviyo.', 'One sequence approved for copy-out.', [state.proposals[0].id], night.sdrSeq);
+  addFinding(state, 'rfp-opportunity-scout', 'Two RFPs match the public offers', 'Watchlist has two RFPs aligned to Ads and SEO pages.', 'Decide whether either is worth a human-written response.', 'One RFP accepted or dismissed.', [state.proposals[3].id], night.rfpWatch);
   const sdr = state.installations.find(item => item.agentId === 'outbound-email-sdr')!;
   const actionId = stableId(`${state.fixtureKey}:action:sdr-review`);
   const approvalId = stableId(`${state.fixtureKey}:approval:sdr-review`);
@@ -329,16 +361,31 @@ export function applyWallarooFixture(state: EngineState): void {
     contactId: state.contacts[0].id,
     proposalId: state.proposals[0].id,
     type: 'send_follow_up',
-    payload: { recipient: state.contacts[0].email, subject: `Paid, email, and SEO for ${state.contacts[0].account}`, body: 'First-touch draft. Review before anyone copies it into mail. No send occurred.', proposalVersion: 1 },
+    payload: { recipient: state.contacts[0].email, subject: `Paid, email, and SEO for ${state.contacts[0].account}`, body: 'Follow-up after Riley asked who owns paid, email, and SEO. Held because human review is on. No send occurred.', proposalVersion: 1 },
     payloadHash: 'fixture-walkthrough',
     evidence: state.proposals[0].evidence,
     approvalId,
     reservedCostMinor: 1,
     status: 'not_attempted',
-    createdAt: now,
+    createdAt: night.sdrHold,
     expiresAt: '2026-09-11T16:00:00.000Z',
   });
   state.approvals.push({ id: approvalId, workspaceId, actionId, status: 'pending', payloadHash: 'fixture-walkthrough', approverId: null, decidedAt: null, expiresAt: '2026-09-11T16:00:00.000Z' });
+  for (const installation of state.installations) {
+    const latest = state.artifacts.filter(item => item.agentId === installation.agentId).slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+    installation.lastPreparationAt = latest?.createdAt ?? null;
+    installation.lastBusinessActionAt = installation.agentId === 'outbound-email-sdr' ? night.sdrHold : null;
+  }
+  addMessage(state, replied.opportunityId, night.firstTouch, 'message_out', 'david', 'Called to Surf · first touch', `Riley — Wallaroo’s public offers for Shopify brands are AI-Powered Ads, Email and SMS, and SEO including LLMO. If a senior strategist conversation is useful, the booking path is on wallaroomedia.com.`);
+  addMessage(state, replied.opportunityId, night.reply, 'message_in', 'human', 'Riley Chen · reply', 'Who on your side owns paid, email, and SEO together? We are comparing a few partners and want one conversation, not three vendors.');
+  addMessage(state, replied.opportunityId, night.qualify, 'message_out', 'david', 'Called to Surf · qualification', 'One strategist conversation covers the stack. The public 30-minute booking path is on wallaroomedia.com. No new commercial terms.');
+  addMessage(state, won.opportunityId, '2026-09-09T18:20:00.000Z', 'message_out', 'david', 'MaxPro · first touch', 'Morgan — Wallaroo’s Ads, Email, and SEO offers are on the public site. Sharing the strategist conversation path; no send beyond this workspace log.');
+  addMessage(state, won.opportunityId, '2026-09-09T21:05:00.000Z', 'message_in', 'human', 'Morgan Hale · reply', 'We signed the existing proposal. Hold further automated contact unless we ask.');
+  addMessage(state, booked.opportunityId, '2026-09-09T17:10:00.000Z', 'message_out', 'david', 'Jantzen · first touch', 'Sam — checking fit against Wallaroo’s public Ads, Email, and SEO offers. Booking stays on the public calendar path.');
+  addMessage(state, booked.opportunityId, '2026-09-09T19:40:00.000Z', 'message_in', 'human', 'Sam Brooks · reply', 'Booked the strategist conversation. We will come with current Meta and Klaviyo context.');
+  state.replies[replied.id] = { eventId: 'wallaroo-reply-p2001', classification: 'ambiguous', text: 'Who on your side owns paid, email, and SEO together?', at: night.reply };
+  state.replies[won.id] = { eventId: 'wallaroo-reply-p2003', classification: 'ambiguous', text: 'We signed the existing proposal. Hold further automated contact unless we ask.', at: '2026-09-10T15:00:00.000Z' };
+  state.replies[booked.id] = { eventId: 'wallaroo-reply-p2006', classification: 'ambiguous', text: 'Booked the strategist conversation.', at: '2026-09-09T19:40:00.000Z' };
   state.scenarios = [{
     id: stableId(`${state.fixtureKey}:scenario:outbound`),
     workspaceId,

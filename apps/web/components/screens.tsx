@@ -4,6 +4,7 @@ import {TeamStudio} from "./team-studio";
 import { AgentWorkspace } from "./agent-workspace";
 import { activeApprovals } from "./approval-state";
 import { useEffect, useState } from "react";
+import { ConversationThread } from "./conversation-thread";
 import {
   AlertCircle,
   ArrowRight,
@@ -410,6 +411,7 @@ function ProposalDetail({
   );
   const [startAt, setStartAt] = useState("");
   const [timeZone, setTimeZone] = useState(state.workspace.timeZone);
+  const [focusLog, setFocusLog] = useState(false);
   return (
     <div className="stack">
       <div className="between">
@@ -455,13 +457,14 @@ function ProposalDetail({
           <Button
             variant={contact.humanTakeover ? "primary" : "danger"}
             disabled={busy}
-            onClick={() =>
+            onClick={() => {
+              if (!contact.humanTakeover) setFocusLog(true);
               void act({
                 type: "takeover",
                 contactId: contact.id,
                 enabled: !contact.humanTakeover,
-              })
-            }
+              });
+            }}
           >
             <UserRound size={14} />
             {contact.humanTakeover
@@ -470,6 +473,13 @@ function ProposalDetail({
           </Button>
         )}
       </div>
+      <ConversationThread
+        state={state}
+        proposalId={proposalId}
+        act={act}
+        busy={busy}
+        focusComposer={focusLog}
+      />
       <Evidence items={proposal.evidence} />
       <div>
         <h3 style={{ fontSize: 17, marginBottom: 16 }}>
@@ -1136,14 +1146,22 @@ export function CustomerJourney({ state, act, busy, inspect }: ScreenProps) {
               </Button>
             )}
           </div>
+          {proposal && (
+            <ConversationThread
+              state={state}
+              proposalId={proposal.id}
+              act={act}
+              busy={busy}
+            />
+          )}
           <section className="journey-evidence-map" aria-label="Recorded customer milestones"><div className="section-heading"><h2>Evidence across the relationship</h2><span>Each stage is verified separately</span></div><div className="journey-stages">{['reply','booked','attended','signed','completed','invoiced','paid'].map((stage,index)=>{const records=outcomes.filter(o=>o.stage===stage);return <button key={stage} disabled={!records.length} className={records.length?'has-evidence':''} onClick={()=>inspect(words(stage),'Recorded evidence for this stage.',records.flatMap(r=>r.evidence))}><span className="journey-stage-dot">{String(index+1).padStart(2,'0')}</span><strong>{words(stage)}</strong><small>{records.length?records.length+' recorded':'No evidence yet'}</small></button>})}</div></section>
           <div className="grid-two">
             <section className="card card-body">
               <h2 style={{ fontSize: 16, marginBottom: 26 }}>
-                Shared timeline
+                Source records
               </h2>
               <div className="timeline">
-                {events.map((event) => (
+                {events.filter((event) => event.kind === "source" || event.kind === "outcome" || event.kind === "action").map((event) => (
                   <article className="timeline-item" key={event.id}>
                     <div className="flex wrap">
                       <span className="tiny muted">{dateTime(event.at)}</span>
@@ -1178,10 +1196,9 @@ export function CustomerJourney({ state, act, busy, inspect }: ScreenProps) {
                   </article>
                 ))}
               </div>
-              {!events.length && (
-                <Empty title="No interactions recorded">
-                  The source record is available. Future events appear here with
-                  their actor and evidence.
+              {!events.filter((event) => event.kind === "source" || event.kind === "outcome" || event.kind === "action").length && (
+                <Empty title="No source records">
+                  Conversation lives in the workspace log above.
                 </Empty>
               )}
             </section>
