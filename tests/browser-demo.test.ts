@@ -43,7 +43,7 @@ describe("hosted browser demo isolation", () => {
 
   it("rejects invalid history and unknown workspaces", async () => {
     const tab = storage();
-    tab.setItem("revengine.browser-demo.v1.wallaroo", JSON.stringify({ version: 1, commands: [{ type: "pause", paused: true, role: "admin" }] }));
+    tab.setItem("revengine.browser-demo.v2.wallaroo", JSON.stringify({ version: 1, commands: [{ type: "pause", paused: true, role: "admin" }] }));
     const demo = createBrowserDemo(() => tab);
     await expect(demo.read(null)).rejects.toThrow("could not be validated");
     await expect(demo.read("customer-production")).rejects.toThrow("Unknown workspace");

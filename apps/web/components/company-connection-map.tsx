@@ -87,7 +87,7 @@ export function CompanyConnectionMap({ state, onSetup, onChooseTeam, onManageSys
           {!system.supported && <span className="company-system-planned-note">{quiet ? "Listed for this company. Work copies out into the tools you already use." : state.workspace.mode === "fixture" ? "Illustrative fixture account for this walkthrough. Not a live OAuth grant." : "Inventory can be saved now. There is no OAuth or live account connection for this system yet."}</span>}
         </div>
         {sharedRoles.length > 0 ? <details className="company-system-sharing">
-          <summary><Network size={14} /><span>Shared by {sharedRoles.length} specialist{sharedRoles.length === 1 ? "" : "s"}{selectedShared > 0 && <small>{selectedShared} on your team</small>}</span><ChevronDown size={14} /></summary>
+          <summary><Network size={14} /><span>Shared by {sharedRoles.length === 1 ? "1 specialist" : `${sharedRoles.length} specialists`}{selectedShared > 0 && <small>{selectedShared} on your team</small>}</span><ChevronDown size={14} /></summary>
           <ul>{sharedRoles.map((agent) => {
             const requirements = coverage.agents.find((role) => role.id === agent.id);
             const currentInput = !!requirements && !requirements.engineeringRequired && requirements.currentSystems.includes(system.kind);

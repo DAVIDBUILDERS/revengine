@@ -131,15 +131,35 @@ export type SpecialistRun = {
  id:string;at:string;kind:ActivityKind;title:string;detail:string;limitation?:string;
  artifactId?:string;findingId?:string;actionId?:string;
 };
+export type ConversationChannel = 'email' | 'linkedin' | 'website' | 'partner' | 'workspace';
 export type ConversationMessage = {
- id:string;at:string;kind:'message_out'|'message_in'|'message_note';actor:'david'|'human'|'source';title:string;body:string;
+ id:string;at:string;kind:'message_out'|'message_in'|'message_note'|'event';
+ channel:ConversationChannel;actor:'david'|'human'|'source';title:string;body:string;eventLabel?:string;
 };
+export type ConversationPulse = {
+ emailOut:number;emailIn:number;linkedinSent:number;linkedinAccepted:number;linkedinMessages:number;
+ websiteTurns:number;meetingsBooked:number;moves:number;
+};
+export type InitiativeImpact = {
+ id:string;findingId:string;agentId:string;agentName:string;title:string;status:string;
+ baseline:string;target:string;moves:{label:string;value:string}[];
+};
+export type JourneyMove = {id:string;at:string;label:string;detail:string;channel:ConversationChannel;actor:'david'|'human'|'source'};
 
 const ON_PASS_AGENT = 'technical-seo-monitor';
-const MESSAGE_KINDS = new Set(['message_out','message_in','message_note','reply']);
+const THREAD_KINDS = new Set([
+ 'message_out','message_in','message_note','reply',
+ 'email_out','email_in','linkedin_out','linkedin_in','linkedin_connect','linkedin_accept',
+ 'website_out','website_in','partner_out','partner_in','meeting_booked',
+]);
+const EVENT_KINDS:Record<string,string> = {
+ linkedin_connect:'Connection sent',
+ linkedin_accept:'Connection accepted',
+ meeting_booked:'Meeting booked',
+};
 
-export function defaultHumanReview(agentId:string){
- return agentId === 'outbound-email-sdr';
+export function defaultHumanReview(_agentId:string){
+ return false;
 }
 
 export function isWalkthroughFloor(state:Pick<AppSnapshot,'workspace'>,quiet?:boolean){
@@ -192,13 +212,124 @@ export function teamActivityFeed(state:AppSnapshot,humanReviewFor:(agentId:strin
  }).sort((a,b)=>b.at.localeCompare(a.at)||a.name.localeCompare(b.name));
 }
 
+export function conversationChannel(kind:string):ConversationChannel {
+ if(kind.startsWith('linkedin'))return 'linkedin';
+ if(kind.startsWith('website'))return 'website';
+ if(kind.startsWith('partner'))return 'partner';
+ if(kind==='message_note'||kind==='meeting_booked')return 'workspace';
+ return 'email';
+}
+
+export function channelLabel(channel:ConversationChannel){
+ return channel==='linkedin'?'LinkedIn':channel==='website'?'Website':channel==='partner'?'Partner':channel==='workspace'?'Workspace':'Email';
+}
+
+function threadKind(kind:string):ConversationMessage['kind'] {
+ if(kind==='message_note')return 'message_note';
+ if(kind in EVENT_KINDS)return 'event';
+ if(kind.endsWith('_out')||kind==='message_out')return 'message_out';
+ return 'message_in';
+}
+
 export function conversationThread(state:AppSnapshot,opportunityId:string):ConversationMessage[] {
- return state.timeline.filter(item=>item.opportunityId===opportunityId && MESSAGE_KINDS.has(item.kind)).slice().sort((a,b)=>a.at.localeCompare(b.at)).map(item=>({
+ return state.timeline.filter(item=>item.opportunityId===opportunityId && THREAD_KINDS.has(item.kind)).slice().sort((a,b)=>a.at.localeCompare(b.at)).map(item=>({
   id:item.id,
   at:item.at,
-  kind:item.kind==='message_note'?'message_note':item.kind==='message_out'?'message_out':'message_in',
+  kind:threadKind(item.kind),
+  channel:conversationChannel(item.kind),
   actor:item.actor,
   title:item.title,
   body:item.detail,
+  eventLabel:EVENT_KINDS[item.kind],
  }));
+}
+
+function timelineFor(state:AppSnapshot,opportunityId?:string){
+ return state.timeline.filter(item=>THREAD_KINDS.has(item.kind)&&(!opportunityId||item.opportunityId===opportunityId));
+}
+
+function countKinds(items:{kind:string}[],kinds:string[]){
+ const set=new Set(kinds);
+ return items.filter(item=>set.has(item.kind)).length;
+}
+
+export function conversationPulse(state:AppSnapshot,opportunityId?:string):ConversationPulse {
+ const items=timelineFor(state,opportunityId);
+ const emailOut=countKinds(items,['email_out','message_out']);
+ const emailIn=countKinds(items,['email_in','message_in','reply']);
+ const linkedinSent=countKinds(items,['linkedin_connect']);
+ const linkedinAccepted=countKinds(items,['linkedin_accept']);
+ const linkedinMessages=countKinds(items,['linkedin_out','linkedin_in']);
+ const websiteTurns=countKinds(items,['website_out','website_in']);
+ const meetingsBooked=countKinds(items,['meeting_booked']);
+ return {
+  emailOut,emailIn,linkedinSent,linkedinAccepted,linkedinMessages,websiteTurns,meetingsBooked,
+  moves:emailOut+emailIn+linkedinSent+linkedinAccepted+linkedinMessages+websiteTurns+meetingsBooked,
+ };
+}
+
+export function workspaceOutreach(state:AppSnapshot):ConversationPulse {
+ return conversationPulse(state);
+}
+
+export function opportunityNextStep(state:AppSnapshot,proposalId:string){
+ const proposal=state.proposals.find(item=>item.id===proposalId);
+ if(!proposal)return 'Open the log';
+ const contact=state.contacts.find(item=>item.id===proposal.contactId);
+ if(contact?.humanTakeover)return 'Owner holding further contact';
+ if(proposal.status==='accepted')return 'Signed — hold further contact';
+ const pulse=conversationPulse(state,proposal.opportunityId);
+ if(pulse.meetingsBooked)return 'Meeting booked';
+ if(pulse.emailIn||pulse.linkedinMessages>pulse.linkedinSent)return 'In conversation';
+ if(pulse.websiteTurns)return 'Website chat in motion';
+ if(pulse.linkedinSent&&pulse.linkedinAccepted<pulse.linkedinSent)return 'Connection pending';
+ if(pulse.emailOut||pulse.linkedinSent)return 'Waiting on a reply';
+ return 'Open the log';
+}
+
+export function initiativeImpact(state:AppSnapshot,initiative:AppSnapshot['initiatives'][number]):InitiativeImpact {
+ const finding=state.findings.find(item=>item.id===initiative.findingId);
+ const agentId=finding?.agentId??'';
+ const agentName=state.catalog.find(item=>item.id===agentId)?.name??agentId;
+ const pulse=conversationPulse(state);
+ const moves=
+  agentId==='linkedin-outreach-assistant'?[
+   {label:'Connection requests',value:String(pulse.linkedinSent)},
+   {label:'Accepted overnight',value:String(pulse.linkedinAccepted)},
+   {label:'Threads moving',value:String(pulse.linkedinMessages)},
+  ]:agentId==='outbound-email-sdr'?[
+   {label:'Emails in the log',value:String(pulse.emailOut)},
+   {label:'Replies',value:String(pulse.emailIn)},
+   {label:'Meetings booked',value:String(pulse.meetingsBooked)},
+  ]:agentId==='website-sales-concierge'?[
+   {label:'Chat turns',value:String(pulse.websiteTurns)},
+   {label:'Meetings booked',value:String(pulse.meetingsBooked)},
+  ]:  agentId==='technical-seo-monitor'?[
+   {label:'Pages checked',value:'5'},
+   {label:'Fixes in the log',value:String(state.artifacts.filter(item=>item.agentId===agentId).length)},
+  ]:agentId==='partner-development'?[
+   {label:'Intros in the log',value:String(state.artifacts.filter(item=>item.agentId===agentId).length)},
+  ]:agentId==='rfp-opportunity-scout'?[
+   {label:'Outlines ready',value:String(state.artifacts.filter(item=>item.agentId===agentId).length)},
+  ]:initiative.assignments.map(item=>({label:'Logged',value:item}));
+ return {
+  id:initiative.id,
+  findingId:initiative.findingId,
+  agentId,
+  agentName,
+  title:initiative.title,
+  status:initiative.status,
+  baseline:initiative.baseline,
+  target:initiative.target,
+  moves:moves.length?moves:[{label:'In motion',value:'Logged'}],
+ };
+}
+
+export function journeyMoves(state:AppSnapshot,opportunityId:string):JourneyMove[] {
+ const events=state.timeline.filter(item=>item.opportunityId===opportunityId).slice().sort((a,b)=>a.at.localeCompare(b.at));
+ return events.map(item=>{
+  const channel=THREAD_KINDS.has(item.kind)?conversationChannel(item.kind):'workspace';
+  const label=EVENT_KINDS[item.kind]??(item.kind==='source'?'Record imported':item.title);
+  return {id:item.id,at:item.at,label,detail:item.detail,channel,actor:item.actor};
+ });
 }

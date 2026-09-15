@@ -8,6 +8,7 @@ body:has([role="dialog"]) .toast {
   color: var(--text);
   padding: 30px 16px 22px;
   border-right: 1px solid var(--border);
+  overflow-x: hidden;
 }
 .brand {
   padding: 0 16px 32px;
@@ -20,6 +21,7 @@ body:has([role="dialog"]) .toast {
   border-radius: 0;
   padding: 16px 10px;
   margin-bottom: 25px;
+  min-width: 0;
 }
 .workspace-chip > svg {
   display: none;
@@ -90,6 +92,8 @@ body:has([role="dialog"]) .toast {
 }
 .workspace-main {
   margin-left: 232px;
+  container-type: inline-size;
+  container-name: workspace;
 }
 .topbar {
   height: 64px;
@@ -102,7 +106,8 @@ body:has([role="dialog"]) .toast {
   background: transparent;
 }
 .desktop-workspace-picker {
-  width: 151px;
+  width: 100%;
+  max-width: 151px;
   min-width: 0;
   padding: 0;
   font-size: 11px;
@@ -1023,12 +1028,56 @@ details > summary:focus-visible {
 .conversation-log > li > div {
   display: flex;
   justify-content: space-between;
+  align-items: baseline;
   gap: 12px;
   margin-bottom: 6px;
   font-size: 11px;
   color: #66705f;
 }
-.conversation-log p { margin: 0; font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
+.conversation-who {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+.conversation-log > li > div time {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.conversation-log > li[data-kind="event"] { background: #222925; color: #f3f5ec; border-color: #222925; }
+.conversation-log > li[data-kind="event"] > div { color: #b7c0b2; }
+.conversation-log > li[data-channel="linkedin"] { border-left-color: #3b5998; }
+.conversation-log > li[data-channel="website"] { border-left-color: #7a8668; }
+.conversation-log > li[data-channel="partner"] { border-left-color: #87580b; }
+.conversation-channel {
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.conversation-pulse {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.conversation-pulse li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 88px;
+  min-width: 88px;
+  max-width: 160px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #222925;
+  color: #eef3e4;
+}
+.conversation-pulse strong { font: 400 22px/1 Georgia, serif; }
+.conversation-pulse span { font-size: 10px; color: #b7c0b2; }
+.journey-identity .conversation-pulse li { background: #2d3930; }
 .conversation-composer { display: flex; flex-direction: column; gap: 10px; }
 .conversation-composer label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
 

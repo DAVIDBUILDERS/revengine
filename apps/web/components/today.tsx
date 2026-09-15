@@ -28,7 +28,7 @@ import { DashboardActivityChart } from "./dashboard-activity-chart";
 import { Button, dateTime, QuietWalkthroughContext } from "./ui";
 import "./today-studio.css";
 
-const REVIEW_KEY = "revengine.human-review.v1";
+const REVIEW_KEY = "revengine.human-review.v2";
 
 function useHumanReview() {
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});

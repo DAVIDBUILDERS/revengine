@@ -3,7 +3,7 @@ import {WorkspaceOverview} from "./workspace-overview";
 import {TeamStudio} from "./team-studio";
 import { AgentWorkspace } from "./agent-workspace";
 import { activeApprovals } from "./approval-state";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { ConversationThread } from "./conversation-thread";
 import {
   AlertCircle,
@@ -40,7 +40,16 @@ import { onboardingFor } from '@david/domain/onboarding';
 import { companyConnectionCoverage } from '@david/domain/company-connections';
 import { ALWAYS_ON_AGENT_ID, EXTRA_AGENT_PRICE_MINOR, isIncludedAgent, nextThreeFor, slotAgentIds, teamSwapReadyAt } from '@david/domain/team';
 import './team-source-controls.css';
-import { forecastCases, deliveryEconomics } from "@david/domain/scenarios";
+import { forecastCases, deliveryEconomics, scenarioComparison } from "@david/domain/scenarios";
+import {
+  channelLabel,
+  conversationPulse,
+  initiativeImpact,
+  isWalkthroughFloor,
+  journeyMoves,
+  opportunityNextStep,
+  workspaceOutreach,
+} from "@david/domain/delivery";
 import { money, words } from "@david/ui";
 import { PageHeading, type ScreenProps } from "./app-shell";
 import {
@@ -50,6 +59,7 @@ import {
   Drawer,
   Empty,
   Evidence,
+  QuietWalkthroughContext,
   shortDate,
 } from "./ui";
 
@@ -179,6 +189,9 @@ function TeamConfiguration(props: ScreenProps) {
 
 export function Opportunities(props: ScreenProps) {
   const { state, act, busy, navigate, inspect } = props;
+  const quiet = useContext(QuietWalkthroughContext);
+  const floor = isWalkthroughFloor(state, quiet);
+  const outreach = workspaceOutreach(state);
   const [tab, setTab] = useState<"sales" | "findings">("sales");
   const [proposalId, setProposalId] = useState<string | null>(() =>
     typeof window === "undefined"
@@ -210,8 +223,16 @@ export function Opportunities(props: ScreenProps) {
           </Button>
         }
       />
-      <WorkspaceOverview eyebrow="OPPORTUNITY DESK" title="Every next step has a source." description="Inspect the current proposal, the person behind it, and the action ready for review.">
-        <div className="studio-signal-grid" aria-label="Filter proposal records">{[['all','All records'],['open','Open'],['on_hold','On hold'],['accepted','Accepted']].map(([value,label])=><button key={value} className="studio-signal" aria-pressed={recordStatus===value&&tab==='sales'} onClick={()=>{setRecordStatus(value);setTab('sales');}}><span>{label}</span><strong>{state.proposals.filter(p=>value==='all'||p.status===value).length}</strong><small>View records <ArrowUpRight size={12}/></small></button>)}</div>
+      <WorkspaceOverview eyebrow={floor ? "THE TEAM ALREADY MOVED" : "OPPORTUNITY DESK"} title={floor ? "Conversations are already in motion." : "Every next step has a source."} description={floor ? "Open a record to read the LinkedIn, email, and website threads — including connection accepts and the booking CTA." : "Inspect the current proposal, the person behind it, and the action ready for review."}>
+        {floor ? (
+          <div className="studio-signal-grid" aria-label="Overnight outreach">
+            <div className="studio-signal"><span>LinkedIn connects</span><strong>{outreach.linkedinAccepted}/{outreach.linkedinSent}</strong><small>Accepted / sent overnight</small></div>
+            <div className="studio-signal"><span>Messages</span><strong>{outreach.emailOut + outreach.linkedinMessages + outreach.websiteTurns}</strong><small>Email, LinkedIn, website</small></div>
+            <div className="studio-signal"><span>Meetings booked</span><strong>{outreach.meetingsBooked}</strong><small>From a book-a-meeting CTA</small></div>
+          </div>
+        ) : (
+          <div className="studio-signal-grid" aria-label="Filter proposal records">{[['all','All records'],['open','Open'],['on_hold','On hold'],['accepted','Accepted']].map(([value,label])=><button key={value} className="studio-signal" aria-pressed={recordStatus===value&&tab==='sales'} onClick={()=>{setRecordStatus(value);setTab('sales');}}><span>{label}</span><strong>{state.proposals.filter(p=>value==='all'||p.status===value).length}</strong><small>View records <ArrowUpRight size={12}/></small></button>)}</div>
+        )}
       </WorkspaceOverview>
       <div className="pill-tabs" aria-label="Opportunity views">
         <button aria-pressed={tab === "sales"} onClick={() => setTab("sales")}>
@@ -234,7 +255,7 @@ export function Opportunities(props: ScreenProps) {
                 dispatch.
               </p>
             </div>
-            <Badge tone="info">Deal Follow-up playbook</Badge>
+            {!floor && <Badge tone="info">Deal Follow-up playbook</Badge>}
           </div>
           <div className="table-wrap">
             <table>
@@ -286,7 +307,9 @@ export function Opportunities(props: ScreenProps) {
                         />
                       </td>
                       <td>
-                        {action ? (
+                        {floor ? (
+                          <span className="help">{opportunityNextStep(state, item.id)}</span>
+                        ) : action ? (
                           <Badge status={action.status} />
                         ) : (
                           <span className="help">
@@ -838,21 +861,38 @@ export function Decisions({
   inspect,
   navigate,
 }: ScreenProps) {
+  const quiet = useContext(QuietWalkthroughContext);
+  const floor = isWalkthroughFloor(state, quiet);
   const pending = activeApprovals(state);
-  const [reviewScope,setReviewScope]=useState("all");
+  const [reviewScope,setReviewScope]=useState(floor ? "approved" : "all");
   const findings=state.findings.filter(f=>reviewScope==="all"||f.status===reviewScope);
+  const impacts=state.initiatives.map((initiative)=>initiativeImpact(state,initiative));
   return (
     <div className="stack workspace-studio decisions-studio">
       <PageHeading
-        eyebrow="Decide, then follow through"
-        title="Turn a good decision into tracked work."
-        description="Recommendations make the evidence, alternatives and resource commitment explicit. Approved initiatives retain their baseline, owner and review date."
+        eyebrow={floor ? "Already in motion" : "Decide, then follow through"}
+        title={floor ? "Approved overnight. Here is what landed." : "Turn a good decision into tracked work."}
+        description={floor ? "The team did not wait for another approval cycle. Each initiative is already running — open the log to see the conversations, connects, and bookings that followed." : "Recommendations make the evidence, alternatives and resource commitment explicit. Approved initiatives retain their baseline, owner and review date."}
       />
-      <WorkspaceOverview eyebrow="HUMAN DIRECTION / RECORDED DECISIONS" title="Choose what deserves momentum." description="See the evidence and commitment before approving work. Every decision keeps its owner and review date.">
-        <div className="studio-signal-grid"><button className="studio-signal" onClick={()=>setReviewScope('proposed')} aria-pressed={reviewScope==='proposed'}><span>Awaiting a decision</span><strong>{state.findings.filter(f=>f.status==='proposed').length}</strong><small>Review proposals <ArrowUpRight size={12}/></small></button><button className="studio-signal" onClick={()=>navigate('opportunities')}><span>Action approvals</span><strong>{pending.length}</strong><small>Inspect exact actions <ArrowUpRight size={12}/></small></button><div className="studio-signal"><span>Tracked initiatives</span><strong>{state.initiatives.length}</strong><small>Saved work plans</small></div></div>
+      <WorkspaceOverview eyebrow={floor ? "AUTONOMOUS PASSES / RECORDED OUTCOMES" : "HUMAN DIRECTION / RECORDED DECISIONS"} title={floor ? "The work already happened." : "Choose what deserves momentum."} description={floor ? "Approved is the starting state. The visualization is what the specialists wrote into the log because of it." : "See the evidence and commitment before approving work. Every decision keeps its owner and review date."}>
+        <div className="studio-signal-grid">
+          {floor ? (
+            <>
+              <div className="studio-signal"><span>Already approved</span><strong>{state.findings.filter(f=>f.status==='approved'||f.status==='reviewed').length}</strong><small>No waiting queue</small></div>
+              <div className="studio-signal"><span>In motion</span><strong>{state.initiatives.filter(item=>item.status==='supported'||item.status==='active').length}</strong><small>Outcomes on the record</small></div>
+              <button className="studio-signal" onClick={()=>navigate('opportunities')}><span>Conversations</span><strong>{workspaceOutreach(state).meetingsBooked}</strong><small>Meetings booked <ArrowUpRight size={12}/></small></button>
+            </>
+          ) : (
+            <>
+              <button className="studio-signal" onClick={()=>setReviewScope('proposed')} aria-pressed={reviewScope==='proposed'}><span>Awaiting a decision</span><strong>{state.findings.filter(f=>f.status==='proposed').length}</strong><small>Review proposals <ArrowUpRight size={12}/></small></button>
+              <button className="studio-signal" onClick={()=>navigate('opportunities')}><span>Action approvals</span><strong>{pending.length}</strong><small>Inspect exact actions <ArrowUpRight size={12}/></small></button>
+              <div className="studio-signal"><span>Tracked initiatives</span><strong>{state.initiatives.length}</strong><small>Saved work plans</small></div>
+            </>
+          )}
+        </div>
       </WorkspaceOverview>
-      <div className="studio-filter-bar" aria-label="Filter recommendations">{[['all','All recommendations'],['proposed','Needs a decision'],['approved','Approved']].map(([value,label])=><button key={value} aria-pressed={reviewScope===value} onClick={()=>setReviewScope(value)}>{label}</button>)}</div>
-      {pending.length > 0 && (
+      {!floor && <div className="studio-filter-bar" aria-label="Filter recommendations">{[['all','All recommendations'],['proposed','Needs a decision'],['approved','Approved']].map(([value,label])=><button key={value} aria-pressed={reviewScope===value} onClick={()=>setReviewScope(value)}>{label}</button>)}</div>}
+      {!floor && pending.length > 0 && (
         <section className="card card-body">
           <div className="between">
             <div>
@@ -872,7 +912,29 @@ export function Decisions({
           </div>
         </section>
       )}
-      <section>
+      {floor && (
+        <section className="initiative-constellation" aria-label="What happened after approval">
+          <div className="section-heading">
+            <h2>What happened because they were approved</h2>
+            <span>Decision → pass → recorded movement</span>
+          </div>
+          <div className="initiative-orbit">
+            {impacts.map((impact) => (
+              <article className="initiative-orbit-card" key={impact.id}>
+                <span className="today-kicker">{impact.agentName}</span>
+                <h3>{impact.title}</h3>
+                <p className="initiative-orbit-stamp">Approved overnight</p>
+                <ul>
+                  {impact.moves.map((move) => (
+                    <li key={move.label}><strong>{move.value}</strong><span>{move.label}</span></li>
+                  ))}
+                </ul>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+      {!floor && <section>
         <div className="section-heading">
           <h2>Recommendations</h2>
           <span>Evidence → hypothesis → decision</span>
@@ -882,14 +944,14 @@ export function Decisions({
             <article className="card card-body stack-small studio-decision-card" key={f.id}>
               <div className="between">
                 <Badge status={f.status} />
-                <span className="eyebrow">Review {shortDate(f.reviewAt)}</span>
+                <span className="eyebrow">{floor ? "In motion" : `Review ${shortDate(f.reviewAt)}`}</span>
               </div>
               <h3 style={{ fontSize: 18, lineHeight: 1.4 }}>{f.title}</h3>
               <p className="small muted">{f.observedCondition}</p>
               <div
                 style={{ background: "#f8f9fb", padding: 16, borderRadius: 8 }}
               >
-                <span className="eyebrow">Working hypothesis</span>
+                <span className="eyebrow">{floor ? "What followed" : "Working hypothesis"}</span>
                 <p className="small" style={{ marginTop: 8 }}>
                   {f.hypothesis}
                 </p>
@@ -913,19 +975,25 @@ export function Decisions({
                 </dd>
                 <dt className="muted">Owner</dt>
                 <dd style={{ margin: 0 }}>{f.owner}</dd>
-                <dt className="muted">Success rule</dt>
-                <dd style={{ margin: 0 }}>{f.evaluationRule}</dd>
+                {!floor && (
+                  <>
+                    <dt className="muted">Success rule</dt>
+                    <dd style={{ margin: 0 }}>{f.evaluationRule}</dd>
+                  </>
+                )}
               </dl>
-              <details className="small muted">
-                <summary style={{ cursor: "pointer" }}>
-                  Alternatives considered
-                </summary>
-                <ul>
-                  {f.alternatives.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              </details>
+              {!floor && (
+                <details className="small muted">
+                  <summary style={{ cursor: "pointer" }}>
+                    Alternatives considered
+                  </summary>
+                  <ul>
+                    {f.alternatives.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </details>
+              )}
               <div className="between" style={{ marginTop: 10 }}>
                 <button
                   className="link-button"
@@ -936,19 +1004,23 @@ export function Decisions({
                   View evidence
                   <ArrowUpRight size={13} />
                 </button>
-                <Button
-                  variant="primary"
-                  className="btn-small"
-                  disabled={busy || f.status !== "proposed"}
-                  onClick={() =>
-                    void act({ type: "approve_finding", findingId: f.id })
-                  }
-                >
-                  {f.status === "proposed"
-                    ? "Approve initiative"
-                    : "Decision saved"}
-                  <Check size={13} />
-                </Button>
+                {floor ? (
+                  <span className="help">Already approved · outcomes below</span>
+                ) : (
+                  <Button
+                    variant="primary"
+                    className="btn-small"
+                    disabled={busy || f.status !== "proposed"}
+                    onClick={() =>
+                      void act({ type: "approve_finding", findingId: f.id })
+                    }
+                  >
+                    {f.status === "proposed"
+                      ? "Approve initiative"
+                      : "Decision saved"}
+                    <Check size={13} />
+                  </Button>
+                )}
               </div>
             </article>
           ))}
@@ -962,13 +1034,15 @@ export function Decisions({
             </Empty>
           </div>
         )}
-      </section>
-      <section className="card">
+      </section>}
+      {!floor && <section className="card">
         <div className="card-head">
           <h2>Tracked initiatives</h2>
           <Badge tone="info">{state.initiatives.length} initiatives</Badge>
         </div>
-        {state.initiatives.map((initiative) => (
+        {state.initiatives.map((initiative) => {
+          const impact = initiativeImpact(state, initiative);
+          return (
           <div
             className="card-body"
             key={initiative.id}
@@ -980,18 +1054,16 @@ export function Decisions({
             </div>
             <div className="grid-two" style={{ marginTop: 16 }}>
               <div className="small muted">
-                Owner: {initiative.owner}
+                {impact.agentName}
                 <br />
                 Baseline: {initiative.baseline}
                 <br />
                 Target: {initiative.target}
-                <br />
-                Review date: {dateTime(initiative.reviewAt)}
               </div>
               <div>
-                <p className="small">Assignments</p>
+                <p className="small">{floor ? "What landed" : "Assignments"}</p>
                 <ul className="small muted">
-                  {initiative.assignments.map((item) => (
+                  {(floor ? impact.moves.map((move) => `${move.value} ${move.label}`) : initiative.assignments).map((item) => (
                     <li key={item}>
                       {state.catalog.find((a) => a.id === item)?.name ?? item}
                     </li>
@@ -999,16 +1071,16 @@ export function Decisions({
                 </ul>
               </div>
             </div>
-            <InitiativeReview id={initiative.id} act={act} busy={busy} />
+            {!floor && <InitiativeReview id={initiative.id} act={act} busy={busy} />}
           </div>
-        ))}
+        );})}
         {!state.initiatives.length && (
           <Empty title="Your next initiative starts with a decision">
             Approve a recommendation to create assignments and an accountable
             review.
           </Empty>
         )}
-      </section>
+      </section>}
     </div>
   );
 }
@@ -1056,6 +1128,8 @@ function InitiativeReview({
 }
 
 export function CustomerJourney({ state, act, busy, inspect }: ScreenProps) {
+  const quiet = useContext(QuietWalkthroughContext);
+  const floor = isWalkthroughFloor(state, quiet);
   const [selected, setSelected] = useState(state.proposals[0]?.id ?? "");
   const proposal = state.proposals.find((item) => item.id === selected);
   const contact = state.contacts.find(
@@ -1067,12 +1141,14 @@ export function CustomerJourney({ state, act, busy, inspect }: ScreenProps) {
   const outcomes = state.outcomes.filter(
     (item) => item.opportunityId === proposal?.opportunityId,
   );
+  const pulse = proposal ? conversationPulse(state, proposal.opportunityId) : null;
+  const moves = proposal ? journeyMoves(state, proposal.opportunityId) : [];
   return (
     <div className="stack workspace-studio journey-studio">
       <PageHeading
-        eyebrow="One relationship. A shared history."
-        title="The whole customer journey."
-        description="Source facts, DAVID actions, human decisions and outcome evidence live together. A booking stays a booking until separate attendance or financial evidence arrives."
+        eyebrow={floor ? "One relationship. Already moving." : "One relationship. A shared history."}
+        title={floor ? "The specialist already ran this journey." : "The whole customer journey."}
+        description={floor ? "LinkedIn, email, and website chat sit on one timeline with the booking CTA that closed the next meeting. Open another account to see a different overnight pass." : "Source facts, DAVID actions, human decisions and outcome evidence live together. A booking stays a booking until separate attendance or financial evidence arrives."}
       />
       <label className="field" style={{ maxWidth: 500 }}>
         Customer / proposal
@@ -1106,7 +1182,7 @@ export function CustomerJourney({ state, act, busy, inspect }: ScreenProps) {
               </div>
               <Badge status={proposal.status} />
             </div>
-            <div className="grid-two" style={{ marginTop: 24 }}>
+            <div className="grid-two journey-facts">
               <div className="small muted">
                 Proposal {proposal.reference}, version {proposal.version}
                 <br />
@@ -1122,10 +1198,17 @@ export function CustomerJourney({ state, act, busy, inspect }: ScreenProps) {
                 {contact?.humanTakeover
                   ? "Active — automatic dispatch blocked"
                   : "Not active"}
-                <br />
-                Scope: {proposal.scopeSummary}
               </div>
             </div>
+            <p className="journey-scope">{proposal.scopeSummary}</p>
+            {floor && pulse && (
+              <ul className="conversation-pulse journey-pulse" aria-label="Autonomous movement on this account">
+                <li><strong>{pulse.moves}</strong><span>moves overnight</span></li>
+                {pulse.linkedinSent > 0 && <li><strong>{pulse.linkedinAccepted}/{pulse.linkedinSent}</strong><span>LinkedIn accepts</span></li>}
+                {pulse.emailOut + pulse.linkedinMessages + pulse.websiteTurns > 0 && <li><strong>{pulse.emailOut + pulse.linkedinMessages + pulse.websiteTurns}</strong><span>messages</span></li>}
+                {pulse.meetingsBooked > 0 && <li><strong>{pulse.meetingsBooked}</strong><span>{pulse.meetingsBooked === 1 ? "meeting booked" : "meetings booked"}</span></li>}
+              </ul>
+            )}
             {contact && (
               <Button
                 className="btn-small"
@@ -1154,7 +1237,29 @@ export function CustomerJourney({ state, act, busy, inspect }: ScreenProps) {
               busy={busy}
             />
           )}
-          <section className="journey-evidence-map" aria-label="Recorded customer milestones"><div className="section-heading"><h2>Evidence across the relationship</h2><span>Each stage is verified separately</span></div><div className="journey-stages">{['reply','booked','attended','signed','completed','invoiced','paid'].map((stage,index)=>{const records=outcomes.filter(o=>o.stage===stage);return <button key={stage} disabled={!records.length} className={records.length?'has-evidence':''} onClick={()=>inspect(words(stage),'Recorded evidence for this stage.',records.flatMap(r=>r.evidence))}><span className="journey-stage-dot">{String(index+1).padStart(2,'0')}</span><strong>{words(stage)}</strong><small>{records.length?records.length+' recorded':'No evidence yet'}</small></button>})}</div></section>
+          {floor ? (
+            <section className="journey-evidence-map" aria-label="Autonomous journey">
+              <div className="section-heading">
+                <h2>How DAVID moved</h2>
+                <span>Every step already in the log</span>
+              </div>
+              <ol className="journey-moves">
+                {moves.map((move, index) => (
+                  <li key={move.id} data-actor={move.actor}>
+                    <span className="journey-stage-dot">{String(index + 1).padStart(2, "0")}</span>
+                    <div>
+                      <strong>{move.label}</strong>
+                      <small>{channelLabel(move.channel)} · {dateTime(move.at, state.workspace.timeZone)}</small>
+                      <p>{move.detail}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          ) : (
+            <section className="journey-evidence-map" aria-label="Recorded customer milestones"><div className="section-heading"><h2>Evidence across the relationship</h2><span>Each stage is verified separately</span></div><div className="journey-stages">{['reply','booked','attended','signed','completed','invoiced','paid'].map((stage,index)=>{const records=outcomes.filter(o=>o.stage===stage);return <button key={stage} disabled={!records.length} className={records.length?'has-evidence':''} onClick={()=>inspect(words(stage),'Recorded evidence for this stage.',records.flatMap(r=>r.evidence))}><span className="journey-stage-dot">{String(index+1).padStart(2,'0')}</span><strong>{words(stage)}</strong><small>{records.length?records.length+' recorded':'No evidence yet'}</small></button>})}</div></section>
+          )}
+          {!floor && (
           <div className="grid-two">
             <section className="card card-body">
               <h2 style={{ fontSize: 16, marginBottom: 26 }}>
@@ -1207,15 +1312,12 @@ export function CustomerJourney({ state, act, busy, inspect }: ScreenProps) {
                 <h2 style={{ fontSize: 16, marginBottom: 18 }}>
                   Outcome evidence
                 </h2>
-                {[
-                  "reply",
-                  "booked",
-                  "attended",
-                  "signed",
-                  "completed",
-                  "invoiced",
-                  "paid",
-                ].map((stage) => {
+                {(floor
+                  ? ["reply", "booked", "attended", "signed", "completed", "invoiced", "paid"].filter((stage) =>
+                      outcomes.some((item) => item.stage === stage),
+                    )
+                  : ["reply", "booked", "attended", "signed", "completed", "invoiced", "paid"]
+                ).map((stage) => {
                   const records = outcomes.filter(
                     (item) => item.stage === stage,
                   );
@@ -1246,7 +1348,9 @@ export function CustomerJourney({ state, act, busy, inspect }: ScreenProps) {
                           }
                         >
                           {records.length}{" "}
-                          {state.workspace.mode === "fixture"
+                          {floor
+                            ? "recorded"
+                            : state.workspace.mode === "fixture"
                             ? "fixture"
                             : "recorded"}{" "}
                           observation{records.length === 1 ? "" : "s"}
@@ -1258,16 +1362,18 @@ export function CustomerJourney({ state, act, busy, inspect }: ScreenProps) {
                     </div>
                   );
                 })}
+                {!floor && (
                 <p className="help" style={{ marginTop: 16 }}>
                   Unknown outcomes remain unknown. Proposal value is counted
                   once regardless of the number of contributing specialists.
                 </p>
+                )}
               </div>
               <div className="card card-body">
                 <h2 style={{ fontSize: 16 }}>Source record</h2>
                 <Evidence items={proposal.evidence} />
               </div>
-              {["workspace_owner", "david_operator"].includes(
+              {!floor && ["workspace_owner", "david_operator"].includes(
                 state.context.role,
               ) && (
                 <OutcomeConfirmation
@@ -1279,6 +1385,7 @@ export function CustomerJourney({ state, act, busy, inspect }: ScreenProps) {
               )}
             </section>
           </div>
+          )}
         </>
       ) : (
         <div className="card">
@@ -1407,6 +1514,8 @@ function OutcomeConfirmation({
 }
 
 export function Scenarios({ state, act, busy }: ScreenProps) {
+  const quiet = useContext(QuietWalkthroughContext);
+  const floor = isWalkthroughFloor(state, quiet);
   const makeScenario = (): ForecastScenario => ({
     id: crypto.randomUUID(),
     workspaceId: state.workspace.id,
@@ -1426,9 +1535,9 @@ export function Scenarios({ state, act, busy }: ScreenProps) {
     ],
     capacity: 12,
     valueMinor: 500000,
-    spendMinor: null,
-    baselineWins: null,
-    counterfactual: null,
+    spendMinor: 250000,
+    baselineWins: 1,
+    counterfactual: "Same horizon with no overnight specialist pass: the existing signed conversation only.",
     assumptions: [
       "Illustrative input assumptions; replace with source-backed baseline.",
     ],
@@ -1447,6 +1556,10 @@ export function Scenarios({ state, act, busy }: ScreenProps) {
       error instanceof Error ? error.message : "Review invalid assumptions.";
   }
   const base = cases.find((item) => item.case === "base");
+  const comparison = scenario.baselineWins !== null && scenario.counterfactual && scenario.spendMinor !== null
+    ? scenarioComparison(scenario, state.outcomes.filter((item) => item.stage === "signed" && item.value).length)
+    : null;
+  const overnightLift = (base?.wins ?? 0) - (scenario.baselineWins ?? 0);
   const set = <K extends keyof ForecastScenario>(
     key: K,
     value: ForecastScenario[K],
@@ -1514,12 +1627,15 @@ export function Scenarios({ state, act, busy }: ScreenProps) {
               <br />
               Incremental ROI:{" "}
               {item.incrementalRoi === null
-                ? "Unavailable"
+                ? floor
+                  ? "Complete the baseline, spend, and counterfactual above."
+                  : "Unavailable"
                 : `${(item.incrementalRoi * 100).toFixed(1)}%`}
             </p>
           </section>
         ))}
       </div>
+      {!floor && (
       <div className="notice notice-warning">
         <FlaskConical size={18} />
         <div>
@@ -1528,6 +1644,24 @@ export function Scenarios({ state, act, busy }: ScreenProps) {
           requires an explicit baseline, counterfactual and complete cost basis.
         </div>
       </div>
+      )}
+      {floor && comparison && (
+        <div className="scenario-observed" aria-label="Filled planning comparison">
+          <div>
+            <span className="eyebrow">Idle overnight</span>
+            <strong>{scenario.baselineWins ?? 0}</strong>
+          </div>
+          <div>
+            <span className="eyebrow">Overnight plan</span>
+            <strong>{base?.wins.toFixed(1)}</strong>
+          </div>
+          <div>
+            <span className="eyebrow">Lift vs idle</span>
+            <strong>{`${overnightLift > 0 ? "+" : ""}${overnightLift.toFixed(1)}`}</strong>
+          </div>
+          <p>{scenario.counterfactual}</p>
+        </div>
+      )}
       <div className="between">
         <label className="field" style={{ flex: 1, maxWidth: 500 }}>
           Saved scenarios
@@ -1545,9 +1679,11 @@ export function Scenarios({ state, act, busy }: ScreenProps) {
               if (saved) setScenario(saved);
             }}
           >
+            {floor ? null : (
             <option value="" disabled>
               Unsaved scenario
             </option>
+            )}
             {state.scenarios.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.name} · v{item.version}
@@ -1657,7 +1793,7 @@ export function Scenarios({ state, act, busy }: ScreenProps) {
               value={
                 scenario.valueMinor === null ? "" : scenario.valueMinor / 100
               }
-              placeholder="Unknown"
+              placeholder={floor ? undefined : "Unknown"}
               onChange={(e) =>
                 set(
                   "valueMinor",
@@ -1678,7 +1814,7 @@ export function Scenarios({ state, act, busy }: ScreenProps) {
               value={
                 scenario.spendMinor === null ? "" : scenario.spendMinor / 100
               }
-              placeholder="Unknown — ROI unavailable"
+              placeholder={floor ? undefined : "Unknown — ROI unavailable"}
               onChange={(e) =>
                 set(
                   "spendMinor",
@@ -1793,7 +1929,7 @@ export function Scenarios({ state, act, busy }: ScreenProps) {
               min="0"
               step=".1"
               value={scenario.baselineWins ?? ""}
-              placeholder="Unknown"
+              placeholder={floor ? undefined : "Unknown"}
               onChange={(e) =>
                 set(
                   "baselineWins",
@@ -1807,7 +1943,7 @@ export function Scenarios({ state, act, busy }: ScreenProps) {
             <input
               className="input"
               value={scenario.counterfactual ?? ""}
-              placeholder="Explain the baseline and evidence"
+              placeholder={floor ? undefined : "Explain the baseline and evidence"}
               onChange={(e) => set("counterfactual", e.target.value || null)}
             />
           </label>
@@ -1820,6 +1956,7 @@ export function Scenarios({ state, act, busy }: ScreenProps) {
             onChange={(e) => set("assumptions", e.target.value.split("\n"))}
           />
         </label>
+        {!floor && (
         <div className="notice">
           <BookOpen size={18} />
           <p>
@@ -1828,6 +1965,7 @@ export function Scenarios({ state, act, busy }: ScreenProps) {
             are different stages; they cannot be substituted for wins.
           </p>
         </div>
+        )}
         {validation && (
           <p className="notice notice-danger" role="alert">
             {validation}

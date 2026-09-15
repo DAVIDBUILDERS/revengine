@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { ActionProposal, ConnectionCapability, PreparedArtifact, WorkOpportunity } from '@david/contracts';
-import { ALWAYS_ON_AGENT_ID, WALLAROO_PAGES, WALLAROO_SELECTED_TEAM, companyConnectionCoverage, createFixtureState, hasConfiguredCompanySource, snapshot } from '@david/domain';
+import { ActionProposal, ConnectionCapability, ForecastScenario, PreparedArtifact, WorkOpportunity } from '@david/contracts';
+import { ALWAYS_ON_AGENT_ID, WALLAROO_PAGES, WALLAROO_SELECTED_TEAM, companyConnectionCoverage, conversationPulse, conversationThread, createFixtureState, hasConfiguredCompanySource, snapshot } from '@david/domain';
 
 describe('Wallaroo Media walkthrough fixture', () => {
   it('keeps Brandon’s five plus the included website agent and seeds playable fixture work', () => {
@@ -35,15 +35,19 @@ describe('Wallaroo Media walkthrough fixture', () => {
     expect(state.contacts.map(item => item.account)).toEqual(['Called to Surf', 'Kaja Beauty', 'MaxPro', 'Bullstrap', 'Stately', 'Jantzen']);
     expect(state.proposals).toHaveLength(6);
     expect(state.proposals.every(item => item.fixture && item.status !== 'unknown')).toBe(true);
-    expect(state.contacts.every(item => !item.enrolled)).toBe(true);
-    expect(state.findings.filter(item => item.status === 'proposed' && item.evaluationRule.startsWith('fixture.v1/'))).toHaveLength(5);
+    expect(state.contacts.every(item => item.enrolled)).toBe(true);
+    expect(state.findings.filter(item => item.status === 'approved' && item.evaluationRule.startsWith('fixture.v1/'))).toHaveLength(6);
+    expect(state.initiatives).toHaveLength(6);
+    expect(state.initiatives.every(item => item.status === 'supported')).toBe(true);
     expect(state.findings.some(item => item.evaluationRule.startsWith('strategy.v1/'))).toBe(false);
-    expect(state.approvals.some(item => item.status === 'pending')).toBe(true);
+    expect(state.approvals.every(item => item.status === 'approved')).toBe(true);
+    expect(state.actions.every(item => item.status === 'confirmed')).toBe(true);
     expect(state.installations.find(item => item.agentId === 'outbound-email-sdr')?.lastBusinessActionAt).toBe('2026-09-10T14:05:00.000Z');
-    expect(state.installations.filter(item => item.agentId !== 'outbound-email-sdr').every(item => item.lastBusinessActionAt === null)).toBe(true);
+    expect(state.installations.find(item => item.agentId === 'linkedin-outreach-assistant')?.lastBusinessActionAt).toBeTruthy();
     expect(new Set(state.installations.map(item => item.lastPreparationAt)).size).toBeGreaterThan(3);
-    expect(state.metrics.find(item => item.key === 'human_replies')?.value).toBe(3);
-    expect(state.metrics.find(item => item.key === 'verified_bookings')?.value).toBe(2);
+    expect(state.metrics.find(item => item.key === 'human_replies')?.value).toBe(5);
+    expect(state.metrics.find(item => item.key === 'verified_bookings')?.value).toBe(4);
+    expect(state.metrics.find(item => item.key === 'attended_meetings')?.value).toBe(2);
     expect(state.metrics.find(item => item.key === 'signed_value')?.value).toBe(1500000);
     expect(state.connections.map(item => item.identity)).toEqual(expect.arrayContaining([
       'wallaroomedia.com',
@@ -65,10 +69,26 @@ describe('Wallaroo Media walkthrough fixture', () => {
     expect(coverage.agents.find(item => item.id === 'linkedin-outreach-assistant')).toMatchObject({ selected: true, engineeringRequired: true });
     expect(state.onboarding?.answers.systems.some(item => item.kind === 'social' && /LinkedIn/.test(item.tool))).toBe(true);
     expect(state.onboarding?.answers.systems.some(item => item.kind === 'mail' && /SMS is not a DAVID product/.test(item.mapping))).toBe(true);
+    expect(state.artifacts.find(item => item.agentId === 'outbound-email-sdr' && item.title.startsWith('Called to Surf'))?.content).toMatch(/Book 30 minutes/);
+    const called = state.proposals.find(item => item.reference === 'P-2001')!;
+    const kaja = state.proposals.find(item => item.reference === 'P-2002')!;
+    const stately = state.proposals.find(item => item.reference === 'P-2005')!;
+    expect(conversationThread(state, called.opportunityId).some(item => item.channel === 'linkedin' && item.kind === 'event')).toBe(true);
+    expect(conversationThread(state, called.opportunityId).some(item => item.body.includes('Book 30 minutes'))).toBe(true);
+    expect(conversationThread(state, kaja.opportunityId).some(item => item.channel === 'linkedin')).toBe(true);
+    expect(conversationThread(state, stately.opportunityId).some(item => item.channel === 'website')).toBe(true);
+    const pulse = conversationPulse(state);
+    expect(pulse.linkedinSent).toBe(4);
+    expect(pulse.linkedinAccepted).toBe(3);
+    expect(pulse.meetingsBooked).toBe(4);
+    expect(state.scenarios).toHaveLength(2);
+    expect(state.scenarios.every(item => item.baselineWins !== null && item.counterfactual && item.spendMinor !== null && item.valueMinor !== null)).toBe(true);
+    expect(state.usage).toHaveLength(5);
     for (const artifact of state.artifacts) PreparedArtifact.parse(artifact);
     for (const finding of state.findings) WorkOpportunity.parse(finding);
     for (const connection of state.connections) ConnectionCapability.parse(connection);
     for (const action of state.actions) ActionProposal.parse(action);
+    for (const scenario of state.scenarios) ForecastScenario.parse(scenario);
   });
 
   it('leaves the DAVID and northstar fixtures on their original teams', () => {

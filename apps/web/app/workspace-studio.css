@@ -6,12 +6,13 @@
 .studio-app .nav a[aria-current=page]{background:#232b25;color:#f5f6ef;box-shadow:none}
 .studio-app .nav a[aria-current=page] svg{color:#c6d1b6}
 .studio-app .topbar{background:#ffffffed;border-bottom:1px solid #e2e5dd}
-.studio-app .page-heading{margin-bottom:8px;align-items:center}
+.studio-app .page-heading{margin-bottom:8px;align-items:flex-start}
 .studio-app .page-heading h1{font-family:Georgia,'Times New Roman',serif;font-weight:500;font-size:clamp(32px,3.7vw,58px);line-height:1.08;letter-spacing:-1.8px;max-width:920px;margin:16px 0}
 .studio-heading-dot{color:#c42b2f}
 .studio-app .page-heading h1:has(.studio-heading-dot){text-wrap:balance}
 .studio-app .page-heading .eyebrow{font-family:ui-monospace,SFMono-Regular,monospace;font-size:10px;letter-spacing:2px;color:#7d877b}
 .studio-app .page-heading p{font-size:13px;line-height:1.7;max-width:720px}
+.studio-app .page-heading .btn{flex-shrink:0;white-space:nowrap;margin-top:28px}
 .workspace-studio{gap:28px;min-width:0}
 .workspace-studio>.card,.workspace-studio>.grid-two>.card{border-radius:16px}
 .workspace-studio .card{box-shadow:none;overflow:hidden}
@@ -19,6 +20,7 @@
 .studio-app .card-head h2{font-size:15px;font-weight:550;letter-spacing:-.2px}
 .studio-app .section-heading h2{font-family:Georgia,serif;font-size:24px;font-weight:500;letter-spacing:-.4px}
 .studio-app .section-heading>span{font-size:11px}
+.studio-app .section-heading{flex-wrap:wrap;gap:8px 16px}
 .studio-app .btn{border-radius:8px}
 .studio-app .btn:not(.btn-primary):not(.btn-danger):hover{background:#edf1e5;border-color:#bbc8aa}
 .studio-app .input{border-radius:8px;background:#fcfdf9;border-color:#ccd4c5;color:#262d24}
@@ -33,14 +35,14 @@
 .studio-app td{border-color:#e5e9e0;padding-top:19px;padding-bottom:19px}
 .studio-app tbody tr:hover{background:#f8faf3}
 .studio-app .notice{border-radius:10px;font-size:12px;line-height:1.6}
-.workspace-overview{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.12fr);align-items:center;gap:32px;padding:32px;background:#222b25;color:#f3f5ec;border-radius:18px;min-width:0}
+.workspace-overview{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.12fr);align-items:start;gap:32px;padding:32px;background:#222b25;color:#f3f5ec;border-radius:18px;min-width:0}
 .workspace-overview-copy{min-width:0}
 .workspace-overview .studio-kicker{color:#adbaa4}
 .workspace-overview h2{font-family:Georgia,serif;font-size:clamp(25px,2.5vw,37px);line-height:1.15;letter-spacing:-.8px;font-weight:400;margin:16px 0}
 .workspace-overview p{font-size:12px;line-height:1.8;color:#b7c1af;margin:0;max-width:450px}
 .workspace-overview-content{min-width:0}
 .studio-signal-grid{display:flex;gap:10px;min-width:0}
-.studio-signal{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:12px;padding:18px 14px;border:1px solid #46533e;border-radius:10px;background:#2b372b;color:#e6eddd}
+.studio-signal{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:12px;padding:18px 14px;border:1px solid #46533e;border-radius:10px;background:#2b372b;color:#e6eddd}
 .studio-signal>span{font-size:10px;line-height:1.5;color:#c1ccb5}
 .studio-signal>strong{font-family:Georgia,serif;font-weight:400;font-size:42px;line-height:1}
 .studio-signal>small{font-size:9px;line-height:1.5;color:#bdc9b0;display:flex;gap:7px;align-items:center;margin-top:auto}
@@ -87,8 +89,41 @@ body:has(.studio-app) .dialog-title{font-family:Georgia,serif;font-weight:500;fo
 body:has(.studio-app) .dialog-description{padding-bottom:20px;border-bottom:1px solid #d7e0cb;color:#606b58}
 body:has(.studio-app) .dialog .input{border-radius:8px;background:#fff;border-color:#cbd5bf}
 body:has(.studio-app) .dialog .btn{border-radius:8px}
-@media(max-width:1100px){.workspace-overview{grid-template-columns:1fr}.studio-health-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:700px){.studio-app .page-heading{align-items:flex-start;gap:16px}.studio-app .page-heading h1{font-size:36px;letter-spacing:-1.2px}.workspace-overview{padding:24px;gap:24px}.studio-signal-grid{flex-wrap:wrap}.studio-signal{flex-basis:calc(50% - 10px);padding:16px}.journey-stages{grid-template-columns:repeat(4,minmax(0,1fr));row-gap:22px}.journey-stages::before{display:none}.journey-evidence-map{padding:18px}.scenario-range-board{grid-template-columns:1fr}.scenario-range-board .studio-case{padding:22px}.studio-health-grid{grid-template-columns:1fr;padding:14px}.studio-app .section-heading{align-items:flex-start;flex-wrap:wrap}.studio-app .page-heading h1{overflow-wrap:anywhere}body:has(.studio-app) .dialog{border-radius:16px 16px 0 0}}
+.initiative-constellation{display:flex;flex-direction:column;gap:18px}
+.initiative-orbit{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.initiative-orbit-card{min-width:0;padding:22px 20px;border-radius:16px;background:#222b25;color:#f3f5ec;border:1px solid #3a4738}
+.initiative-orbit-card .today-kicker{color:#b7c0b2}
+.initiative-orbit-card h3{font:500 18px/1.3 Georgia,serif;letter-spacing:-.3px;margin:10px 0 12px;text-wrap:balance}
+.initiative-orbit-stamp{margin:0 0 16px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#a9b6a2}
+.initiative-orbit-card ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.initiative-orbit-card ul li{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:12px;color:#c5d0bb}
+.initiative-orbit-card ul strong{font-family:Georgia,serif;font-size:22px;line-height:1;color:#eef3e4}
+.journey-moves{list-style:none;margin:18px 0 0;padding:0;display:flex;flex-direction:column;gap:0;position:relative}
+.journey-moves::before{content:"";position:absolute;left:18px;top:10px;bottom:10px;width:1px;background:#c5d0b8}
+.journey-moves li{display:grid;grid-template-columns:38px minmax(0,1fr);gap:14px;padding:10px 0;position:relative;z-index:1}
+.journey-moves .journey-stage-dot{background:#263226;border-color:#263226;color:#d2dfc1}
+.journey-moves strong{display:block;font-size:14px;font-weight:550}
+.journey-moves small{display:block;margin-top:3px;font-size:10px;color:#66735b}
+.journey-moves p{margin:6px 0 0;font-size:12px;line-height:1.6;color:#4f5a48}
+.scenario-observed{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:22px;border-radius:16px;background:#222b25;color:#f3f5ec}
+.scenario-observed .eyebrow{color:#adbaa4}
+.scenario-observed strong{display:block;font:400 42px/1 Georgia,serif;margin-top:8px}
+.scenario-observed p{grid-column:1/-1;margin:8px 0 0;font-size:13px;line-height:1.7;color:#c5d0bb}
+.journey-pulse{margin:22px 0 0}
+.journey-facts{margin-top:24px}
+.journey-scope{margin:18px 0 0;font-size:12px;line-height:1.7;color:#b7c2ad;max-width:62ch}
+.initiative-orbit-card ul li span{text-align:right}
+@media(max-width:1100px){.workspace-overview{grid-template-columns:1fr}.studio-health-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.initiative-orbit{grid-template-columns:1fr 1fr}}
+@container workspace (max-width: 980px){
+  .workspace-overview{grid-template-columns:1fr}
+  .initiative-orbit{grid-template-columns:1fr 1fr}
+  .studio-health-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@container workspace (max-width: 640px){
+  .initiative-orbit,.scenario-observed,.initiative-orbit-card ol{grid-template-columns:1fr}
+  .studio-signal{flex-basis:100%}
+}
+@media(max-width:700px){.studio-app .page-heading{align-items:flex-start;gap:16px}.studio-app .page-heading h1{font-size:36px;letter-spacing:-1.2px}.studio-app .page-heading .btn{margin-top:12px;width:auto}.workspace-overview{padding:24px;gap:24px}.studio-signal-grid{flex-wrap:wrap}.studio-signal{flex-basis:calc(50% - 10px);padding:16px}.journey-stages{grid-template-columns:repeat(4,minmax(0,1fr));row-gap:22px}.journey-stages::before{display:none}.journey-evidence-map{padding:18px}.scenario-range-board{grid-template-columns:1fr}.scenario-range-board .studio-case{padding:22px}.studio-health-grid{grid-template-columns:1fr;padding:14px}.studio-app .section-heading{align-items:flex-start;flex-wrap:wrap}.studio-app .page-heading h1{overflow-wrap:anywhere}body:has(.studio-app) .dialog{border-radius:16px 16px 0 0}.initiative-orbit,.scenario-observed,.initiative-orbit-card ol{grid-template-columns:1fr}.journey-moves::before{display:none}}
 @media(prefers-reduced-motion:reduce){.studio-case-track span,button.studio-signal{transition:none}}
 /* Account entry shares the same material and typography without changing auth. */
 body:has(>.login-page),body:has(main.login-page){background:#f5f7f0}

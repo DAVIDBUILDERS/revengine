@@ -4,7 +4,7 @@ import { createFixtureState, executeCommand, snapshot, DEFAULT_PREVIEW_WORKSPACE
 import type { WorkspaceDataSource } from "../../web/components/app-shell";
 
 const Journal = z.object({ version: z.literal(1), commands: z.array(Command).max(300) }).strict();
-const prefix = "revengine.browser-demo.v1.";
+const prefix = "revengine.browser-demo.v2.";
 const maxBytes = 1_000_000;
 
 // Inject storage for testing. No HTTP, database, provider, or filesystem access.

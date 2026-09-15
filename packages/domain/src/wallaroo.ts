@@ -177,9 +177,11 @@ function addArtifact(state: EngineState, agentId: string, title: string, type: s
   });
 }
 
-function addFinding(state: EngineState, agentId: string, title: string, condition: string, hypothesis: string, target: string, affectedIds: string[], at = state.asOf) {
+function addFinding(state: EngineState, agentId: string, title: string, condition: string, hypothesis: string, target: string, affectedIds: string[], at = state.asOf, assignments: string[] = []) {
+  const id = stableId(`${state.fixtureKey}:finding:${agentId}:${title}`);
+  const baseline = 'Before this overnight pass, this specialist had no recorded customer movement in the log.';
   state.findings.push({
-    id: stableId(`${state.fixtureKey}:finding:${agentId}:${title}`),
+    id,
     workspaceId: state.workspace.id,
     title,
     affectedIds,
@@ -191,15 +193,29 @@ function addFinding(state: EngineState, agentId: string, title: string, conditio
     costMinor: null,
     owner: 'Workspace owner',
     evaluationRule: `fixture.v1/${agentId}: labeled walkthrough work. Not a live outcome.`,
-    status: 'proposed',
-    alternatives: ['Keep reviewing the saved draft', 'Copy the work into the connected tool'],
-    baseline: 'No live send or publish has occurred.',
+    status: 'approved',
+    alternatives: ['Could have held the pass for a person', 'Could have left the log empty overnight'],
+    baseline,
     target,
     reviewAt: new Date(Date.parse(at) + 7 * 86400000).toISOString(),
   });
+  state.initiatives.push({
+    id: stableId(`${state.fixtureKey}:initiative:${agentId}:${title}`),
+    workspaceId: state.workspace.id,
+    findingId: id,
+    title,
+    owner: 'Workspace owner',
+    baseline,
+    target,
+    reviewAt: new Date(Date.parse(at) + 7 * 86400000).toISOString(),
+    status: 'supported',
+    assignments: assignments.length ? assignments : [target],
+  });
 }
 
-function addMessage(state: EngineState, opportunityId: string, at: string, kind: 'message_out' | 'message_in', actor: 'david' | 'human', title: string, body: string) {
+const BOOKING_CTA = 'Book 30 minutes with a senior strategist: https://wallaroomedia.com/';
+
+function addMessage(state: EngineState, opportunityId: string, at: string, kind: string, actor: 'david' | 'human', title: string, body: string) {
   const source = state.proposals.find(item => item.opportunityId === opportunityId)?.evidence ?? [];
   state.timeline.push({
     id: stableId(`${state.fixtureKey}:message:${kind}:${title}:${at}`),
@@ -214,7 +230,79 @@ function addMessage(state: EngineState, opportunityId: string, at: string, kind:
   });
 }
 
-/** Replace the generic DAVID fixture with a playable Wallaroo walkthrough. */
+function addLoggedAction(
+  state: EngineState,
+  input: {
+    key: string;
+    agentId: string;
+    contactId: string;
+    proposalId: string;
+    type: 'send_follow_up' | 'book_appointment';
+    at: string;
+    subject: string;
+    body: string;
+    startAt?: string;
+  },
+) {
+  const actionId = stableId(`${state.fixtureKey}:action:${input.key}`);
+  const approvalId = stableId(`${state.fixtureKey}:approval:${input.key}`);
+  const contact = state.contacts.find(item => item.id === input.contactId)!;
+  const proposal = state.proposals.find(item => item.id === input.proposalId)!;
+  const installation = state.installations.find(item => item.agentId === input.agentId)!;
+  state.actions.push({
+    schemaVersion: 1,
+    id: actionId,
+    workspaceId: state.workspace.id,
+    installationId: installation.id,
+    runId: stableId(`${state.fixtureKey}:run:${input.key}`),
+    contactId: input.contactId,
+    proposalId: input.proposalId,
+    type: input.type,
+    payload: {
+      recipient: contact.email,
+      subject: input.subject,
+      body: input.body,
+      proposalVersion: proposal.version,
+      ...(input.startAt
+        ? {
+            calendarId: 'fixture-calendar-primary',
+            startAt: input.startAt,
+            endAt: new Date(Date.parse(input.startAt) + 30 * 60000).toISOString(),
+            timeZone: state.workspace.timeZone,
+          }
+        : {}),
+    },
+    payloadHash: 'fixture-walkthrough',
+    evidence: proposal.evidence,
+    approvalId,
+    reservedCostMinor: 1,
+    status: 'confirmed',
+    createdAt: input.at,
+    expiresAt: '2026-09-11T16:00:00.000Z',
+  });
+  state.approvals.push({
+    id: approvalId,
+    workspaceId: state.workspace.id,
+    actionId,
+    status: 'approved',
+    payloadHash: 'fixture-walkthrough',
+    approverId: state.context.actorId,
+    decidedAt: input.at,
+    expiresAt: '2026-09-11T16:00:00.000Z',
+  });
+  state.receipts.push({
+    id: stableId(`${state.fixtureKey}:receipt:${input.key}`),
+    workspaceId: state.workspace.id,
+    actionId,
+    status: 'confirmed',
+    provider: 'fixture',
+    providerId: `fixture-log:${input.key}`,
+    message: 'Recorded in the workspace log. No live send.',
+    reconciliation: 'resolved',
+    observedAt: input.at,
+    evidence: proposal.evidence,
+  });
+}
 export function applyWallarooFixture(state: EngineState): void {
   const now = state.asOf;
   const earlier = '2026-09-09T16:00:00.000Z';
@@ -222,8 +310,14 @@ export function applyWallarooFixture(state: EngineState): void {
     concierge: '2026-09-10T03:40:00.000Z',
     seoCheck: '2026-09-10T04:14:00.000Z',
     seoFixes: '2026-09-10T05:02:00.000Z',
+    statelyChat: '2026-09-10T04:22:00.000Z',
+    statelyReply: '2026-09-10T04:36:00.000Z',
+    statelyBook: '2026-09-10T04:48:00.000Z',
+    linkedinConnect: '2026-09-10T06:20:00.000Z',
     linkedinFollow: '2026-09-10T06:41:00.000Z',
     linkedinNotes: '2026-09-10T07:18:00.000Z',
+    kajaAccept: '2026-09-10T07:44:00.000Z',
+    kajaThread: '2026-09-10T08:02:00.000Z',
     partnerList: '2026-09-10T08:05:00.000Z',
     partnerIntro: '2026-09-10T08:47:00.000Z',
     rfpWatch: '2026-09-10T10:18:00.000Z',
@@ -233,7 +327,7 @@ export function applyWallarooFixture(state: EngineState): void {
     firstTouch: '2026-09-10T12:28:00.000Z',
     reply: '2026-09-10T13:12:00.000Z',
     qualify: '2026-09-10T13:40:00.000Z',
-    sdrHold: '2026-09-10T14:05:00.000Z',
+    book: '2026-09-10T14:05:00.000Z',
   };
   const workspaceId = state.workspace.id;
   const team = [...WALLAROO_SELECTED_TEAM];
@@ -253,6 +347,8 @@ export function applyWallarooFixture(state: EngineState): void {
   state.approvals = [];
   state.receipts = [];
   state.scenarios = [];
+  state.initiatives = [];
+  state.usage = [];
   const accounts: [string, string, string, EngineState['proposals'][number]['status'], number][] = [
     ['P-2001', 'Riley Chen', 'Called to Surf', 'open', 800000],
     ['P-2002', 'Avery Patel', 'Kaja Beauty', 'open', 500000],
@@ -266,23 +362,41 @@ export function applyWallarooFixture(state: EngineState): void {
     const opportunityId = stableId(`${state.fixtureKey}:opportunity:${reference}`);
     const proposalId = stableId(`${state.fixtureKey}:proposal:${reference}`);
     const source = evidence(state, `${account} pipeline record`, 'company pipeline', reference);
-    state.contacts.push({ id: contactId, workspaceId, name, email: `sample-${index + 1}@example.invalid`, account, suppressed: false, enrolled: false, humanTakeover: false, owner: 'Workspace owner', lastContactAt: status === 'accepted' ? earlier : null });
+    state.contacts.push({ id: contactId, workspaceId, name, email: `sample-${index + 1}@example.invalid`, account, suppressed: false, enrolled: true, humanTakeover: reference === 'P-2003', owner: 'Workspace owner', lastContactAt: status === 'accepted' || status === 'on_hold' ? earlier : null });
     state.opportunities.push({ schemaVersion: 1, id: opportunityId, workspaceId, contactId, accountId: stableId(`${state.fixtureKey}:account:${account}`), businessModel: 'b2b_services', owner: 'Workspace owner', stage: status === 'accepted' ? 'won' : status === 'on_hold' ? 'qualified' : 'proposal', rawStage: status, evidence: [source] });
     state.proposals.push({ schemaVersion: 1, id: proposalId, workspaceId, opportunityId, contactId, version: 1, reference, issuedAt: '2026-09-01T16:00:00.000Z', validUntil: '2026-10-10T16:00:00.000Z', amountMinor: amount, currency: 'USD', valueKind: 'monthly_recurring', scopeSummary: `${account} conversation for Wallaroo’s paid, email, or SEO offer. Named from public case-study brands on wallaroomedia.com.`, sourceUrl: null, status, rawStatus: status, owner: 'Workspace owner', sourceVerifiedAt: now, syncedAt: now, evidence: [source], fixture: true });
     state.timeline.push({ id: stableId(`${state.fixtureKey}:timeline:${reference}`), workspaceId, opportunityId, at: now, kind: 'source', title: `${account} record imported`, detail: 'Pipeline record imported from company sources.', actor: 'source', evidence: [source] });
   });
   const replyProof = evidence(state, 'Human reply', 'recorded conversation', 'wallaroo-reply');
   const bookProof = evidence(state, 'Confirmed booking', 'recorded calendar', 'wallaroo-book');
+  const attendProof = evidence(state, 'Meeting attended', 'recorded calendar', 'wallaroo-attend');
   const signedProof = evidence(state, 'Signed terms', 'recorded confirmation', 'wallaroo-signed');
   const won = state.proposals.find(item => item.reference === 'P-2003')!;
   const booked = state.proposals.find(item => item.reference === 'P-2006')!;
   const replied = state.proposals.find(item => item.reference === 'P-2001')!;
+  const kaja = state.proposals.find(item => item.reference === 'P-2002')!;
+  const bullstrap = state.proposals.find(item => item.reference === 'P-2004')!;
+  const stately = state.proposals.find(item => item.reference === 'P-2005')!;
+  const calledContact = state.contacts.find(item => item.id === replied.contactId)!;
+  const kajaContact = state.contacts.find(item => item.id === kaja.contactId)!;
+  const statelyContact = state.contacts.find(item => item.id === stately.contactId)!;
+  const jantzenContact = state.contacts.find(item => item.id === booked.contactId)!;
+  calledContact.lastContactAt = night.reply;
+  kajaContact.lastContactAt = night.kajaThread;
+  statelyContact.lastContactAt = night.statelyBook;
+  jantzenContact.lastContactAt = '2026-09-09T19:40:00.000Z';
   state.outcomes.push(
-    { id: stableId(`${state.fixtureKey}:outcome:reply-1`), workspaceId, opportunityId: replied.opportunityId, metric: 'human_replies', metricVersion: 1, stage: 'reply', source: 'recorded conversation', periodStart: earlier, periodEnd: earlier, value: 1, valueType: 'count', currency: null, quality: 'fixture', evidence: [replyProof] },
+    { id: stableId(`${state.fixtureKey}:outcome:reply-1`), workspaceId, opportunityId: replied.opportunityId, metric: 'human_replies', metricVersion: 1, stage: 'reply', source: 'recorded conversation', periodStart: earlier, periodEnd: night.reply, value: 1, valueType: 'count', currency: null, quality: 'fixture', evidence: [replyProof] },
     { id: stableId(`${state.fixtureKey}:outcome:reply-2`), workspaceId, opportunityId: booked.opportunityId, metric: 'human_replies', metricVersion: 1, stage: 'reply', source: 'recorded conversation', periodStart: earlier, periodEnd: earlier, value: 1, valueType: 'count', currency: null, quality: 'fixture', evidence: [replyProof] },
     { id: stableId(`${state.fixtureKey}:outcome:reply-3`), workspaceId, opportunityId: won.opportunityId, metric: 'human_replies', metricVersion: 1, stage: 'reply', source: 'recorded conversation', periodStart: earlier, periodEnd: earlier, value: 1, valueType: 'count', currency: null, quality: 'fixture', evidence: [replyProof] },
+    { id: stableId(`${state.fixtureKey}:outcome:reply-4`), workspaceId, opportunityId: kaja.opportunityId, metric: 'human_replies', metricVersion: 1, stage: 'reply', source: 'recorded conversation', periodStart: night.kajaThread, periodEnd: night.kajaThread, value: 1, valueType: 'count', currency: null, quality: 'fixture', evidence: [replyProof] },
+    { id: stableId(`${state.fixtureKey}:outcome:reply-5`), workspaceId, opportunityId: stately.opportunityId, metric: 'human_replies', metricVersion: 1, stage: 'reply', source: 'recorded conversation', periodStart: night.statelyReply, periodEnd: night.statelyReply, value: 1, valueType: 'count', currency: null, quality: 'fixture', evidence: [replyProof] },
     { id: stableId(`${state.fixtureKey}:outcome:book-1`), workspaceId, opportunityId: booked.opportunityId, metric: 'verified_bookings', metricVersion: 1, stage: 'booked', source: 'recorded calendar', periodStart: earlier, periodEnd: earlier, value: 1, valueType: 'count', currency: null, quality: 'fixture', evidence: [bookProof] },
-    { id: stableId(`${state.fixtureKey}:outcome:book-2`), workspaceId, opportunityId: replied.opportunityId, metric: 'verified_bookings', metricVersion: 1, stage: 'booked', source: 'recorded calendar', periodStart: now, periodEnd: now, value: 1, valueType: 'count', currency: null, quality: 'fixture', evidence: [bookProof] },
+    { id: stableId(`${state.fixtureKey}:outcome:book-2`), workspaceId, opportunityId: replied.opportunityId, metric: 'verified_bookings', metricVersion: 1, stage: 'booked', source: 'recorded calendar', periodStart: night.book, periodEnd: night.book, value: 1, valueType: 'count', currency: null, quality: 'fixture', evidence: [bookProof] },
+    { id: stableId(`${state.fixtureKey}:outcome:book-3`), workspaceId, opportunityId: kaja.opportunityId, metric: 'verified_bookings', metricVersion: 1, stage: 'booked', source: 'recorded calendar', periodStart: night.kajaThread, periodEnd: night.kajaThread, value: 1, valueType: 'count', currency: null, quality: 'fixture', evidence: [bookProof] },
+    { id: stableId(`${state.fixtureKey}:outcome:book-4`), workspaceId, opportunityId: stately.opportunityId, metric: 'verified_bookings', metricVersion: 1, stage: 'booked', source: 'recorded calendar', periodStart: night.statelyBook, periodEnd: night.statelyBook, value: 1, valueType: 'count', currency: null, quality: 'fixture', evidence: [bookProof] },
+    { id: stableId(`${state.fixtureKey}:outcome:attend-1`), workspaceId, opportunityId: booked.opportunityId, metric: 'attended_meetings', metricVersion: 1, stage: 'attended', source: 'recorded calendar', periodStart: earlier, periodEnd: earlier, value: 1, valueType: 'count', currency: null, quality: 'fixture', evidence: [attendProof] },
+    { id: stableId(`${state.fixtureKey}:outcome:attend-2`), workspaceId, opportunityId: won.opportunityId, metric: 'attended_meetings', metricVersion: 1, stage: 'attended', source: 'recorded calendar', periodStart: earlier, periodEnd: earlier, value: 1, valueType: 'count', currency: null, quality: 'fixture', evidence: [attendProof] },
     { id: stableId(`${state.fixtureKey}:outcome:signed-1`), workspaceId, opportunityId: won.opportunityId, metric: 'signed_value', metricVersion: 1, stage: 'signed', source: 'recorded confirmation', periodStart: earlier, periodEnd: earlier, value: 1500000, valueType: 'money_minor', currency: 'USD', quality: 'fixture', evidence: [signedProof] },
   );
   state.connections = [
@@ -334,78 +448,166 @@ export function applyWallarooFixture(state: EngineState): void {
     });
   }
   addArtifact(state, 'technical-seo-monitor', 'Title and description fixes', 'CapturedPageAudit', 'Priority fixes from the captured Wallaroo pages:\n1. /ai-powered-email/ — keep the Klaviyo/Shopify offer in the first 160 characters of the description.\n2. /ai-powered-seo/ — title already names SEO and LLMO; keep both terms.\n3. Home — “AI-native agency for eCommerce” is the clearest offer line.\nCopy these into the CMS. DAVID does not write the live site.', 'Only captured pages were checked. No ranking or crawl claim.', night.seoFixes);
-  addArtifact(state, 'linkedin-outreach-assistant', 'LinkedIn notes for Shopify operators', 'OutreachDraft', 'Four connection notes for Shopify brand operators in the $1M–$30M range.\n1. Called to Surf — ask how they evaluate paid + SEO together.\n2. Kaja Beauty — ask who owns creative velocity.\n3. Bullstrap — ask about Klaviyo flow coverage.\n4. Stately — ask about LLMO / AI-search visibility.\nNo InMail was sent. Review and copy into LinkedIn.', 'Saved draft only. LinkedIn sending is not live.', night.linkedinNotes);
-  addArtifact(state, 'linkedin-outreach-assistant', 'Follow-up angles after first reply', 'OutreachDraft', 'If a connection accepts: ask one qualification question (current stack, monthly ad spend band, or SEO owner) and offer the 30-minute strategist conversation from the public site. Do not invent pricing.', 'Draft only. No LinkedIn send.', night.linkedinFollow);
-  addArtifact(state, 'partner-development', 'Partner intro shortlist', 'PartnerBrief', 'Complementary partners Wallaroo can introduce or receive from:\n• Creative studios that already produce Meta/TikTok volume\n• Shopify Plus implementation partners\n• Email/SMS operators who need SEO/LLMO coverage\nProposed first intro: a Plus-partner studio that wants AI-native ads without building the SEO practice. Draft intro is saved; no email was sent.', 'Internal shortlist. No partner email was sent.', night.partnerList);
-  addArtifact(state, 'partner-development', 'Plus-partner intro draft', 'PartnerIntro', 'Subject: Intro · AI-native ads + SEO for a shared Shopify Plus account\nBody: Wallaroo’s public offers are AI-Powered Ads, Email and SMS, and SEO including LLMO. This draft proposes a reciprocal intro with a Plus implementation partner. No email was sent.', 'Draft only. No partner email was sent.', night.partnerIntro);
-  addArtifact(state, 'outbound-email-sdr', 'Outbound sequence · Shopify brands', 'EmailSequence', 'Three-step sequence for Shopify brands doing $1M–$30M.\n1. Offer clarity — AI-Powered Ads, Email, or SEO.\n2. Qualification — current stack (Meta, Klaviyo, SEO) and who owns it.\n3. Ask for the 30-minute strategist conversation from wallaroomedia.com.\nCopy into Klaviyo or the sender you use. DAVID did not send.', 'Draft sequence only. Klaviyo send is not live.', night.sdrSeq);
-  addArtifact(state, 'outbound-email-sdr', 'Called to Surf first-touch draft', 'EmailDraft', `To: ${state.contacts[0].email}\nSubject: Paid, email, and SEO for ${state.contacts[0].account}\nBody: Wallaroo describes three offers for Shopify brands: AI-Powered Ads, AI-Powered Email and SMS, and AI-Powered SEO including LLMO. If you want a senior strategist conversation, use the public booking path on wallaroomedia.com.`, 'Not sent. Copy into your mail tool.', night.sdrDraft);
-  addArtifact(state, 'rfp-opportunity-scout', 'Matching agency RFPs', 'RfpWatchlist', 'Two RFPs that match Wallaroo’s public offers:\n1. Shopify Plus brand — paid social + creative velocity (Ads page).\n2. DTC retailer — technical SEO + LLMO (SEO page).\nNeither was submitted. Review fit, then copy the response outline into the proposal tool you use.', 'Watchlist only. No bid was filed.', night.rfpWatch);
-  addArtifact(state, 'rfp-opportunity-scout', 'SEO + LLMO response outline', 'RfpOutline', 'Response outline for the DTC retailer RFP.\n1. Technical SEO from the public /ai-powered-seo/ page.\n2. LLMO so AI shopping agents can recommend the brand.\n3. Ask for the 30-minute strategist conversation.\nDo not invent rankings or awarded work.', 'Outline only. No bid was filed.', night.rfpOutline);
-  addArtifact(state, ALWAYS_ON_AGENT_ID, 'Homepage FAQ block', 'FaqDraft', 'FAQ block ready to paste onto wallaroomedia.com.\nWhat does Wallaroo offer? AI-Powered Ads, Email and SMS, and SEO including LLMO.\nWho is it for? Shopify and Shopify Plus brands, typically $1M–$30M+.\nWhat does it cost? Ask for the current approved proposal; public retainers start at $1,500/mo on the service pages.', 'Draft FAQ. Chat is not deployed.', '2026-09-10T03:55:00.000Z');
+  addArtifact(state, 'linkedin-outreach-assistant', 'LinkedIn notes for Shopify operators', 'OutreachDraft', `Overnight LinkedIn pass for Shopify operators in the $1M–$30M range.\nConnection requests recorded: 4\nAccepted: 3 — Called to Surf, Kaja Beauty, Bullstrap\nStill open: Stately\nEach accepted thread includes the booking CTA.\n${BOOKING_CTA}`, 'Recorded in the workspace log. LinkedIn sending is not a live OAuth send.', night.linkedinNotes);
+  addArtifact(state, 'linkedin-outreach-assistant', 'Follow-up angles after first reply', 'OutreachDraft', `After a connection accepts: one qualification question, then the booking CTA. Do not invent pricing.\n${BOOKING_CTA}`, 'Recorded follow-up pattern. No live LinkedIn send.', night.linkedinFollow);
+  addArtifact(state, 'partner-development', 'Partner intro shortlist', 'PartnerBrief', 'Complementary partners Wallaroo can introduce or receive from:\n• Creative studios that already produce Meta/TikTok volume\n• Shopify Plus implementation partners\n• Email/SMS operators who need SEO/LLMO coverage\nFirst intro is already in the log with a Plus-partner studio that wants AI-native ads without building the SEO practice.', 'Internal shortlist plus one recorded intro. No live partner mailbox send.', night.partnerList);
+  addArtifact(state, 'partner-development', 'Plus-partner intro draft', 'PartnerIntro', `Subject: Intro · AI-native ads + SEO for a shared Shopify Plus account\nBody: Wallaroo’s public offers are AI-Powered Ads, Email and SMS, and SEO including LLMO. Reciprocal intro with a Plus implementation partner is in the log.\n${BOOKING_CTA}`, 'Recorded in the workspace log. No live partner email.', night.partnerIntro);
+  addArtifact(state, 'outbound-email-sdr', 'Outbound sequence · Shopify brands', 'EmailSequence', `Three-step sequence already running in the log for Shopify brands doing $1M–$30M.\n1. Offer clarity — AI-Powered Ads, Email, or SEO.\n2. Qualification — current stack (Meta, Klaviyo, SEO) and who owns it.\n3. ${BOOKING_CTA}\nEach email has one job: get the 30-minute strategist conversation on the calendar.`, 'Sequence recorded in the workspace log. Klaviyo send is not live.', night.sdrSeq);
+  addArtifact(state, 'outbound-email-sdr', 'Called to Surf first-touch draft', 'EmailDraft', `To: ${state.contacts[0].email}\nSubject: 30 minutes on paid, email, and SEO for ${state.contacts[0].account}\n\nRiley —\n\nWallaroo runs paid, email, and SEO together for Shopify brands in your range. One strategist conversation covers the stack, not three vendors.\n\n${BOOKING_CTA}\n\nIf that time is not right, reply with two windows this week.`, 'Recorded in the workspace log. Not a live mailbox send.', night.sdrDraft);
+  addArtifact(state, 'rfp-opportunity-scout', 'Matching agency RFPs', 'RfpWatchlist', 'Two RFPs that match Wallaroo’s public offers are already outlined:\n1. Shopify Plus brand — paid social + creative velocity (Ads page).\n2. DTC retailer — technical SEO + LLMO (SEO page).\nResponse outlines are in the log. No bid was filed on a live portal.', 'Watchlist and outlines recorded. No live bid filing.', night.rfpWatch);
+  addArtifact(state, 'rfp-opportunity-scout', 'SEO + LLMO response outline', 'RfpOutline', `Response outline for the DTC retailer RFP, already in the log.\n1. Technical SEO from the public /ai-powered-seo/ page.\n2. LLMO so AI shopping agents can recommend the brand.\n3. ${BOOKING_CTA}\nDo not invent rankings or awarded work.`, 'Outline recorded. No bid was filed.', night.rfpOutline);
+  addArtifact(state, ALWAYS_ON_AGENT_ID, 'Homepage FAQ block', 'FaqDraft', `FAQ the website concierge already used in chat.\nWhat does Wallaroo offer? AI-Powered Ads, Email and SMS, and SEO including LLMO.\nWho is it for? Shopify and Shopify Plus brands, typically $1M–$30M+.\nWhat is the next step? ${BOOKING_CTA}`, 'Concierge answers recorded in the workspace log. Live chat is not deployed on the public site.', '2026-09-10T03:55:00.000Z');
   const openIds = state.proposals.filter(item => item.status === 'open').map(item => item.id);
-  addFinding(state, 'technical-seo-monitor', 'Copy title fixes onto the live site', 'Captured pages have reviewable title and description checks.', 'Copying the saved checks onto wallaroomedia.com is the next human step.', 'Titles and descriptions updated in the CMS by a person.', openIds.slice(0, 1), night.seoCheck);
-  addFinding(state, 'linkedin-outreach-assistant', 'Review four LinkedIn notes', 'Four Shopify-operator notes are drafted and waiting.', 'A person should choose who to contact first.', 'One approved note copied into LinkedIn.', openIds, night.linkedinNotes);
-  addFinding(state, 'partner-development', 'Send the Plus-partner intro', 'A complementary Plus-partner intro is drafted.', 'A person should choose whether this intro goes out and who owns the relationship.', 'One intro copied into mail or dismissed.', [state.proposals[1].id], night.partnerIntro);
-  addFinding(state, 'outbound-email-sdr', 'Approve the first-touch sequence', 'A three-step outbound sequence is saved as a draft.', 'Review wording against approved Wallaroo offers before anyone pastes it into Klaviyo.', 'One sequence approved for copy-out.', [state.proposals[0].id], night.sdrSeq);
-  addFinding(state, 'rfp-opportunity-scout', 'Two RFPs match the public offers', 'Watchlist has two RFPs aligned to Ads and SEO pages.', 'Decide whether either is worth a human-written response.', 'One RFP accepted or dismissed.', [state.proposals[3].id], night.rfpWatch);
-  const sdr = state.installations.find(item => item.agentId === 'outbound-email-sdr')!;
-  const actionId = stableId(`${state.fixtureKey}:action:sdr-review`);
-  const approvalId = stableId(`${state.fixtureKey}:approval:sdr-review`);
-  state.actions.push({
-    schemaVersion: 1,
-    id: actionId,
-    workspaceId,
-    installationId: sdr.id,
-    runId: stableId(`${state.fixtureKey}:run:sdr-review`),
-    contactId: state.contacts[0].id,
-    proposalId: state.proposals[0].id,
+  addFinding(state, 'technical-seo-monitor', 'Title fixes are already in the log', 'Five public pages were checked overnight. Priority title and description fixes are written to the log.', 'The specialist already finished the pass. A person copies onto the CMS when they want the live site changed.', 'Fixes remain in the log until a person pastes them into the CMS.', openIds.slice(0, 1), night.seoCheck, ['5 pages checked overnight', '3 title and description fixes written to the log']);
+  addFinding(state, 'linkedin-outreach-assistant', 'LinkedIn connections already moving', 'Four Shopify-operator connection requests were recorded overnight. Three accepted — Called to Surf, Kaja Beauty, and Bullstrap — and have threads with a booking CTA.', 'The specialist already ran the pass. Accepted connections are in conversation.', 'Keep accepted threads moving toward the 30-minute strategist conversation.', openIds, night.linkedinNotes, ['4 connection requests recorded', '3 accepted overnight', 'Booking CTA on every accepted thread']);
+  addFinding(state, 'partner-development', 'Plus-partner intro is already in motion', 'A complementary Plus-partner intro is recorded in the log.', 'The specialist already wrote the intro. A person owns the relationship from here.', 'One intro sitting in the partner log with a booking path for a shared account.', [kaja.id], night.partnerIntro, ['1 Plus-partner intro recorded', 'Booking path included']);
+  addFinding(state, 'outbound-email-sdr', 'First-touch sequence is already live in the log', 'The three-step outbound sequence ran overnight with a book-a-meeting CTA on every email.', 'The specialist already wrote the emails into the log. Replies and bookings are on the record.', 'Keep booking CTAs on every outbound email.', [replied.id], night.sdrSeq, ['Emails with a book-a-meeting CTA', 'Replies already on the record', 'Meetings booked from the sequence']);
+  addFinding(state, 'rfp-opportunity-scout', 'RFP outlines are already ready', 'Two RFPs matching Ads and SEO pages have response outlines in the log.', 'The specialist already prepared the outlines. A person files if they choose.', 'Outlines stay ready without waiting for another approval cycle.', [bullstrap.id], night.rfpWatch, ['2 matching RFPs outlined', 'Booking CTA in the SEO + LLMO response']);
+  addFinding(state, ALWAYS_ON_AGENT_ID, 'Website concierge already booked a conversation', 'An inbound site visitor asked whether Wallaroo runs Klaviyo and SEO together. The concierge answered from the public FAQ and sent the booking CTA.', 'The included website agent already ran the chat. A meeting is on the record.', 'Keep the public booking path as the only next step from site chat.', [stately.id], night.statelyChat, ['Inbound website chat answered', '30-minute strategist conversation booked']);
+  addLoggedAction(state, {
+    key: 'sdr-called',
+    agentId: 'outbound-email-sdr',
+    contactId: calledContact.id,
+    proposalId: replied.id,
     type: 'send_follow_up',
-    payload: { recipient: state.contacts[0].email, subject: `Paid, email, and SEO for ${state.contacts[0].account}`, body: 'Follow-up after Riley asked who owns paid, email, and SEO. Held because human review is on. No send occurred.', proposalVersion: 1 },
-    payloadHash: 'fixture-walkthrough',
-    evidence: state.proposals[0].evidence,
-    approvalId,
-    reservedCostMinor: 1,
-    status: 'not_attempted',
-    createdAt: night.sdrHold,
-    expiresAt: '2026-09-11T16:00:00.000Z',
+    at: night.firstTouch,
+    subject: `30 minutes on paid, email, and SEO for ${calledContact.account}`,
+    body: `Riley — Wallaroo runs paid, email, and SEO together for Shopify brands in your range. ${BOOKING_CTA}`,
   });
-  state.approvals.push({ id: approvalId, workspaceId, actionId, status: 'pending', payloadHash: 'fixture-walkthrough', approverId: null, decidedAt: null, expiresAt: '2026-09-11T16:00:00.000Z' });
+  addLoggedAction(state, {
+    key: 'book-called',
+    agentId: 'outbound-email-sdr',
+    contactId: calledContact.id,
+    proposalId: replied.id,
+    type: 'book_appointment',
+    at: night.book,
+    subject: `Strategist conversation · ${calledContact.account}`,
+    body: `30-minute strategist conversation booked from the email CTA. ${BOOKING_CTA}`,
+    startAt: '2026-09-11T16:00:00.000Z',
+  });
+  addLoggedAction(state, {
+    key: 'book-jantzen',
+    agentId: 'outbound-email-sdr',
+    contactId: jantzenContact.id,
+    proposalId: booked.id,
+    type: 'book_appointment',
+    at: '2026-09-09T19:45:00.000Z',
+    subject: `Strategist conversation · ${jantzenContact.account}`,
+    body: `30-minute strategist conversation booked from the email CTA. ${BOOKING_CTA}`,
+    startAt: '2026-09-10T17:00:00.000Z',
+  });
+  const actedAt: Record<string, string> = {
+    'outbound-email-sdr': night.book,
+    'linkedin-outreach-assistant': night.kajaThread,
+    [ALWAYS_ON_AGENT_ID]: night.statelyBook,
+    'partner-development': night.partnerIntro,
+  };
   for (const installation of state.installations) {
     const latest = state.artifacts.filter(item => item.agentId === installation.agentId).slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
     installation.lastPreparationAt = latest?.createdAt ?? null;
-    installation.lastBusinessActionAt = installation.agentId === 'outbound-email-sdr' ? night.sdrHold : null;
+    installation.lastBusinessActionAt = actedAt[installation.agentId] ?? null;
   }
-  addMessage(state, replied.opportunityId, night.firstTouch, 'message_out', 'david', 'Called to Surf · first touch', `Riley — Wallaroo’s public offers for Shopify brands are AI-Powered Ads, Email and SMS, and SEO including LLMO. If a senior strategist conversation is useful, the booking path is on wallaroomedia.com.`);
-  addMessage(state, replied.opportunityId, night.reply, 'message_in', 'human', 'Riley Chen · reply', 'Who on your side owns paid, email, and SEO together? We are comparing a few partners and want one conversation, not three vendors.');
-  addMessage(state, replied.opportunityId, night.qualify, 'message_out', 'david', 'Called to Surf · qualification', 'One strategist conversation covers the stack. The public 30-minute booking path is on wallaroomedia.com. No new commercial terms.');
-  addMessage(state, won.opportunityId, '2026-09-09T18:20:00.000Z', 'message_out', 'david', 'MaxPro · first touch', 'Morgan — Wallaroo’s Ads, Email, and SEO offers are on the public site. Sharing the strategist conversation path; no send beyond this workspace log.');
-  addMessage(state, won.opportunityId, '2026-09-09T21:05:00.000Z', 'message_in', 'human', 'Morgan Hale · reply', 'We signed the existing proposal. Hold further automated contact unless we ask.');
-  addMessage(state, booked.opportunityId, '2026-09-09T17:10:00.000Z', 'message_out', 'david', 'Jantzen · first touch', 'Sam — checking fit against Wallaroo’s public Ads, Email, and SEO offers. Booking stays on the public calendar path.');
-  addMessage(state, booked.opportunityId, '2026-09-09T19:40:00.000Z', 'message_in', 'human', 'Sam Brooks · reply', 'Booked the strategist conversation. We will come with current Meta and Klaviyo context.');
+  addMessage(state, replied.opportunityId, night.linkedinConnect, 'linkedin_connect', 'david', 'Called to Surf · connection sent', 'Connection request recorded for Riley Chen, operator at Called to Surf.');
+  addMessage(state, replied.opportunityId, '2026-09-10T06:55:00.000Z', 'linkedin_accept', 'human', 'Riley Chen · connection accepted', 'Riley accepted the LinkedIn connection.');
+  addMessage(state, replied.opportunityId, '2026-09-10T07:08:00.000Z', 'linkedin_out', 'david', 'Called to Surf · LinkedIn note', `Riley — curious how you evaluate paid and SEO together at Called to Surf, instead of as two vendors. ${BOOKING_CTA}`);
+  addMessage(state, replied.opportunityId, night.firstTouch, 'email_out', 'david', 'Called to Surf · first touch', `Riley —\n\nWallaroo runs paid, email, and SEO together for Shopify brands in your range. One strategist conversation covers the stack.\n\n${BOOKING_CTA}\n\nIf that time is not right, reply with two windows this week.`);
+  addMessage(state, replied.opportunityId, night.reply, 'email_in', 'human', 'Riley Chen · reply', 'Who on your side owns paid, email, and SEO together? We are comparing a few partners and want one conversation, not three vendors.');
+  addMessage(state, replied.opportunityId, night.qualify, 'email_out', 'david', 'Called to Surf · qualification', `One strategist conversation covers the stack. No new commercial terms.\n\n${BOOKING_CTA}`);
+  addMessage(state, replied.opportunityId, night.book, 'meeting_booked', 'david', 'Called to Surf · meeting booked', 'Riley booked the 30-minute strategist conversation from the email CTA.');
+  addMessage(state, kaja.opportunityId, night.linkedinConnect, 'linkedin_connect', 'david', 'Kaja Beauty · connection sent', 'Connection request recorded for Avery Patel, operator at Kaja Beauty.');
+  addMessage(state, kaja.opportunityId, night.kajaAccept, 'linkedin_accept', 'human', 'Avery Patel · connection accepted', 'Avery accepted the LinkedIn connection.');
+  addMessage(state, kaja.opportunityId, night.kajaThread, 'linkedin_out', 'david', 'Kaja Beauty · LinkedIn note', `Avery — who owns creative velocity on Meta right now? Wallaroo’s ads offer sits next to email and SEO so the stack is not three vendors.\n\n${BOOKING_CTA}`);
+  addMessage(state, kaja.opportunityId, '2026-09-10T08:18:00.000Z', 'linkedin_in', 'human', 'Avery Patel · reply', 'Creative is in-house and stretched. A 30-minute look at the stack would help. Thursday or Friday morning Mountain time.');
+  addMessage(state, kaja.opportunityId, '2026-09-10T08:26:00.000Z', 'linkedin_out', 'david', 'Kaja Beauty · booking', `Thursday 10:00 AM Mountain is held.\n\n${BOOKING_CTA}`);
+  addMessage(state, kaja.opportunityId, '2026-09-10T08:27:00.000Z', 'meeting_booked', 'david', 'Kaja Beauty · meeting booked', 'Avery booked the 30-minute strategist conversation from LinkedIn.');
+  addMessage(state, bullstrap.opportunityId, night.linkedinConnect, 'linkedin_connect', 'david', 'Bullstrap · connection sent', 'Connection request recorded for Jordan Ellis, operator at Bullstrap.');
+  addMessage(state, bullstrap.opportunityId, '2026-09-10T07:51:00.000Z', 'linkedin_accept', 'human', 'Jordan Ellis · connection accepted', 'Jordan accepted the LinkedIn connection.');
+  addMessage(state, bullstrap.opportunityId, night.linkedinNotes, 'linkedin_out', 'david', 'Bullstrap · LinkedIn note', `Jordan — asking how Klaviyo flow coverage looks next to paid and SEO.\n\n${BOOKING_CTA}`);
+  addMessage(state, stately.opportunityId, night.linkedinConnect, 'linkedin_connect', 'david', 'Stately · connection sent', 'Connection request recorded for Casey Nguyen. Still open; the live thread moved to website chat.');
+  addMessage(state, stately.opportunityId, night.statelyChat, 'website_in', 'human', 'Casey Nguyen · site chat', 'Do you run Klaviyo and SEO together, or is that two different teams?');
+  addMessage(state, stately.opportunityId, night.statelyReply, 'website_out', 'david', 'Website concierge · answer', `Wallaroo’s public offers are AI-Powered Ads, Email and SMS through Klaviyo, and SEO including LLMO. Senior strategists run them together.\n\n${BOOKING_CTA}`);
+  addMessage(state, stately.opportunityId, '2026-09-10T04:41:00.000Z', 'website_in', 'human', 'Casey Nguyen · site chat', 'That is the conversation we need. Holding 30 minutes.');
+  addMessage(state, stately.opportunityId, night.statelyBook, 'meeting_booked', 'david', 'Stately · meeting booked', 'Casey booked the 30-minute strategist conversation from website chat.');
+  addMessage(state, won.opportunityId, '2026-09-09T18:20:00.000Z', 'email_out', 'david', 'MaxPro · first touch', `Morgan — Wallaroo’s Ads, Email, and SEO offers are on the public site.\n\n${BOOKING_CTA}`);
+  addMessage(state, won.opportunityId, '2026-09-09T21:05:00.000Z', 'email_in', 'human', 'Morgan Hale · reply', 'We signed the existing proposal. Hold further automated contact unless we ask.');
+  addMessage(state, booked.opportunityId, '2026-09-09T17:10:00.000Z', 'email_out', 'david', 'Jantzen · first touch', `Sam — checking fit against Wallaroo’s public Ads, Email, and SEO offers.\n\n${BOOKING_CTA}`);
+  addMessage(state, booked.opportunityId, '2026-09-09T19:40:00.000Z', 'email_in', 'human', 'Sam Brooks · reply', 'Holding the 30 minutes. We will come with current Meta and Klaviyo context.');
+  addMessage(state, booked.opportunityId, '2026-09-09T19:45:00.000Z', 'meeting_booked', 'david', 'Jantzen · meeting booked', 'Sam booked the 30-minute strategist conversation from the email CTA.');
+  addMessage(state, kaja.opportunityId, night.partnerIntro, 'partner_out', 'david', 'Plus-partner intro', `Intro recorded with a Shopify Plus implementation partner around a shared account pattern. ${BOOKING_CTA}`);
+  addMessage(state, kaja.opportunityId, '2026-09-10T09:10:00.000Z', 'partner_in', 'human', 'Plus-partner studio · reply', 'Open to a reciprocal intro. Send the 30-minute path.');
   state.replies[replied.id] = { eventId: 'wallaroo-reply-p2001', classification: 'ambiguous', text: 'Who on your side owns paid, email, and SEO together?', at: night.reply };
   state.replies[won.id] = { eventId: 'wallaroo-reply-p2003', classification: 'ambiguous', text: 'We signed the existing proposal. Hold further automated contact unless we ask.', at: '2026-09-10T15:00:00.000Z' };
-  state.replies[booked.id] = { eventId: 'wallaroo-reply-p2006', classification: 'ambiguous', text: 'Booked the strategist conversation.', at: '2026-09-09T19:40:00.000Z' };
+  state.replies[booked.id] = { eventId: 'wallaroo-reply-p2006', classification: 'ambiguous', text: 'Holding the 30 minutes. We will come with current Meta and Klaviyo context.', at: '2026-09-09T19:40:00.000Z' };
+  state.replies[kaja.id] = { eventId: 'wallaroo-reply-p2002', classification: 'ambiguous', text: 'Creative is in-house and stretched. A 30-minute look at the stack would help.', at: '2026-09-10T08:18:00.000Z' };
+  state.replies[stately.id] = { eventId: 'wallaroo-reply-p2005', classification: 'ambiguous', text: 'That is the conversation we need. Holding 30 minutes.', at: night.statelyBook };
   state.scenarios = [{
     id: stableId(`${state.fixtureKey}:scenario:outbound`),
     workspaceId,
     version: 1,
-    name: 'Outbound + SEO · 30 days',
+    name: 'Overnight outbound + LinkedIn · 30 days',
     businessModel: 'b2b_services',
     currency: 'USD',
     horizonDays: 30,
-    volume: 24,
+    volume: 80,
     cohort: 'new_demand',
     overlapResolved: true,
-    conversions: [{ label: 'Qualified conversations', low: .2, base: .3, high: .4 }, { label: 'Bookings', low: .3, base: .4, high: .5 }, { label: 'Held meetings', low: .7, base: .8, high: .9 }, { label: 'Wins', low: .15, base: .25, high: .35 }],
+    conversions: [
+      { label: 'Qualified conversations', low: .28, base: .35, high: .42 },
+      { label: 'Bookings', low: .38, base: .45, high: .52 },
+      { label: 'Held meetings', low: .78, base: .85, high: .92 },
+      { label: 'Wins', low: .22, base: .3, high: .38 },
+    ],
     capacity: 6,
-    valueMinor: 500000,
-    spendMinor: 500000,
-    baselineWins: null,
-    counterfactual: null,
-    assumptions: ['Planning inputs for this workspace, not a guarantee.', 'Unit value is monthly recurring value from the current proposals.'],
+    valueMinor: 800000,
+    spendMinor: 250000,
+    baselineWins: 1,
+    counterfactual: 'Same 30 days with specialists idle overnight: the plan stays at the existing MaxPro signature only.',
+    assumptions: [
+      'Starting volume is 80 reachable Shopify operators in the $1M–$30M band.',
+      'Unit value is $8,000 monthly recurring from the current proposals.',
+      'Planning spend is $2,500 for the 30-day outbound and LinkedIn pass.',
+      'Baseline is the 1 signed conversation already on the record (MaxPro) before the overnight pass.',
+      'Planning cases, not a guarantee of collected revenue.',
+    ],
+    createdAt: now,
+  }, {
+    id: stableId(`${state.fixtureKey}:scenario:website`),
+    workspaceId,
+    version: 1,
+    name: 'Website concierge · 30 days',
+    businessModel: 'b2b_services',
+    currency: 'USD',
+    horizonDays: 30,
+    volume: 120,
+    cohort: 'new_demand',
+    overlapResolved: true,
+    conversions: [
+      { label: 'Qualified conversations', low: .18, base: .25, high: .32 },
+      { label: 'Bookings', low: .32, base: .4, high: .48 },
+      { label: 'Held meetings', low: .74, base: .8, high: .88 },
+      { label: 'Wins', low: .16, base: .2, high: .28 },
+    ],
+    capacity: 8,
+    valueMinor: 800000,
+    spendMinor: 120000,
+    baselineWins: 0,
+    counterfactual: 'Public site with no concierge chat: visitors leave without a strategist conversation on the calendar.',
+    assumptions: [
+      'Starting volume is 120 site conversations in 30 days.',
+      'Unit value is $8,000 monthly recurring.',
+      'Planning spend is $1,200 for concierge coverage.',
+      'Baseline is 0 booked conversations from the public site before the concierge pass.',
+      'Planning cases, not a guarantee of collected revenue.',
+    ],
     createdAt: now,
   }];
+  state.usage = [
+    { id: stableId(`${state.fixtureKey}:usage:setup`), workspaceId, category: 'setup', minutes: 180, costMinor: 150000, note: 'Workspace stand-up and public page capture', at: earlier },
+    { id: stableId(`${state.fixtureKey}:usage:support`), workspaceId, category: 'recurring_support', minutes: 45, costMinor: 40000, note: 'Owner review of the overnight log', at: now },
+    { id: stableId(`${state.fixtureKey}:usage:provider`), workspaceId, category: 'provider', minutes: 20, costMinor: 15000, note: 'Fixture channel logging', at: now },
+    { id: stableId(`${state.fixtureKey}:usage:infra`), workspaceId, category: 'infrastructure', minutes: 30, costMinor: 25000, note: 'Workspace runtime', at: now },
+    { id: stableId(`${state.fixtureKey}:usage:research`), workspaceId, category: 'research', minutes: 60, costMinor: 20000, note: 'Public wallaroomedia.com capture', at: earlier },
+  ];
   state.onboardingCapture = {
     id: nextId(state, 'capture'),
     sourceHash: '0'.repeat(64),
