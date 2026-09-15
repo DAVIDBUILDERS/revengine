@@ -1,6 +1,13 @@
 import { catalog, recommendationFor, prepareFromContext, preparationIds, ALWAYS_ON_AGENT_ID, type WebsiteContext } from '../../agents/src/index';
 import type { AppSnapshot, ActionProposal, WorkspaceContext, EvidenceRef } from '../../contracts/src/index';
 
+export const FIXTURE_WORKSPACE_KEYS = ['david', 'northstar', 'wallaroo'] as const;
+export type FixtureWorkspaceKey = typeof FIXTURE_WORKSPACE_KEYS[number];
+export const DEFAULT_PREVIEW_WORKSPACE = 'wallaroo' satisfies FixtureWorkspaceKey;
+export function isFixtureWorkspace(value: string): value is FixtureWorkspaceKey {
+  return (FIXTURE_WORKSPACE_KEYS as readonly string[]).includes(value);
+}
+
 export const FIXTURE_NOW = '2026-09-10T16:00:00.000Z';
 export type ReplyClassification = 'positive'|'decline'|'opt_out'|'bounce'|'automatic'|'ambiguous';
 export type Policy = { version:number; sourceFreshnessHours:number; replyReviewHours:number; spacingHours:number; dailyActionLimit:number; dailyBudgetMinor:number; sender:string; calendarId:string; meetingMinutes:number; bufferMinutes:number; workingDays:number[]; calendarCapacity:number; workingHours:{start:number;end:number}; operator:string; requireApproval:boolean; confirmed:boolean; liveActivation:{sender:string;cohortIds:string[];policyVersion:number;operator:string;expiresAt:string}|null };

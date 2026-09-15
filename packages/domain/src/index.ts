@@ -5,10 +5,12 @@ import { Command, ForecastScenario, ActionProposal, type AppSnapshot, type Comma
 import { catalog, canonicalAgentId, recommendationFor, prepareFromContext, preparationIds, ALWAYS_ON_AGENT_ID } from '../../agents/src/index';
 import { slotAgentIds, teamSwapReadyAt } from './team';
 import { createFixtureState as initialFixture, nextId, stableId, evidence, audit, type EngineState, type ReplyClassification } from './state';
+import { applyWallarooFixture } from './wallaroo';
 import { authorize, assertBound, eligibility, actionHash, dispatchAction, reconcileAction, fixtureProvider, DomainError, installationFor, groundedFollowUpPayload, checkBooking } from './action-service';
 import { parseCsvImport, normalizedProposal } from './csv';
 import { forecastCases } from './scenarios';
 export * from './state';
+export * from './wallaroo';
 export * from './action-service';
 export * from './csv';
 export * from './scenarios';
@@ -78,7 +80,7 @@ export function snapshot(state:EngineState):AppSnapshot {
   const result:AppSnapshot={setupIdentity:state.setupIdentity,setupDocuments:state.setupDocuments,preparedSetup:state.preparedSetup,onboardingCapture:state.onboardingCapture,onboarding:state.onboarding,workspace:state.workspace,asOf:state.asOf,context:state.context,contacts:state.contacts,opportunities:state.opportunities,proposals:state.proposals,catalog:state.catalog,installations:state.installations,recommendation:state.recommendation,activation:state.activation,readiness:state.readiness,connections:state.connections,actions:state.actions,approvals:state.approvals,receipts:state.receipts,outcomes:state.outcomes,metrics:state.metrics,timeline:state.timeline,artifacts:state.artifacts,findings:state.findings,initiatives:state.initiatives,scenarios:state.scenarios,health:state.health,usage:state.usage,brief:state.brief};
   return structuredClone(result);
 }
-export function createFixtureState(workspaceKey='david'):EngineState {const state=initialFixture(workspaceKey);state.setupDocuments=[];state.setupIdentity={email:'owner@example.invalid',name:'Sample workspace owner'};snapshot(state);return state;}
+export function createFixtureState(workspaceKey='david'):EngineState {const state=initialFixture(workspaceKey);if(workspaceKey==='wallaroo')applyWallarooFixture(state);state.setupDocuments=[];state.setupIdentity={email:'owner@example.invalid',name:'Sample workspace owner'};snapshot(state);return state;}
 function stopPending(state:EngineState,reason:string,contactId?:string){for(const action of state.actions.filter(a=>a.status==='not_attempted'&&(!contactId||a.contactId===contactId))){action.status='failed';const approval=state.approvals.find(a=>a.id===action.approvalId);if(approval)approval.status='invalidated';audit(state,'action.stopped',`${action.id}: ${reason}`);}}
 async function createAction(state:EngineState,proposal:ProposalRecord,type:ActionProposal['type'],payload:ActionProposal['payload']){
   const allowed=eligibility(state,proposal,type);if(!allowed.eligible)throw new DomainError('NOT_ELIGIBLE',allowed.reasons.join(' '));

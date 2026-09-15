@@ -2,7 +2,7 @@ import { mkdir, readFile, rename, rm, writeFile, stat } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
 import { resolve, join } from 'node:path';
 import { cookies } from 'next/headers';
-import { createFixtureState, executeCommand, snapshot, type EngineState } from '../../../packages/domain/src/index';
+import { createFixtureState, executeCommand, snapshot, isFixtureWorkspace, type EngineState } from '../../../packages/domain/src/index';
 import { type Command } from '../../../packages/contracts/src/index';
 import { environment } from '../../../packages/orchestration/src/environment';
 import { HttpError } from './http';
@@ -11,7 +11,7 @@ type SessionFile = { version:1; state: EngineState; requests: number[] };
 async function sessionPath(workspace: string) {
   const env = environment();
   if (env.DAVID_MODE !== 'fixture') throw new HttpError(403,'FIXTURE_DISABLED','Synthetic sessions are available only in local fixture mode.');
-  if (!['david','northstar'].includes(workspace)) throw new HttpError(404,'FIXTURE_WORKSPACE_UNKNOWN','Choose a known synthetic workspace.');
+  if (!isFixtureWorkspace(workspace)) throw new HttpError(404,'FIXTURE_WORKSPACE_UNKNOWN','Choose a known synthetic workspace.');
   const jar = await cookies();
   let sessionId = jar.get('david-fixture-session')?.value;
   if (!sessionId || !/^[a-f0-9]{64}$/.test(sessionId)) {

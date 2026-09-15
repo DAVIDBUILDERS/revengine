@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { Command } from "@david/contracts";
-import { createFixtureState, executeCommand, snapshot, type EngineState } from "@david/domain";
+import { createFixtureState, executeCommand, snapshot, DEFAULT_PREVIEW_WORKSPACE, FIXTURE_WORKSPACE_KEYS, isFixtureWorkspace, type EngineState } from "@david/domain";
 import type { WorkspaceDataSource } from "../../web/components/app-shell";
 
 const Journal = z.object({ version: z.literal(1), commands: z.array(Command).max(300) }).strict();
@@ -17,8 +17,8 @@ export function createBrowserDemo(storage: () => Storage): WorkspaceDataSource {
     return result;
   }
   function keyFor(workspace: string | null) {
-    const key = workspace ?? "david";
-    if (!["david", "northstar"].includes(key)) throw new Error("Unknown demo workspace. Open the home page without a workspace parameter.");
+    const key = workspace ?? DEFAULT_PREVIEW_WORKSPACE;
+    if (!isFixtureWorkspace(key)) throw new Error("Unknown demo workspace. Open the home page without a workspace parameter.");
     return key;
   }
   async function session(key: string) {
@@ -37,7 +37,7 @@ export function createBrowserDemo(storage: () => Storage): WorkspaceDataSource {
   }
   return {
     async list() {
-      return { workspaces: ["david", "northstar"].map(id => ({ id, name: createFixtureState(id).workspace.name })) };
+      return { workspaces: [...FIXTURE_WORKSPACE_KEYS].map(id => ({ id, name: createFixtureState(id).workspace.name })) };
     },
     read(workspace) {
       return serialize(async () => structuredClone(snapshot((await session(keyFor(workspace))).state)));

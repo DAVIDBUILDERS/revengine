@@ -14,6 +14,20 @@ function storage(): Storage {
 }
 
 describe("hosted browser demo isolation", () => {
+  it("opens Wallaroo Media when no workspace is requested", async () => {
+    const demo = createBrowserDemo(storage);
+    const listed = await demo.list();
+    expect(listed.workspaces.map(item => item.id)).toEqual(["david", "northstar", "wallaroo"]);
+    expect((await demo.read(null)).workspace.name).toMatch(/Wallaroo Media/);
+    expect((await demo.read(null)).activation.selectedTeam).toEqual([
+      "technical-seo-monitor",
+      "linkedin-outreach-assistant",
+      "partner-development",
+      "outbound-email-sdr",
+      "rfp-opportunity-scout",
+    ]);
+  });
+
   it("replays validated actions after reload and isolates workspaces and browsers", async () => {
     const tab = storage();
     const demo = createBrowserDemo(() => tab);
@@ -29,7 +43,7 @@ describe("hosted browser demo isolation", () => {
 
   it("rejects invalid history and unknown workspaces", async () => {
     const tab = storage();
-    tab.setItem("revengine.browser-demo.v1.david", JSON.stringify({ version: 1, commands: [{ type: "pause", paused: true, role: "admin" }] }));
+    tab.setItem("revengine.browser-demo.v1.wallaroo", JSON.stringify({ version: 1, commands: [{ type: "pause", paused: true, role: "admin" }] }));
     const demo = createBrowserDemo(() => tab);
     await expect(demo.read(null)).rejects.toThrow("could not be validated");
     await expect(demo.read("customer-production")).rejects.toThrow("Unknown demo workspace");

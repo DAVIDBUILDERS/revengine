@@ -14,6 +14,7 @@ export async function GET() {
         workspaces: [
           { id: "david", name: "DAVID AI · illustrative workspace" },
           { id: "northstar", name: "northstar · illustrative workspace" },
+          { id: "wallaroo", name: "Wallaroo Media · illustrative workspace" },
         ],
         limited: false,
       });

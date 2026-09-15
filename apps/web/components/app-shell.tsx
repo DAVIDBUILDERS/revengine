@@ -11,6 +11,7 @@ import { money, words } from "@david/ui";
 import { OnboardingOperator } from "./onboarding";
 import { PreparedOnboarding } from "./prepared-onboarding";
 import {briefingFinished} from "@david/domain/briefing";
+import { DEFAULT_PREVIEW_WORKSPACE } from "@david/domain";
 import {BriefingHandoff} from "./briefing/handoff";
 import { Today } from "./today";
 import { activeApprovals } from "./approval-state";
@@ -197,7 +198,7 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
       if (!snapshot || mutating.current || epoch !== mutationEpoch.current) return;
       workspaceKey.current =
         snapshot.workspace.mode === "fixture"
-          ? requested
+          ? (requested ?? (browserDemo ? DEFAULT_PREVIEW_WORKSPACE : "david"))
           : snapshot.workspace.id;
       if (!browserDemo && snapshot.workspace.mode !== "fixture" && !new URLSearchParams(window.location.search).has("view") && snapshot.onboarding && !snapshot.onboarding.appliedRevision && snapshot.activation.milestone === "not_started" && !briefingFinished(snapshot.onboarding.answers) && ["workspace_owner","david_operator"].includes(snapshot.context.role)) {
         setPage(snapshot.onboarding.answers.team.length ? "team" : "connections");
@@ -428,7 +429,7 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
                   disabled={busy || !workspaces.length}
                   value={
                     state.workspace.mode === "fixture"
-                      ? (workspaceKey.current ?? "david")
+                      ? (workspaceKey.current ?? (browserDemo ? DEFAULT_PREVIEW_WORKSPACE : "david"))
                       : state.workspace.id
                   }
                   onChange={(event) => switchWorkspace(event.target.value)}
@@ -437,7 +438,7 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
                     <option
                       value={
                         state.workspace.mode === "fixture"
-                          ? (workspaceKey.current ?? "david")
+                          ? (workspaceKey.current ?? (browserDemo ? DEFAULT_PREVIEW_WORKSPACE : "david"))
                           : state.workspace.id
                       }
                     >
@@ -456,7 +457,7 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
                   disabled={busy || !workspaces.length}
                   value={
                     state.workspace.mode === "fixture"
-                      ? (workspaceKey.current ?? "david")
+                      ? (workspaceKey.current ?? (browserDemo ? DEFAULT_PREVIEW_WORKSPACE : "david"))
                       : state.workspace.id
                   }
                   onChange={(event) => switchWorkspace(event.target.value)}
@@ -465,7 +466,7 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
                     <option
                       value={
                         state.workspace.mode === "fixture"
-                          ? (workspaceKey.current ?? "david")
+                          ? (workspaceKey.current ?? (browserDemo ? DEFAULT_PREVIEW_WORKSPACE : "david"))
                           : state.workspace.id
                       }
                     >

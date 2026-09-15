@@ -6,7 +6,8 @@ Created September 11, 2026 at the user's request.
 
 - Public application: https://revengine-bay.vercel.app
 - Private source repository: https://github.com/DAVIDBUILDERS/revengine
-- Production branch: `main`; local working branch: `codex/david-engine-v3`.
+- Walkthrough git branch: `demo`. After a DAVIDBUILDERS owner grants the GitHub App access to this repo, set this Vercel project’s **Production Branch** to `demo` so `main` no longer overwrites the Wallaroo walkthrough. Production product stays `main` → `revengine-production`. Hosted QA stays `revengine-test`.
+- Default browser workspace: **Wallaroo Media** (Brandon’s five + included Website Sales Concierge). `david` and `northstar` remain available from the picker.
 - Vercel team: `davidai` / DAVID AI (`team_1gapHJY0I4iOlFGiGKt9mdtz`).
 - Vercel project: `revengine` (`prj_V97fBIpAc8J5QeOPbNTqhCj8h0qN`).
 - Dashboard: https://vercel.com/davidai/revengine
@@ -63,7 +64,7 @@ The explicit local config matters: the repository-root `vercel.json` is for a di
 
 The repository exists and its `main` branch is pushed. Vercel's existing GitHub app installation in DAVIDBUILDERS (`134359119`) only has selected-repository access and cannot see this new repository. GitHub rejected adding it through the signed-in CLI account with HTTP 403: “You do not have permission to modify this app on DAVIDBUILDERS. Please contact an Organization Owner.” No existing repository permissions were changed. On September 11, the guided-onboarding retry of `vercel git connect` again failed because Vercel could not access the private repository. Read-only Vercel inspection still returned `link: null`, with root `apps/preview`. The current CLI reports repository/org administration but lacks the token access needed to manage the installation; a GitHub installation API read returned HTTP 403. The owner was asked to grant this exact repository in GitHub, and no alternate identity was used to bypass that denial.
 
-A DAVIDBUILDERS organization owner must open https://github.com/organizations/DAVIDBUILDERS/settings/installations/134359119 and add **revengine** to Vercel's selected repositories. Then connect **DAVIDBUILDERS/revengine** in the existing Vercel project's Settings → Git, production branch **main**, retaining root **apps/preview**. Do not create a second project. Until that is done, deployments are manual; pushing GitHub alone does not update the public application. GitHub Actions validation is independent of that connection.
+A DAVIDBUILDERS organization owner must open https://github.com/organizations/DAVIDBUILDERS/settings/installations/134359119 and add **revengine** to Vercel's selected repositories. Then connect **DAVIDBUILDERS/revengine** in the existing Vercel project's Settings → Git, production branch **demo**, retaining root **apps/preview**. Do not create a second project. Until that is done, deployments are manual; pushing GitHub alone does not update the public application. GitHub Actions validation is independent of that connection.
 
 ## Live integration work remains separate
 

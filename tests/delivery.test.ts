@@ -63,7 +63,7 @@ describe('agent delivery modes',()=>{
  });
  it('summarizes recorded work counts without inventing metrics',()=>{
   const engine=createFixtureState();
-  const artifact={id:'00000000-0000-4000-8000-000000000051',workspaceId:engine.workspace.id,agentId:'search-growth',type:'ContentBrief',sourceSnapshot:engine.company.evidence,factualInputs:['Company'],title:'A practical guide',content:'Outline',reviewState:'draft',capabilityVersion:'1.0.0',runId:'00000000-0000-4000-8000-000000000052',createdAt:'2026-09-10T16:00:01.000Z',limitation:'Not published.'};
+  const artifact={id:'00000000-0000-4000-8000-000000000051',workspaceId:engine.workspace.id,agentId:'search-growth',type:'ContentBrief',sourceSnapshot:engine.company.evidence,factualInputs:['Company'],title:'A practical guide',content:'Outline',reviewState:'draft' as const,capabilityVersion:'1.0.0',runId:'00000000-0000-4000-8000-000000000052',createdAt:'2026-09-10T16:00:01.000Z',limitation:'Not published.'};
   engine.artifacts.push(artifact);
   const snap=specialistWorkSnapshot(snapshot(engine),'search-growth');
   expect(snap.latestTitle).toBe('A practical guide');
