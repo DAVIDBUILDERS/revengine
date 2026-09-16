@@ -30,6 +30,8 @@ export const EvidenceAccessContext = createContext<{
   mode: string;
 } | null>(null);
 
+export const QuietWalkthroughContext = createContext(false);
+
 export function DavidSilhouette({ className = "" }: { className?: string }) {
   return <span className={`david-silhouette ${className}`.trim()} aria-hidden="true" />;
 }
@@ -317,7 +319,7 @@ function ProtectedEvidenceFile({ id }: { id: string }) {
     </div>
   );
 }
-export function dateTime(value: string | null) {
+export function dateTime(value: string | null, timeZone?: string) {
   return value
     ? new Intl.DateTimeFormat("en-US", {
         month: "short",
@@ -325,6 +327,7 @@ export function dateTime(value: string | null) {
         hour: "numeric",
         minute: "2-digit",
         timeZoneName: "short",
+        ...(timeZone ? { timeZone } : {}),
       }).format(new Date(value))
     : "Not yet verified";
 }

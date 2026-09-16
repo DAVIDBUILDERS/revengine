@@ -4,9 +4,12 @@ test("customer navigation does not include Activation", async ({ page }) => {
   await page.goto("/?view=today");
   await expect(page.getByRole("link", { name: "Dashboard", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Activation", exact: true })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Open Account Intelligence work" })).toContainText("Company positioning profile");
-  await expect(page.getByRole("button", { name: "Open Deal Follow-up work" })).toContainText(/proposal/i);
-  await expect(page.getByRole("button", { name: "Open Appointment Coordinator work" })).toContainText(/calendar/i);
+  await expect(page.getByRole("heading", { name: "Overnight recap", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Results", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Activity", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Open Account Intelligence recap" }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Open Deal Follow-up recap" }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Open Appointment Coordinator recap" }).first()).toBeVisible();
 });
 
 test("all operational screens fit a narrow viewport", async ({ page }) => {
@@ -53,39 +56,18 @@ test("Today previews prepared work and opens the exact customer record", async (
   ).toBeVisible();
   await page.keyboard.press("Escape");
   await page.getByRole("link", { name: "Dashboard", exact: true }).click();
-  await expect(page.locator(".message-preview")).toContainText(
-    "example.invalid",
-  );
-  await expect(page.locator(".message-preview")).toContainText("Subject");
-  expect(
-    await page.locator(".decision-queue > button[aria-pressed]").count(),
-  ).toBeLessThanOrEqual(3);
-  await page.getByRole("button", { name: "Review exact action" }).click();
-  await expect(page).toHaveURL(/view=opportunities.*proposal=/);
-  await expect(
-    page.getByRole("dialog").getByRole("heading", { level: 2 }),
-  ).toContainText("P-1001");
-  await expect(
-    page
-      .getByRole("dialog")
-      .getByRole("button", { name: "Approve exact action" }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Activity", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Review exact action" })).toHaveCount(0);
+  await page.getByRole("button", { name: /New leads/ }).click();
+  await expect(page.getByRole("heading", { name: "Pipeline", exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/view=opportunities/);
 });
 
 test("agent workspace exposes recorded outputs, sources, limits and working pause controls", async ({
   page,
 }) => {
-  await page.goto("/?view=today");
-  const opener = page.getByRole("button", {
-    name: "Open Account Intelligence work",
-  });
-  await opener.click();
-  await expect(page).toHaveURL(/view=team/);
-  await expect(page).toHaveURL(/agent=account-intelligence/);
-  await expect(
-    page.getByRole("region", { name: "Account Intelligence workbench" }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "Access, limits & history" }).click();
+  await page.goto("/?view=team&agent=account-intelligence");
+  await page.getByRole("button", { name: "Workspace limits" }).click();
   const dialog = page.getByRole("dialog");
   await expect(
     dialog.getByText("None verified", { exact: true }),
@@ -158,7 +140,7 @@ test("assigned workspace picker preserves isolation through navigation and comma
   await page.goto("/?view=opportunities");
   await expect(page.getByLabel("Active workspace")).toBeEnabled();
   await page.getByLabel("Active workspace").selectOption("northstar");
-  await expect(page.locator(".workspace-chip")).toContainText("northstar");
+  await expect(page.locator(".workspace-chip")).toContainText("Northstar");
   await page
     .getByRole("row")
     .filter({ hasText: "P-1001" })
@@ -329,14 +311,15 @@ test("catalog selections, saved scenarios and evidence keyboard navigation", asy
   await expect(page.getByRole("status").filter({hasText:"Recommended team selected below"})).toBeVisible();
   await page.getByRole("link", { name: "Forecast", exact: true }).click();
   await page
-    .getByLabel("Scenario name", { exact: true })
+    .getByLabel("Forecast name", { exact: true })
     .fill("E2E reviewed planning case");
   await page
-    .getByRole("button", { name: "Save scenario", exact: true })
+    .getByRole("button", { name: "Save forecast", exact: true })
+    .first()
     .click();
-  await expect(page.getByRole("status")).toContainText(/sav|scenario/i);
+  await expect(page.getByRole("status")).toContainText(/sav|forecast/i);
   await page.reload();
-  await expect(page.getByLabel("Scenario name", { exact: true })).toHaveValue(
+  await expect(page.getByLabel("Forecast name", { exact: true })).toHaveValue(
     "E2E reviewed planning case",
   );
   await page.getByRole("link", { name: "Dashboard", exact: true }).click();

@@ -13,7 +13,6 @@ import { PreparedOnboarding } from "./prepared-onboarding";
 import {briefingFinished} from "@david/domain/briefing";
 import {BriefingHandoff} from "./briefing/handoff";
 import { Today } from "./today";
-import { activeApprovals } from "./approval-state";
 import {
   AlertCircle,
   BarChart3,
@@ -42,6 +41,7 @@ import {
   Evidence,
   EvidenceAccessContext,
   FeedbackContext,
+  QuietWalkthroughContext,
 } from "./ui";
 import {
   Connections,
@@ -67,7 +67,7 @@ export type ScreenProps = {
   state: AppSnapshot;
   act: (command: Command) => Promise<CommandResult | undefined>;
   busy: boolean;
-  navigate: (page: PageId, focus?: { proposal?: string; agent?: string }) => void;
+  navigate: (page: PageId, focus?: { proposal?: string; agent?: string; lead?: string }) => void;
   inspect: (
     title: string,
     description: string,
@@ -232,7 +232,7 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
     window.addEventListener("popstate", sync);
     return () => window.removeEventListener("popstate", sync);
   }, []);
-  const navigate = (next: PageId, focus?: { proposal?: string; agent?: string }) => {
+  const navigate = (next: PageId, focus?: { proposal?: string; agent?: string; lead?: string }) => {
     setPage(next);
     setMenu(false);
     const query = new URLSearchParams(window.location.search);
@@ -241,14 +241,16 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
       query.delete("google");
       query.delete("connection");
     }
-    if (next !== "team") {
-      query.delete("team");
-      query.delete("agent");
-    } else if (focus?.agent) query.set("agent", focus.agent);
-    else query.delete("agent");
+    if (next !== "team") query.delete("team");
+    if (next === "team" || next === "today") {
+      if (focus?.agent) query.set("agent", focus.agent);
+      else query.delete("agent");
+    } else query.delete("agent");
     if (next !== "opportunities") query.delete("import");
     query.delete("proposal");
     if (focus?.proposal) query.set("proposal", focus.proposal);
+    if (next === "opportunities" && focus?.lead) query.set("lead", focus.lead);
+    else query.delete("lead");
     if (workspaceKey.current) query.set("workspace", workspaceKey.current);
     window.history.pushState({}, "", `?${query}`);
     document.getElementById("main-content")?.focus({ preventScroll: true });
@@ -264,6 +266,8 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
     url.searchParams.delete("team");
     url.searchParams.delete("agent");
     url.searchParams.delete("import");
+    url.searchParams.delete("lead");
+    url.searchParams.delete("proposal");
     window.location.assign(`${url.pathname}${url.search}`);
   };
   const act = async (command: Command): Promise<CommandResult | undefined> => {
@@ -323,7 +327,6 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
           : page === "journey"
             ? "Journey"
             : (navigation.find((item) => item.id === page)?.label ?? "Dashboard");
-  const pending = state ? activeApprovals(state).length : 0;
   const isOperator =
     state?.context.role === "david_operator" ||
     state?.workspace.mode === "fixture";
@@ -374,6 +377,7 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
   if(page === "activation" && !(state.onboarding?.appliedRevision&&!state.onboarding.answers.briefing) && new URLSearchParams(window.location.search).get("mode") !== "profile") return <FeedbackContext.Provider value={notice}><PreparedOnboarding key={state.workspace.id} {...props}/></FeedbackContext.Provider>;
   return (
     <FeedbackContext.Provider value={notice}>
+      <QuietWalkthroughContext.Provider value={!!browserDemo}>
       <EvidenceAccessContext.Provider
         value={{ workspaceId: state.workspace.id, mode: state.workspace.mode }}
       >
@@ -496,9 +500,6 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
                 >
                   <item.icon />
                   {item.label}
-                  {item.id === "decisions" && pending > 0 && (
-                    <span className="nav-count">{pending}</span>
-                  )}
                 </a>
               ))}
             </nav>
@@ -762,6 +763,7 @@ export function AppShell({ browserDemo }: { browserDemo?: WorkspaceDataSource } 
           </Drawer>
         </div>
       </EvidenceAccessContext.Provider>
+      </QuietWalkthroughContext.Provider>
     </FeedbackContext.Provider>
   );
 }

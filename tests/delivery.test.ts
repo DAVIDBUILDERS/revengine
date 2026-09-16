@@ -1,7 +1,7 @@
 import {describe,expect,it} from 'vitest';
 import {createFixtureState,snapshot} from '@david/domain';
 import {saveOnboarding} from '../packages/domain/src/onboarding';
-import {agentDelivery,agentDestinations,artifactCopyText,specialistWorkSnapshot} from '../packages/domain/src/delivery';
+import {agentConversationLabel,agentDelivery,agentDestinations,agentOvernightRecap,artifactCopyText,customerResults,pipelineLeads,specialistWorkSnapshot,teamActivityNarrative,teamActivitySeries} from '../packages/domain/src/delivery';
 import {onboardingFor} from '@david/domain';
 
 describe('agent delivery modes',()=>{
@@ -63,7 +63,7 @@ describe('agent delivery modes',()=>{
  });
  it('summarizes recorded work counts without inventing metrics',()=>{
   const engine=createFixtureState();
-  const artifact={id:'00000000-0000-4000-8000-000000000051',workspaceId:engine.workspace.id,agentId:'search-growth',type:'ContentBrief',sourceSnapshot:engine.company.evidence,factualInputs:['Company'],title:'A practical guide',content:'Outline',reviewState:'draft',capabilityVersion:'1.0.0',runId:'00000000-0000-4000-8000-000000000052',createdAt:'2026-09-10T16:00:01.000Z',limitation:'Not published.'};
+  const artifact={id:'00000000-0000-4000-8000-000000000051',workspaceId:engine.workspace.id,agentId:'search-growth',type:'ContentBrief',sourceSnapshot:engine.company.evidence,factualInputs:['Company'],title:'A practical guide',content:'Outline',reviewState:'draft' as const,capabilityVersion:'1.0.0',runId:'00000000-0000-4000-8000-000000000052',createdAt:'2026-09-10T16:00:01.000Z',limitation:'Not published.'};
   engine.artifacts.push(artifact);
   const snap=specialistWorkSnapshot(snapshot(engine),'search-growth');
   expect(snap.latestTitle).toBe('A practical guide');
@@ -79,5 +79,29 @@ describe('agent delivery modes',()=>{
   }
   expect(specialistWorkSnapshot(state,'deal-follow-up').latestTitle).toBeTruthy();
   expect(specialistWorkSnapshot(state,'appointment-coordinator').latestTitle).toMatch(/calendar/i);
+ });
+ it('summarizes the active team on an x/y activity series',()=>{
+  const state=snapshot(createFixtureState());
+  const series=teamActivitySeries(state);
+  expect(series.map(item=>item.agentId)).toEqual(['website-sales-concierge',...state.activation.selectedTeam]);
+  expect(teamActivityNarrative(state).headline).toMatch(/already ran/i);
+ });
+ it('writes a customer recap, lead results, and a pipeline list',()=>{
+  const state=snapshot(createFixtureState());
+  const seo=agentOvernightRecap(state,'technical-seo-monitor');
+  expect(seo.createsTrackableLeads).toBe(false);
+  expect(seo.primary.kind).toBe('none');
+  expect(seo.body).toMatch(/does not create trackable leads/i);
+  expect(agentOvernightRecap(state,'website-sales-concierge').primary).toEqual({label:'Watch this conversation',kind:'conversation'});
+  const results=customerResults(state);
+  expect(results[0].label).toBe('New leads');
+  expect(results[0].value).toBeGreaterThan(0);
+  expect(pipelineLeads(state).some(item=>item.whatAgentsDid.length>0&&item.salesNext.length>0)).toBe(true);
+ });
+ it('keeps recap actions customer-facing',()=>{
+  const state=snapshot(createFixtureState());
+  expect(agentConversationLabel('website-sales-concierge')).toBe('Watch this conversation');
+  expect(agentOvernightRecap(state,'account-intelligence').primary.kind).toBe('none');
+  expect(pipelineLeads(state).length).toBe(state.proposals.length);
  });
 });

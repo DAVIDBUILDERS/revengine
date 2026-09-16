@@ -1,430 +1,220 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowRight, ArrowUpRight, FileText, Pause, Play, ShieldCheck } from "lucide-react";
+import { useContext, useEffect, useState } from "react";
+import { ArrowLeft, ArrowUpRight, FileText } from "lucide-react";
 import type { AgentDefinition } from "@david/contracts";
-import { money, words } from "@david/ui";
-import { specialistWorkSnapshot } from "@david/domain/delivery";
-import { isIncludedAgent } from "@david/domain/team";
+import { money } from "@david/ui";
+import {
+  agentFloorStatus,
+  agentOvernightRecap,
+  conversationProposalForAgent,
+  customerResults,
+  defaultHumanReview,
+  floorStatusLabel,
+  isWalkthroughFloor,
+  specialistRunLog,
+  teamActivityNarrative,
+  teamActivitySeries,
+  type FloorStatus,
+} from "@david/domain/delivery";
+import { onboardingFor } from "@david/domain/onboarding";
+import { workbenchAgentIds } from "@david/domain/team";
 import { PageHeading, type ScreenProps } from "./app-shell";
-import { activeApprovals } from "./approval-state";
-import { AgentWorkspace } from "./agent-workspace";
-import { Button, dateTime } from "./ui";
+import { DashboardActivityChart } from "./dashboard-activity-chart";
+import { Button, dateTime, QuietWalkthroughContext } from "./ui";
 import "./today-studio.css";
 
 export function Today(props: ScreenProps & { showBrief: () => Promise<void> }) {
-  const { state, navigate, inspect, busy, act } = props;
-  const [selected, setSelected] = useState<string | null>(null);
-  const [agent, setAgent] = useState<AgentDefinition | null>(null);
-  const pending = activeApprovals(state);
-  const decisions = [
-    ...pending.flatMap((approval) => {
-      const action = state.actions.find(
-        (item) => item.id === approval.actionId,
-      );
-      if (!action) return [];
-      const contact = state.contacts.find(
-        (item) => item.id === action.contactId,
-      );
-      return [
-        {
-          id: approval.id,
-          kind: "Approval",
-          title:
-            action.type === "book_appointment"
-              ? `Appointment with ${contact?.name ?? action.payload.recipient}`
-              : `Follow-up for ${contact?.name ?? action.payload.recipient}`,
-          action,
-          finding: null,
-        },
-      ];
-    }),
-    ...state.findings
-      .filter((item) => item.status === "proposed")
-      .map((finding) => ({
-        id: finding.id,
-        kind: "Recommendation",
-        title: finding.title,
-        action: null,
-        finding,
-      })),
-  ];
-  const current =
-    decisions.find((item) => item.id === selected) ?? decisions[0];
-  const approvalCount = decisions.filter((item) => item.kind === "Approval").length;
-  const currentAction = current?.action;
-  const currentFinding = current?.finding;
-  const assigned = currentAction
-    ? state.installations.find(
-        (item) => item.id === currentAction.installationId,
-      )?.agentId
-    : currentFinding?.agentId;
-  const currentAgent = state.catalog.find((item) => item.id === assigned);
+  const { state, navigate } = props;
+  const quiet = useContext(QuietWalkthroughContext);
+  const floor = isWalkthroughFloor(state, quiet);
+  const saved = onboardingFor(state);
+  const teamIds = workbenchAgentIds(saved.revision ? saved.answers.team : state.activation.selectedTeam);
+  const team = teamIds.map((id) => state.catalog.find((agent) => agent.id === id)).filter((agent): agent is AgentDefinition => !!agent);
+  const [agentId, setAgentId] = useState<string | null>(null);
+  const series = teamActivitySeries(state);
+  const story = teamActivityNarrative(state);
+  const results = customerResults(state);
+  const current = team.find((agent) => agent.id === agentId) ?? null;
+
+  function selectAgent(next: string | null) {
+    setAgentId(next);
+    const url = new URL(window.location.href);
+    url.searchParams.set("view", "today");
+    if (next) url.searchParams.set("agent", next);
+    else url.searchParams.delete("agent");
+    window.history.replaceState({}, "", `${url.pathname}${url.search}`);
+  }
+
+  function openConversation(id: string) {
+    const proposalId = conversationProposalForAgent(state, id);
+    navigate("opportunities", proposalId ? { proposal: proposalId } : undefined);
+  }
+
+  useEffect(() => {
+    const requested = new URLSearchParams(window.location.search).get("agent");
+    setAgentId(requested && teamIds.includes(requested) ? requested : null);
+    const sync = () => {
+      const value = new URLSearchParams(window.location.search).get("agent");
+      setAgentId(value && teamIds.includes(value) ? value : null);
+    };
+    window.addEventListener("popstate", sync);
+    return () => window.removeEventListener("popstate", sync);
+  }, [state.workspace.id, teamIds.join("|")]);
+
   const date = new Intl.DateTimeFormat("en-US", {
     weekday: "long",
     month: "long",
     day: "numeric",
     timeZone: state.workspace.timeZone,
   }).format(new Date(state.asOf));
+
+  if (current) {
+    const recap = agentOvernightRecap(state, current.id);
+    const runs = specialistRunLog(state, current.id, defaultHumanReview(current.id));
+    const status = agentFloorStatus(state, current.id, defaultHumanReview(current.id));
+    return (
+      <div className="today-page today-studio dashboard-studio">
+        <PageHeading
+          eyebrow={date}
+          title={current.name}
+          description="What this agent did from 3:00 AM to 3:00 AM."
+          action={
+            <Button onClick={() => selectAgent(null)}>
+              <ArrowLeft size={14} />
+              All specialists
+            </Button>
+          }
+        />
+        <section className="dashboard-recap" aria-label={`${current.name} recap`}>
+          <span className="today-kicker">{floor ? floorStatusLabel(status as FloorStatus) : "3:00 AM TO 3:00 AM"}</span>
+          <h2>{recap.headline}</h2>
+          <p>{recap.body}</p>
+          {recap.facts.length > 0 && (
+            <ul className="dashboard-recap-facts">
+              {recap.facts.map((fact) => (
+                <li key={fact.label}>
+                  <strong>{fact.value}</strong>
+                  <span>{fact.label}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {recap.primary.kind === "conversation" ? (
+            <Button variant="primary" onClick={() => openConversation(current.id)}>
+              {recap.primary.label} <ArrowUpRight size={14} />
+            </Button>
+          ) : recap.primary.kind === "pipeline" ? (
+            <Button variant="primary" onClick={() => navigate("opportunities")}>
+              {recap.primary.label} <ArrowUpRight size={14} />
+            </Button>
+          ) : null}
+        </section>
+        {runs.length > 0 && (
+          <section className="quiet-overnight" aria-label={`${current.name} overnight from 3:00 AM to 3:00 AM`}>
+            <p className="section-caption">3:00 AM to 3:00 AM</p>
+            <ol>
+              {runs.map((run) => (
+                <li key={run.id}>
+                  <time dateTime={run.at}>{dateTime(run.at, state.workspace.timeZone)}</time>
+                  <span>{run.title}</span>
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div className="today-page today-studio">
+    <div className="today-page today-studio dashboard-studio">
       <PageHeading
         eyebrow={date}
         title="Dashboard"
-        description="What the team already produced, then the results. Open a specialist for that recap."
+        description={
+          floor
+            ? "Overnight recap, then the leads, then volume. Open a specialist for that recap."
+            : "What the team already did, then the leads, then volume. Open a specialist for that recap."
+        }
         action={
-          <Button onClick={() => void props.showBrief()} disabled={busy}>
+          <Button onClick={() => void props.showBrief()} disabled={props.busy}>
             <FileText size={14} />
             Weekly brief <ArrowUpRight size={13} />
           </Button>
         }
       />
 
-      <section className="decision-desk" aria-labelledby="attention-heading">
-        <div className="today-focus-header">
-          <div>
-            <span className="today-kicker">THE TEAM</span>
-            <h2 id="attention-heading">
-              {decisions.length ? "Prepared work is on the record." : "Room for the next result."}
-            </h2>
-            <p>
-              {decisions.length
-                ? "Open pipeline to see the leads. A specialist can inspect the exact record."
-                : "Choose a specialist and give it a piece of work."}
-            </p>
-          </div>
-          <div className="today-review-count">
-            <strong>{String(decisions.length).padStart(2, "0")}</strong>
-            <span>On the record<small>{approvalCount} prepared actions · {decisions.length - approvalCount} recommendations</small></span>
-          </div>
+      <section className="dashboard-story" aria-labelledby="overview-heading">
+        <div>
+          <span className="today-kicker">{floor ? "THE TEAM RAN OVERNIGHT" : "WHAT THE TEAM ALREADY DID"}</span>
+          <h2 id="overview-heading">{story.headline}</h2>
+          <p>{story.body || "Choose specialists to populate this recap."}</p>
         </div>
-        {current ? (
-          <div className="decision-layout">
-            <div className="decision-queue" aria-label="Items for review">
-              <p className="today-kicker">REVIEW QUEUE</p>
-              {decisions.slice(0, 3).map((item, index) => (
-                <button
-                  key={item.id}
-                  aria-pressed={current.id === item.id}
-                  onClick={() => setSelected(item.id)}
-                >
-                  <span className="queue-index">
-                    {String(index + 1).padStart(2, "0")} / {item.kind}
-                  </span>
-                  <strong>{item.title}</strong>
-                  <ArrowRight size={14} />
-                </button>
-              ))}
-              {decisions.length > 3 && (
-                <Button onClick={() => navigate("opportunities")}>
-                  Open pipeline <ArrowRight size={14} />
-                </Button>
-              )}
-            </div>
-            <article className="decision-preview">
-              <div className="between">
-                <span className="eyebrow">
-                  {current.kind === "Approval"
-                    ? "Prepared work · awaiting your approval"
-                    : "Proposed next step"}
-                </span>
-                {state.workspace.mode === "fixture" && (
-                  <span className="tiny muted">Synthetic record</span>
-                )}
-              </div>
-              <h3>{current.title}</h3>
-              {currentAgent && (
-                <button
-                  className="decision-agent"
-                  onClick={() => setAgent(currentAgent)}
-                >
-                  {currentAgent.name}
-                  <ArrowUpRight size={12} />
-                </button>
-              )}
-              {currentAction && (
-                <>
-                  <div className="message-preview">
-                    <dl>
-                      <div>
-                        <dt>To</dt>
-                        <dd>{currentAction.payload.recipient}</dd>
-                      </div>
-                      <div>
-                        <dt>Subject</dt>
-                        <dd>{currentAction.payload.subject}</dd>
-                      </div>
-                      {currentAction.payload.startAt && (
-                        <div>
-                          <dt>When</dt>
-                          <dd>
-                            {dateTime(currentAction.payload.startAt)} ·{" "}
-                            {currentAction.payload.timeZone}
-                          </dd>
-                        </div>
-                      )}
-                    </dl>
-                    <p>{currentAction.payload.body}</p>
-                  </div>
-                  <div className="preview-actions">
-                    <Button
-                      variant="primary"
-                      onClick={() =>
-                        navigate("opportunities", {
-                          proposal: currentAction.proposalId,
-                        })
-                      }
-                    >
-                      Review exact action <ArrowRight size={14} />
-                    </Button>
-                    <button
-                      className="link-button"
-                      onClick={() =>
-                        inspect(
-                          current.title,
-                          "Evidence attached to this exact prepared action.",
-                          currentAction.evidence,
-                        )
-                      }
-                    >
-                      Source evidence <ArrowUpRight size={12} />
-                    </button>
-                  </div>
-                  <p className="help">
-                    Review the recipient, wording and current checks before
-                    authorizing an action.
-                  </p>
-                </>
-              )}
-              {currentFinding && (
-                <>
-                  <p className="finding-observation">
-                    {currentFinding.observedCondition}
-                  </p>
-                  <dl className="finding-brief">
-                    <div>
-                      <dt>Proposed approach</dt>
-                      <dd>{currentFinding.hypothesis}</dd>
-                    </div>
-                    <div>
-                      <dt>Responsible owner</dt>
-                      <dd>{currentFinding.owner}</dd>
-                    </div>
-                    <div>
-                      <dt>Estimated commitment</dt>
-                      <dd>
-                        {currentFinding.effortMinutes} minutes ·{" "}
-                        {money(
-                          currentFinding.costMinor,
-                          state.workspace.currency,
-                        )}
-                      </dd>
-                    </div>
-                  </dl>
-                  <div className="preview-actions">
-                    <Button
-                      variant="primary"
-                      onClick={() => navigate("decisions")}
-                    >
-                      Review recommendation <ArrowRight size={14} />
-                    </Button>
-                    <button
-                      className="link-button"
-                      onClick={() =>
-                        inspect(
-                          currentFinding.title,
-                          currentFinding.observedCondition,
-                          currentFinding.evidence,
-                        )
-                      }
-                    >
-                      Source evidence <ArrowUpRight size={12} />
-                    </button>
-                  </div>
-                  <p className="help">
-                    A recommendation is a proposal for review. It does not
-                    authorize sending, booking or publishing.
-                  </p>
-                </>
-              )}
-            </article>
-          </div>
-        ) : (
-          <div className="decision-empty">
-            <div className="today-empty-mark" aria-hidden="true"><ShieldCheck size={30} strokeWidth={1} /></div>
-            <div>
-              <h3>No decisions waiting.</h3>
-              <p>
-                New work will appear here with the source evidence and the
-                commitment required.
-              </p>
-              <Button onClick={() => navigate("opportunities")}>
-                View customer work <ArrowRight size={14} />
-              </Button>
-            </div>
-          </div>
-        )}
       </section>
 
-        <section className="today-specialists" aria-labelledby="team-heading">
-          <div className="section-heading">
-            <h2 id="team-heading">
-              Your specialists{" "}
-              <span className="count-label">{state.installations.length}</span>
-            </h2>
-            <button className="link-button" onClick={() => navigate("team")}>
-              AI agents <ArrowUpRight size={12} />
-            </button>
-          </div>
-          <div className="today-team-grid">
-            {state.installations.map((installation) => {
-              const specialist = state.catalog.find((item) => item.id === installation.agentId);
-              if (!specialist) return null;
-              const work = specialistWorkSnapshot(state, specialist.id);
-              const max = Math.max(1, ...work.counts);
-              const slot = state.installations.filter((item) => !isIncludedAgent(item.agentId)).findIndex((item) => item.id === installation.id);
-              const detail = installation.blockers[0]
-                ?? work.latestTitle
-                ?? (work.artifacts || work.actions || work.findings
-                  ? `${work.artifacts} saved outputs · ${work.actions} action records${work.findings ? ` · ${work.findings} recommendation${work.findings === 1 ? "" : "s"}` : ""}`
-                  : "No saved work yet");
-              return (
-                <button key={installation.id} className="today-specialist" onClick={() => navigate("team", { agent: specialist.id })} aria-label={`Open ${specialist.name} work`}>
-                  <span className="today-specialist-top"><span className="today-kicker">{isIncludedAgent(specialist.id) ? "Included" : `${String(slot + 1).padStart(2, "0")} / ${words(installation.mode)}`}</span><ArrowUpRight size={16} /></span>
-                  <strong>{specialist.name}</strong>
-                  <span className="today-specialist-status">{state.workspace.paused ? "Workspace paused" : words(installation.status)}</span>
-                  <svg className="today-spark" viewBox="0 0 36 18" aria-hidden="true">
-                    {work.counts.map((value, bar) => {
-                      const height = Math.max(2, (value / max) * 16);
-                      return <rect key={bar} x={bar * 12 + 2} y={18 - height} width="8" height={height} rx="1" />;
-                    })}
-                  </svg>
-                  <span className="today-specialist-detail">{detail}</span>
-                  <span className="today-specialist-footer">{work.delivery.cardLabel} <ArrowRight size={14} /></span>
-                </button>
-              );
-            })}
-            {!state.installations.length && <div className="today-team-empty"><p>No specialists installed yet.</p><Button onClick={() => navigate("team")}>Build your team <ArrowRight size={14} /></Button></div>}
-          </div>
-        </section>
-      <div className="today-ledger-grid">
-        <section className="outcome-ledger" aria-labelledby="results-heading">
-          <div className="section-heading">
-            <h2 id="results-heading">Results</h2>
-          </div>
-          <p className="section-caption">
-            {state.workspace.mode === "fixture"
-              ? "Illustrative fixture records"
-              : "Source-linked records"}{" "}
-            · Open pipeline
-          </p>
-          {state.metrics.slice(0, 4).map((metric) => (
-            <button
-              key={metric.key}
-              className="metric-card ledger-metric"
-              onClick={() => navigate("opportunities")}
-            >
-              <span>
-                {metric.label}
-                <small>
-                  {metric.value === null
-                    ? "Evidence incomplete"
-                    : words(metric.stage)}
-                </small>
-              </span>
-              <strong
-                className={metric.value === null ? "unavailable" : "numeric"}
-              >
-                {metric.value === null
-                  ? "Unavailable"
-                  : metric.unit.includes("minor")
-                    ? money(metric.value, state.workspace.currency)
-                    : new Intl.NumberFormat("en-US").format(metric.value)}
-              </strong>
-              <ArrowUpRight size={12} />
-            </button>
-          ))}
-          {!state.metrics.length && <p className="small muted">No outcome measurements recorded yet.</p>}
-        </section>
-
-      <section className="readiness-summary" aria-labelledby="blockers-heading">
+      <section className="dashboard-specialists" aria-labelledby="specialists-heading">
         <div className="section-heading">
-          <h2 id="blockers-heading"><ShieldCheck size={17} /> Operating boundaries</h2>
-          <button
-            className="link-button"
-            onClick={() => navigate("connections")}
-          >
-            Connections & owners <ArrowUpRight size={12} />
-          </button>
+          <h2 id="specialists-heading">Overnight recap</h2>
+          <p className="section-caption">Open a specialist for that recap.</p>
         </div>
-        {state.readiness.blockers.length ? (
-          <details>
-            <summary>
-              <span>
-                {state.readiness.blockers.length}{" "}
-                {state.readiness.blockers.length === 1
-                  ? "condition needs"
-                  : "conditions need"}{" "}
-                attention
-              </span>
-              <span className="tiny muted">View blockers and next steps</span>
-            </summary>
-            <div className="readiness-items">
-              {state.readiness.blockers.map((blocker) => (
-                <div className="readiness-item" key={blocker.code}>
-                  <div>
-                    <strong>{blocker.message}</strong>
-                    <p>
-                      {blocker.owner} · {blocker.nextStep}
-                    </p>
-                  </div>
-                  <Button
-                    className="btn-small"
-                    onClick={() => navigate("connections")}
-                  >
-                    Review <ArrowRight size={12} />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </details>
-        ) : (
-          <p className="small muted">
-            No current readiness blockers. Readiness is checked again before
-            every action.
-          </p>
-        )}
-        <div className="control-line">
-          <span className="small muted">
-            {state.workspace.paused
-              ? "New dispatch is paused."
-              : `Workspace mode: ${words(state.workspace.mode)}.`}{" "}
-            Actions stay within approved boundaries.
-          </span>
-          <Button
-            variant="quiet"
-            className="btn-small"
-            disabled={busy}
-            onClick={() =>
-              void act({ type: "pause", paused: !state.workspace.paused })
-            }
-          >
-            {state.workspace.paused ? <Play size={13} /> : <Pause size={13} />}
-            {state.workspace.paused
-              ? "Check readiness & resume"
-              : "Pause workspace"}
-          </Button>
+        <div className="today-team-grid">
+          {team.map((agent) => {
+            const recap = agentOvernightRecap(state, agent.id);
+            const status = agentFloorStatus(state, agent.id, defaultHumanReview(agent.id));
+            return (
+              <button
+                key={agent.id}
+                type="button"
+                className="today-specialist"
+                onClick={() => selectAgent(agent.id)}
+                aria-label={`Open ${agent.name} recap`}
+              >
+                <span className="today-specialist-top">
+                  <span className="today-kicker">{floor ? floorStatusLabel(status) : "RECAP"}</span>
+                </span>
+                <strong>{agent.name}</strong>
+                <span className="today-specialist-detail">{recap.headline}</span>
+              </button>
+            );
+          })}
         </div>
       </section>
-      </div>
 
-      <p className="tiny muted">
-        Loaded coverage: {state.contacts.length} contacts ·{" "}
-        {state.proposals.length} proposal records · Financial measurement{" "}
-        {state.readiness.measurement ? "ready" : "incomplete"}. As of{" "}
-        {dateTime(state.asOf)}.
-      </p>
-      <AgentWorkspace {...props} agent={agent} onClose={() => setAgent(null)} />
+      <section className="outcome-ledger" aria-labelledby="results-heading">
+        <div className="section-heading">
+          <h2 id="results-heading">Results</h2>
+        </div>
+        <p className="section-caption">Leads first. Open Pipeline for that kind of record.</p>
+        {results.map((metric) => (
+          <button
+            key={metric.key}
+            className="metric-card ledger-metric"
+            onClick={() => navigate("opportunities", { lead: metric.filter })}
+          >
+            <span>
+              {metric.label}
+              <small>{metric.hint}</small>
+            </span>
+            <strong className="numeric">
+              {metric.unit === "money" ? money(metric.value, metric.currency ?? state.workspace.currency) : new Intl.NumberFormat("en-US").format(metric.value)}
+            </strong>
+            <ArrowUpRight size={12} />
+          </button>
+        ))}
+      </section>
+
+      <section className="dashboard-chart-card" aria-labelledby="chart-heading">
+        <div className="section-heading">
+          <h2 id="chart-heading">Volume</h2>
+          <p className="section-caption">Results by specialist, last overnight.</p>
+        </div>
+        {series.length ? (
+          <DashboardActivityChart points={series} onSelect={selectAgent} />
+        ) : (
+          <p className="small muted">Select a team to plot its volume.</p>
+        )}
+      </section>
     </div>
   );
 }
