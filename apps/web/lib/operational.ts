@@ -3,7 +3,8 @@ import {randomUUID,randomBytes,createHash} from 'node:crypto';
 import {z} from 'zod';
 import * as C from '../../../packages/contracts/src/index';
 import {catalog,recommendationFor,ALWAYS_ON_AGENT_ID} from '../../../packages/agents/src/index';
-import {parseCsvImport,forecastCases} from '../../../packages/domain/src/index';
+import {parseCsvImport,forecastCases,parseLeadCsv,mappedLeadRow,generateOutboundSequence,companyFromSnapshot,emptyOutboundSdr} from '../../../packages/domain/src/index';
+import {launchManagedInstantlyCampaign,pauseManagedInstantlyCampaign} from '../../../packages/orchestration/src/action-service';
 import {authClient,authorize} from './auth';
 import {HttpError} from './http';
 import {environment} from '../../../packages/orchestration/src/environment';
@@ -16,7 +17,7 @@ const date=(r:Row,k:string)=>r[k]?new Date(String(r[k])).toISOString():null;
 async function selectedWorkspace(requested:string|null){if(requested)return C.Id.parse(requested);const client=await authClient();const {data,error}=await client.auth.getClaims();if(error||!data?.claims?.sub)throw new HttpError(401,'AUTH_REQUIRED','Sign in with your invited DAVID account.');const {data:members}=await client.from('memberships').select('workspace_id').eq('actor_id',data.claims.sub).eq('active',true).limit(1);if(!members?.[0])throw new HttpError(403,'WORKSPACE_UNASSIGNED','Your account has no active workspace assignment. Ask your workspace owner for an invitation.');return String(members[0].workspace_id);}
 export async function operationalSnapshot(requested:string|null):Promise<C.AppSnapshot>{
  const workspaceId=await selectedWorkspace(requested);const {client,context}=await authorize(workspaceId);const asOf=new Date().toISOString();
- const names=['workspaces','accounts','contacts','opportunities','proposals','evidence','installations','connections','source_bindings','actions','approvals','receipts','outcomes','prepared_artifacts','product_records','usage_records','audit_events','runs','policies','conversations'] as const;
+ const names=['workspaces','accounts','contacts','opportunities','proposals','evidence','installations','connections','source_bindings','actions','approvals','receipts','outcomes','prepared_artifacts','product_records','usage_records','audit_events','runs','policies','conversations','outbound_campaigns','outbound_leads','outbound_events'] as const;
  const pairs=await Promise.all(names.map(async name=>{let query=client.from(name).select('*');query=name==='workspaces'?query.eq('id',workspaceId):query.eq('workspace_id',workspaceId);const {data,error}=await query.limit(201);if(error)throw new HttpError(503,'SCHEMA_OR_ACCESS_UNAVAILABLE',`Unable to read ${name}. Verify migrations and membership policies in the intended Supabase project.`);return [name,(data??[]) as Row[]] as const;}));
  const rows=Object.fromEntries(pairs) as Record<(typeof names)[number],Row[]>;const w=rows.workspaces[0];if(!w)throw new HttpError(404,'WORKSPACE_NOT_FOUND','The workspace is unavailable.');
  const ev=rows.evidence.map(r=>C.EvidenceRef.parse({id:r.id,label:r.label,source:r.source,capturedAt:date(r,'captured_at'),quality:r.quality,...(r.url?{url:r.url}:{})}));
@@ -57,7 +58,40 @@ export async function operationalSnapshot(requested:string|null):Promise<C.AppSn
  const {data:setup,error:setupError}=await client.rpc('read_onboarding_v2',{p_workspace:workspaceId});
  if(setupError)throw new HttpError(503,'ONBOARDING_UNAVAILABLE','Apply the company source setup migration (023) in the operational Supabase project.');
  state.onboarding=setup?C.OnboardingRecord.parse(setup):C.emptyOnboarding(state.workspace,asOf);
- state.timeline=[...state.proposals.map(p=>({id:p.id,workspaceId,opportunityId:p.opportunityId,at:p.syncedAt,kind:'source',title:`${p.reference} · ${p.status}`,detail:`Business fact last verified ${p.sourceVerifiedAt}; source status ${p.rawStatus}.`,actor:'source' as const,evidence:p.evidence})),...state.receipts.flatMap(receipt=>{const action=state.actions.find(a=>a.id===receipt.actionId);const proposal=state.proposals.find(p=>p.id===action?.proposalId);return proposal?[{id:receipt.id,workspaceId,opportunityId:proposal.opportunityId,at:receipt.observedAt,kind:'action',title:receipt.status.replaceAll('_',' '),detail:receipt.message,actor:'david' as const,evidence:receipt.evidence}]:[];}),...state.outcomes.map(o=>({id:o.id,workspaceId,opportunityId:o.opportunityId,at:o.periodEnd,kind:'outcome',title:`${o.stage} · ${o.quality}`,detail:`Observed ${o.stage}; other outcome stages require separate evidence.`,actor:'source' as const,evidence:o.evidence}))];
+ const {data:agentOnboarding,error:agentOnboardingError}=await client.rpc('read_agent_onboarding',{p_workspace:workspaceId});
+ if(agentOnboardingError)throw new HttpError(503,'AGENT_ONBOARDING_UNAVAILABLE','Apply the per-agent onboarding migration (029) in the operational Supabase project.');
+ state.agentOnboarding=z.array(C.AgentOnboardingRecord).parse(agentOnboarding??[]);
+ state.timeline=[...state.proposals.map(p=>({id:p.id,workspaceId,opportunityId:p.opportunityId,at:p.syncedAt,kind:'source',title:`${p.reference} · ${p.status}`,detail:`Business fact last verified ${p.sourceVerifiedAt}; source status ${p.rawStatus}.`,actor:'source' as const,evidence:p.evidence})),...state.receipts.flatMap(receipt=>{const action=state.actions.find(a=>a.id===receipt.actionId);const proposal=state.proposals.find(p=>p.id===action?.proposalId);return proposal?[{id:receipt.id,workspaceId,opportunityId:proposal.opportunityId,at:receipt.observedAt,kind:'action',title:receipt.status.replaceAll('_',' '),detail:receipt.message,actor:'david' as const,evidence:receipt.evidence}]:[];}),...state.outcomes.map(o=>({id:o.id,workspaceId,opportunityId:o.opportunityId,at:o.periodEnd,kind:'outcome',title:`${o.stage} · ${o.quality}`,detail:`Observed ${o.stage}; other outcome stages require separate evidence.`,actor:'source' as const,evidence:o.evidence})),...rows.outbound_events.flatMap(event=>{
+  const lead=rows.outbound_leads.find(item=>item.id===event.lead_id);
+  const opportunityId=lead?.opportunity_id?String(lead.opportunity_id):'';
+  if(!opportunityId)return [];
+  const eventType=text(event,'event_type');
+  const kind=eventType==='lead_meeting_booked'?'meeting_booked':eventType==='email_sent'?'email_out':'email_in';
+  return [{id:text(event,'id'),workspaceId,opportunityId,at:date(event,'occurred_at')!,kind,title:`${text(lead!,'email')} · ${eventType.replaceAll('_',' ')}`,detail:text(event,'body')||eventType,actor:eventType==='email_sent'?'david' as const:'source' as const,evidence:[]}];
+ })];
+ const campaign=rows.outbound_campaigns[0];
+ if(campaign||installations.some(item=>item.agentId==='outbound-email-sdr')){
+  const empty=emptyOutboundSdr(workspaceId);
+  state.outboundSdr=C.OutboundSdrState.parse({
+   workspaceId,
+   bookingUrl:campaign?text(campaign,'booking_url')||null:empty.bookingUrl,
+   sequence:Array.isArray(campaign?.sequence)?campaign.sequence:empty.sequence,
+   leads:rows.outbound_leads.map(lead=>C.OutboundLead.parse({
+    id:text(lead,'id'),workspaceId,opportunityId:lead.opportunity_id?text(lead,'opportunity_id'):null,email:text(lead,'email'),
+    firstName:text(lead,'first_name'),lastName:text(lead,'last_name'),company:text(lead,'company'),title:text(lead,'title'),website:text(lead,'website'),
+    custom:lead.custom&&typeof lead.custom==='object'&&!Array.isArray(lead.custom)?lead.custom:{},
+    status:lead.status,lastReply:lead.last_reply==null?null:text(lead,'last_reply'),lastEventAt:date(lead,'last_event_at'),
+   })),
+   campaignId:campaign?.campaign_id?text(campaign,'campaign_id'):null,
+   instantlyWorkspaceId:campaign?.instantly_workspace_id?text(campaign,'instantly_workspace_id'):null,
+   warmupReady:Boolean(campaign?.warmup_ready),
+   sendingAccounts:Array.isArray(campaign?.sending_accounts)?campaign.sending_accounts:empty.sendingAccounts,
+   status:campaign?text(campaign,'status'):empty.status,
+   crmProvider:campaign?text(campaign,'crm_provider'):empty.crmProvider,
+   crmStatus:campaign?text(campaign,'crm_status'):empty.crmStatus,
+   lastError:campaign?.last_error==null?null:text(campaign,'last_error'),
+  });
+ }
  const [{data:readiness,error:readinessError},{data:health,error:healthError}]=await Promise.all([client.rpc('read_workspace_readiness',{p_workspace:workspaceId}),client.rpc('read_workspace_health',{p_workspace:workspaceId})]);
  if(readinessError||healthError)throw new HttpError(503,'READINESS_UNAVAILABLE','Apply the current readiness/health migrations and review the actual runtime.');
  state.readiness=C.ReadinessResult.parse(readiness);
@@ -89,6 +123,7 @@ export async function operationalCommand(command:C.Command,requested:string|null
   case 'confirm_sample_company':case 'sample_onboarding_capture':throw new HttpError(403,'FIXTURE_ONLY','Synthetic captures are unavailable in operational workspaces.');
   case 'assign_operator':await rpc('assign_onboarding_operator',{p_workspace:workspaceId,p_email:command.email});message='Registered DAVID operator assigned to this workspace. MFA remains required for operator access.';break;
   case 'save_onboarding':await rpc('save_onboarding',{p_workspace:workspaceId,p_expected_revision:command.expectedRevision,p_answers:command.answers});message='Setup saved. Changed operating configuration pauses execution and requires fresh verification.';break;
+  case 'save_agent_onboarding':await rpc('save_agent_onboarding',{p_workspace:workspaceId,p_agent:command.agentId,p_expected_revision:command.expectedRevision,p_answers:command.answers});message='Agent onboarding saved for this client. Company connections were not copied or replaced.';break;
   case 'onboarding_task':await rpc('update_onboarding_task',{p_workspace:workspaceId,p_revision:command.expectedRevision,p_id:command.taskId,p_title:command.title,p_owner:command.owner,p_status:command.status,p_note:command.note});message='Setup request saved. Task status does not grant capability verification.';break;
   case 'review_artifact':await rpc('review_prepared_artifact',{p_workspace:workspaceId,p_artifact:command.artifactId,p_decision:command.decision});message='Artifact review saved.';break;
   case 'set_allowance':await rpc('configure_workspace_allowance',{p_workspace:workspaceId,p_allowance:command.allowance});message='Workspace allowance updated.';break;
@@ -106,6 +141,14 @@ export async function operationalCommand(command:C.Command,requested:string|null
   case 'log_time':await rpc('record_time',{p_workspace:workspaceId,p_category:command.category,p_minutes:command.minutes,p_cost:command.costMinor,p_note:command.note});break;
   case 'draft':case 'book':case 'prepare':{const agent=command.type==='prepare'?command.agentId:command.type==='book'?'appointment-coordinator':'deal-follow-up';await rpc('request_work',{p_workspace:workspaceId,p_agent:agent,p_kind:command.type==='prepare'?'prepare':command.type,p_payload:command});message='Work persisted and queued for the protected dispatcher. No external action has been completed by this request.';break;}
   case 'import_csv':{const preview=parseCsvImport(command.csv);if(command.preview)return {snapshot:current,message:'CSV field mapping and row validation preview. Sending remains subject to fresh source and conversation coverage.',preview};if(preview.errors.length)throw new HttpError(400,'IMPORT_INVALID','Resolve all preview errors before importing.');await rpc('import_proposal_rows',{p_workspace:workspaceId,p_rows:preview.rows});message='Source rows imported with provenance. Imported contacts are not enrolled for live communication.';break;}
+  case 'import_lead_csv':{const preview=parseLeadCsv(command.csv,command.mapping);if(command.preview)return {snapshot:current,message:'Lead CSV preview. Email is required. This agent does not find leads.',preview};if(preview.errors.length)throw new HttpError(400,'IMPORT_INVALID','Resolve all lead CSV errors before importing.');await rpc('import_outbound_leads',{p_workspace:workspaceId,p_rows:preview.rows.map(row=>mappedLeadRow(row,preview.mapping))});message='Imported leads for Instantly. This agent does not generate leads.';break;}
+  case 'set_booking_url':message=String(await rpc('upsert_outbound_booking',{p_workspace:workspaceId,p_url:command.url}));break;
+  case 'bind_instantly_workspace':message=String(await rpc('bind_instantly_workspace',{p_workspace:workspaceId,p_instantly_workspace:command.instantlyWorkspaceId}));break;
+  case 'generate_outbound_sequence':{const sequence=generateOutboundSequence(companyFromSnapshot(current),current.outboundSdr?.bookingUrl??'');await rpc('save_outbound_sequence',{p_workspace:workspaceId,p_sequence:sequence});message='Three-step sequence written from confirmed company facts. Instantly will send it; no copy-out to another mail tool.';break;}
+  case 'start_outbound_sdr':{if(!current.activation.confirmedFacts)throw new HttpError(409,'COMPANY_UNCONFIRMED','Confirm company facts before Instantly can send.');const prepared=z.object({name:z.string(),dailyLimit:z.number(),sequence:z.array(z.object({subject:z.string(),body:z.string()})),leads:z.array(z.object({email:z.string(),firstName:z.string().optional(),lastName:z.string().optional(),company:z.string().optional(),title:z.string().optional(),website:z.string().optional(),custom:z.record(z.string(),z.string()).optional()})),campaignId:z.string().nullable().optional(),instantlyWorkspaceId:z.string().min(1)}).parse(await rpc('prepare_outbound_launch',{p_workspace:workspaceId}));const resume=!!prepared.campaignId&&['paused','sending'].includes(current.outboundSdr?.status??'');const launched=await launchManagedInstantlyCampaign({...prepared,campaignId:resume?prepared.campaignId:null});message=String(await rpc('record_outbound_campaign',{p_workspace:workspaceId,p_campaign:launched.campaignId,p_accounts:launched.sendingAccounts,p_warmup:launched.warmupReady}));break;}
+  case 'pause_outbound_sdr':{if(current.outboundSdr?.campaignId&&/^[0-9a-f-]{36}$/i.test(current.outboundSdr.instantlyWorkspaceId??'')){try{await pauseManagedInstantlyCampaign(current.outboundSdr.campaignId,current.outboundSdr.instantlyWorkspaceId!);}catch{/* Workspace pause still applies. */}}message=String(await rpc('pause_outbound_sdr',{p_workspace:workspaceId}));break;}
+  case 'set_outbound_crm':message=String(await rpc('set_outbound_crm',{p_workspace:workspaceId,p_provider:command.provider}));break;
+  case 'ingest_outbound_event':throw new HttpError(409,'SOURCE_EVENT_REQUIRED','Live Instantly replies must come from the authorized Instantly webhook.');
   case 'dispatch':case 'reconcile':await rpc('request_action_dispatch',{p_action:command.actionId,p_reconcile:command.type==='reconcile'});message='Action queued for checked processing. Refresh to inspect its retained receipt.';break;
   case 'approve_finding':await rpc('approve_work_finding',{p_workspace:workspaceId,p_finding:command.findingId});break;
   case 'review_initiative':await rpc('review_initiative',{p_workspace:workspaceId,p_initiative:command.initiativeId,p_result:command.result});break;

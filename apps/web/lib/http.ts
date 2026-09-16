@@ -2,6 +2,7 @@ import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { ZodError } from 'zod';
 import { environment } from '../../../packages/orchestration/src/environment';
 import { DomainError } from '../../../packages/domain/src/action-service';
+import { InstantlyError } from '../../../packages/connectors/src/instantly';
 
 export class HttpError extends Error { constructor(public status: number, public code: string, message: string) { super(message); } }
 export function checkOrigin(request: Request) {
@@ -19,6 +20,14 @@ export async function boundedJson(request: Request, max = 1100000): Promise<unkn
   finally { await reader.cancel(); }
   try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { throw new HttpError(400, 'INVALID_JSON', 'The request is not valid JSON.'); }
 }
+export function verifyInstantlyWebhook(request: Request) {
+  const secret = environment().INSTANTLY_WEBHOOK_SECRET;
+  if (!secret || secret.length < 32) throw new HttpError(503, 'INSTANTLY_WEBHOOK_UNCONFIGURED', 'Configure an Instantly webhook secret of at least 32 characters.');
+  const header = request.headers.get('x-instantly-secret') ?? request.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ?? '';
+  const expected = Buffer.from(secret);
+  const actual = Buffer.from(header);
+  if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) throw new HttpError(401, 'INSTANTLY_WEBHOOK_UNAUTHORIZED', 'Instantly webhook authentication failed.');
+}
 export function verifyCron(request: Request) {
   const secret = environment().CRON_SECRET;
   if (!secret || secret.length < 32) throw new HttpError(503, 'CRON_UNCONFIGURED', 'Configure a cron secret of at least 32 characters.');
@@ -32,6 +41,7 @@ export function apiError(error: unknown) {
   if (error instanceof DomainError) return json({ error:error.code, message:error.message, correlationId },409);
   if (error instanceof ZodError) return json({ error: 'VALIDATION_FAILED', message: error.issues.map(issue => `${issue.path.join('.')}: ${issue.message}`).join('; '), correlationId }, 400);
   // Domain errors are intentionally concise. Unknown provider errors never expose response bodies or credentials.
-  if (error instanceof Error && /^(BLOCKED|FORBIDDEN|INVALID|STALE|PAUSED|DENIED|NOT_FOUND|CONFLICT|APPROVAL|BUDGET|CAPACITY|UNKNOWN|FIXTURE|LIVE|SUPABASE|VERCEL|GOOGLE|MIGRATION|AUTH|MODEL|ENTITLEMENT)/.test(error.message)) return json({ error: 'ACTION_BLOCKED', message: error.message.slice(0, 600), correlationId }, 409);
+  if (error instanceof InstantlyError) return json({ error: error.code.toUpperCase(), message: error.message, correlationId }, 409);
+  if (error instanceof Error && /^(BLOCKED|FORBIDDEN|INVALID|STALE|PAUSED|DENIED|NOT_FOUND|CONFLICT|APPROVAL|BUDGET|CAPACITY|UNKNOWN|FIXTURE|LIVE|SUPABASE|VERCEL|GOOGLE|MIGRATION|AUTH|MODEL|ENTITLEMENT|INSTANTLY)/.test(error.message)) return json({ error: 'ACTION_BLOCKED', message: error.message.slice(0, 600), correlationId }, 409);
   return json({ error: 'REQUEST_FAILED', message: 'The operation could not be completed. Review the current blockers or contact the assigned operator.', correlationId }, 500);
 }

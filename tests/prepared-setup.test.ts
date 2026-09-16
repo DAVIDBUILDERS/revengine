@@ -38,8 +38,8 @@ describe('prepared onboarding',()=>{
   state.metrics[0].value=0;state.metrics[0].evidenceIds=[];expect(buildPreparedSetup(state,'recover',state.preparedSetup!.id).answers.measurement.baseline[0].value).toBeNull();
  });
  it('does not block internal preparation on unconnected measurement or planned agents',async()=>{
-  const state=await proposed(),a=approved(state);a.measurement={owner:'',outcomeSources:'',baseline:[],sharing:'private'};a.team.push('outbound-email-sdr');a.team=a.team.slice(-5);
-  await executeCommand(state,{type:'save_onboarding',expectedRevision:0,answers:a});const report=onboardingReport(state);expect(report.complete[4]).toBe(false);expect(report.agents.find(a=>a.id==='search-growth')!.missing.join(' ')).not.toContain('measurement');expect(report.agents.find(a=>a.id==='outbound-email-sdr')?.status).toBe('engineering_required');
+  const state=await proposed(),a=approved(state);a.measurement={owner:'',outcomeSources:'',baseline:[],sharing:'private'};a.team.push('buying-signal-scout');a.team=a.team.slice(-5);
+  await executeCommand(state,{type:'save_onboarding',expectedRevision:0,answers:a});const report=onboardingReport(state);expect(report.complete[4]).toBe(false);expect(report.agents.find(a=>a.id==='search-growth')!.missing.join(' ')).not.toContain('measurement');expect(report.agents.find(a=>a.id==='buying-signal-scout')?.status).toBe('engineering_required');
  });
  it('invalidates accepted document sources without treating a new artifact as a source change',async()=>{
   const state=await proposed();await executeCommand(state,{type:'save_setup_document',name:'Brief.md',text:'Services: operations audits'});await executeCommand(state,{type:'build_setup',goal:'demand',expectedRevision:0,expectedGeneration:1});await executeCommand(state,{type:'accept_setup',generation:2,expectedRevision:0,answers:approved(state)});

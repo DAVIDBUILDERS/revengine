@@ -1,5 +1,7 @@
-import { catalog, recommendationFor, prepareFromContext, preparationIds, ALWAYS_ON_AGENT_ID, type WebsiteContext } from '../../agents/src/index';
+import { catalog, recommendationFor, prepareFromContext, ALWAYS_ON_AGENT_ID, type WebsiteContext } from '../../agents/src/index';
 import { emptyOnboarding, type OnboardingRecord } from '../../contracts/src/index';
+import { OutboundLead, OutboundSdrState } from '../../contracts/src/outbound';
+import { generateOutboundSequence } from './outbound-sdr';
 import { evidence, nextId, stableId, type EngineState } from './state';
 
 /** Brandon’s five from the call. Website Sales Concierge is included separately and does not use a slot. */
@@ -405,6 +407,7 @@ export function applyWallarooFixture(state: EngineState): void {
     { id: stableId(`${state.fixtureKey}:connection:meta`), workspaceId, provider: 'fixture', identity: 'Wallaroo Media · Meta', resource: 'Meta Business Manager', scopes: [], operations: ['ads.read', 'social.read'], health: 'fixture', lastSyncAt: now, verifiedAt: now, owner: 'Workspace owner', freshnessSeconds: 86400 },
     { id: stableId(`${state.fixtureKey}:connection:google-ads`), workspaceId, provider: 'fixture', identity: 'Wallaroo Media · Google Ads', resource: 'Google Ads account', scopes: [], operations: ['ads.read'], health: 'fixture', lastSyncAt: now, verifiedAt: now, owner: 'Workspace owner', freshnessSeconds: 86400 },
     { id: stableId(`${state.fixtureKey}:connection:klaviyo`), workspaceId, provider: 'fixture', identity: 'Wallaroo Media · Klaviyo', resource: 'Klaviyo email account', scopes: [], operations: ['mail.read', 'mail.draft'], health: 'fixture', lastSyncAt: now, verifiedAt: now, owner: 'Workspace owner', freshnessSeconds: 86400 },
+    { id: stableId(`${state.fixtureKey}:connection:instantly`), workspaceId, provider: 'fixture', identity: 'DAVID-managed Instantly (fixture)', resource: 'Instantly campaign', scopes: [], operations: ['instantly.send', 'instantly.warmup', 'instantly.replies'], health: 'fixture', lastSyncAt: now, verifiedAt: now, owner: 'DAVID operator', freshnessSeconds: 86400 },
     { id: stableId(`${state.fixtureKey}:connection:shopify`), workspaceId, provider: 'fixture', identity: 'Shopify Plus Partner', resource: 'Partner directory / client stores', scopes: [], operations: ['commerce.read'], health: 'fixture', lastSyncAt: now, verifiedAt: now, owner: 'Workspace owner', freshnessSeconds: 86400 },
     { id: stableId(`${state.fixtureKey}:connection:ga4`), workspaceId, provider: 'fixture', identity: 'Wallaroo Media · GA4', resource: 'Google Analytics 4', scopes: [], operations: ['analytics.read'], health: 'fixture', lastSyncAt: now, verifiedAt: now, owner: 'Workspace owner', freshnessSeconds: 86400 },
   ];
@@ -425,7 +428,7 @@ export function applyWallarooFixture(state: EngineState): void {
       definitionVersion: '1.0.0',
       mode: definition.modes[0],
       status: 'monitoring',
-      sourceMappings: agentId === 'technical-seo-monitor' || agentId === ALWAYS_ON_AGENT_ID ? ['fixture-website'] : agentId === 'linkedin-outreach-assistant' ? ['fixture-linkedin'] : agentId === 'outbound-email-sdr' ? ['fixture-klaviyo'] : agentId === 'partner-development' ? ['fixture-mail'] : ['fixture-rfp'],
+      sourceMappings: agentId === 'technical-seo-monitor' || agentId === ALWAYS_ON_AGENT_ID ? ['fixture-website'] : agentId === 'linkedin-outreach-assistant' ? ['fixture-linkedin'] : agentId === 'outbound-email-sdr' ? ['fixture-instantly'] : agentId === 'partner-development' ? ['fixture-mail'] : ['fixture-rfp'],
       policyVersion: 1,
       dailyCapacity: 4,
       lastPreparationAt: null,
@@ -452,7 +455,7 @@ export function applyWallarooFixture(state: EngineState): void {
   addArtifact(state, 'linkedin-outreach-assistant', 'Follow-up angles after first reply', 'OutreachDraft', `After a connection accepts: one qualification question, then the booking CTA. Do not invent pricing.\n${BOOKING_CTA}`, 'Recorded follow-up pattern. No live LinkedIn send.', night.linkedinFollow);
   addArtifact(state, 'partner-development', 'Partner intro shortlist', 'PartnerBrief', 'Complementary partners Wallaroo can introduce or receive from:\n• Creative studios that already produce Meta/TikTok volume\n• Shopify Plus implementation partners\n• Email/SMS operators who need SEO/LLMO coverage\nFirst intro is already in the log with a Plus-partner studio that wants AI-native ads without building the SEO practice.', 'Internal shortlist plus one recorded intro. No live partner mailbox send.', night.partnerList);
   addArtifact(state, 'partner-development', 'Plus-partner intro draft', 'PartnerIntro', `Subject: Intro · AI-native ads + SEO for a shared Shopify Plus account\nBody: Wallaroo’s public offers are AI-Powered Ads, Email and SMS, and SEO including LLMO. Reciprocal intro with a Plus implementation partner is in the log.\n${BOOKING_CTA}`, 'Recorded in the workspace log. No live partner email.', night.partnerIntro);
-  addArtifact(state, 'outbound-email-sdr', 'Outbound sequence · Shopify brands', 'EmailSequence', `Three-step sequence already running in the log for Shopify brands doing $1M–$30M.\n1. Offer clarity — AI-Powered Ads, Email, or SEO.\n2. Qualification — current stack (Meta, Klaviyo, SEO) and who owns it.\n3. ${BOOKING_CTA}\nEach email has one job: get the 30-minute strategist conversation on the calendar.`, 'Sequence recorded in the workspace log. Klaviyo send is not live.', night.sdrSeq);
+  addArtifact(state, 'outbound-email-sdr', 'Outbound sequence · Shopify brands', 'EmailSequence', `Three-step sequence already running in the log for Shopify brands doing $1M–$30M.\n1. Offer clarity — AI-Powered Ads, Email, or SEO.\n2. Qualification — current stack (Meta, Klaviyo, SEO) and who owns it.\n3. ${BOOKING_CTA}\nEach email has one job: get the 30-minute strategist conversation on the calendar.`, 'Sequence recorded in the workspace log. Instantly send is not live in this fixture.', night.sdrSeq);
   addArtifact(state, 'outbound-email-sdr', 'Called to Surf first-touch draft', 'EmailDraft', `To: ${state.contacts[0].email}\nSubject: 30 minutes on paid, email, and SEO for ${state.contacts[0].account}\n\nRiley —\n\nWallaroo runs paid, email, and SEO together for Shopify brands in your range. One strategist conversation covers the stack, not three vendors.\n\n${BOOKING_CTA}\n\nIf that time is not right, reply with two windows this week.`, 'Recorded in the workspace log. Not a live mailbox send.', night.sdrDraft);
   addArtifact(state, 'rfp-opportunity-scout', 'Matching agency RFPs', 'RfpWatchlist', 'Two RFPs that match Wallaroo’s public offers are already outlined:\n1. Shopify Plus brand — paid social + creative velocity (Ads page).\n2. DTC retailer — technical SEO + LLMO (SEO page).\nResponse outlines are in the log. No bid was filed on a live portal.', 'Watchlist and outlines recorded. No live bid filing.', night.rfpWatch);
   addArtifact(state, 'rfp-opportunity-scout', 'SEO + LLMO response outline', 'RfpOutline', `Response outline for the DTC retailer RFP, already in the log.\n1. Technical SEO from the public /ai-powered-seo/ page.\n2. LLMO so AI shopping agents can recommend the brand.\n3. ${BOOKING_CTA}\nDo not invent rankings or awarded work.`, 'Outline recorded. No bid was filed.', night.rfpOutline);
@@ -615,4 +618,34 @@ export function applyWallarooFixture(state: EngineState): void {
     pages: state.company.pages.map(page => ({ url: page.url, title: page.title, description: page.description, text: page.text, capturedAt: page.capturedAt })),
   };
   state.onboarding = wallarooOnboarding(state);
+  const bookingUrl = 'https://wallaroomedia.com/';
+  const installation = state.installations.find(item => item.agentId === 'outbound-email-sdr');
+  state.outboundSdr = OutboundSdrState.parse({
+    workspaceId,
+    bookingUrl,
+    sequence: generateOutboundSequence(state.company, bookingUrl),
+    leads: state.contacts.map(contact => OutboundLead.parse({
+      id: stableId(`${state.fixtureKey}:outbound-lead:${contact.email}`),
+      workspaceId,
+      opportunityId: state.opportunities.find(item => item.contactId === contact.id)?.id ?? null,
+      email: contact.email,
+      firstName: contact.name.split(' ')[0] ?? '',
+      lastName: contact.name.split(' ').slice(1).join(' '),
+      company: contact.account,
+      title: '',
+      website: '',
+      custom: {},
+      status: contact.account === 'Called to Surf' ? 'booked' : contact.account === 'MaxPro' || contact.account === 'Jantzen' ? 'replied' : 'sent',
+      lastReply: null,
+      lastEventAt: now,
+    })),
+    campaignId: installation ? `FIXTURE_ONLY_instantly_${installation.id}` : 'FIXTURE_ONLY_instantly_wallaroo',
+    instantlyWorkspaceId: 'fixture',
+    warmupReady: true,
+    sendingAccounts: [{ email: 'warmup@example.invalid', warmupReady: true, health: 'fixture' }],
+    status: 'sending',
+    crmProvider: 'none',
+    crmStatus: 'not_connected',
+    lastError: null,
+  });
 }

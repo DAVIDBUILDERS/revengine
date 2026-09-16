@@ -1,9 +1,10 @@
 import {emptyOnboarding, type AppSnapshot, type ConnectionCapability, type ConnectionResource, type OnboardingAnswers} from '../../contracts/src/index';
+import {bookingUrlInfo} from './outbound-sdr';
 
 export type SystemKind = OnboardingAnswers['systems'][number]['kind'];
 /** Full responsibilities, including capabilities that have not been implemented. */
 export const agentSystemRequirements: Record<string, SystemKind[]> = {
- 'account-intelligence':['website','drive'],'buying-signal-scout':['analytics','proposals'],'outbound-email-sdr':['proposals','mail'],'linkedin-outreach-assistant':['social','proposals'],'partner-development':['proposals','mail'],'rfp-opportunity-scout':['rfp','drive'],'competitor-intelligence':['website'],
+ 'account-intelligence':['website','drive'],'buying-signal-scout':['analytics','proposals'],'outbound-email-sdr':['mail'],'linkedin-outreach-assistant':['social','proposals'],'partner-development':['proposals','mail'],'rfp-opportunity-scout':['rfp','drive'],'competitor-intelligence':['website'],
  'search-growth':['website','analytics'],'technical-seo-monitor':['website'],'local-search-manager':['local','website'],'creative-performance':['advertising','drive'],'paid-campaign-operator':['advertising','analytics'],'landing-page-optimizer':['website','analytics'],'social-content-publisher':['social','drive'],'video-script-producer':['drive'],'product-merchandiser':['commerce'],
  'speed-to-lead-responder':['proposals','mail'],'ai-receptionist':['calls','calendar'],'website-sales-concierge':['website','drive'],'appointment-coordinator':['calendar','mail'],'lead-qualification':['proposals'],
  'proposal-operations':['proposals','drive'],'deal-follow-up':['proposals','mail'],'sales-call-coach':['calls','drive'],'estimate-recovery':['proposals','mail'],'revenue-experiment-manager':['analytics','payments'],
@@ -26,6 +27,7 @@ export type CompanySystemCoverage = {
 export const connectorOperationsForCapability: Readonly<Record<string,readonly string[]>> = {
  'proposals.current':['sheets.read','proposals.read'], 'gmail.reply_read':['gmail.read'],
  'gmail.send':['gmail.send'], 'calendar.availability':['calendar.freebusy'], 'calendar.book':['calendar.book'],
+ 'instantly.send':['instantly.send'], 'instantly.warmup':['instantly.warmup'], 'instantly.replies':['instantly.replies'],
 };
 const resourceTypes: Partial<Record<SystemKind,ConnectionResource['type'][]>> = {proposals:['sheet','csv'],mail:['mailbox'],calendar:['calendar']};
 const relatedOperations: Partial<Record<SystemKind,string[]>> = {proposals:['sheets.read','proposals.read'],mail:['gmail.read','gmail.send'],calendar:['calendar.freebusy','calendar.book']};
@@ -70,6 +72,10 @@ export function hasCurrentCapabilitySource(state:AppSnapshot,capability:string){
  if(state.workspace.mode==='fixture')return false;
  if(capability==='website.captured')return currentWebsite(state);
  if(capability==='company.confirmed')return state.activation.confirmedFacts;
+ if(capability==='calendar.booking_link')return bookingUrlInfo(state.outboundSdr?.bookingUrl).ok;
+ if(capability.startsWith('instantly.')){
+  return state.connections.some(c=>c.workspaceId===state.workspace.id&&c.provider==='instantly'&&c.health==='healthy'&&c.operations.includes(capability)&&!!c.verifiedAt&&Date.parse(c.verifiedAt)>=Date.parse(configurationBoundary(state).updatedAt)&&isCurrent(c.lastSyncAt,state.asOf,c.freshnessSeconds));
+ }
  const operations=connectorOperationsForCapability[capability];if(!operations)return false;
  const kind:SystemKind=capability.startsWith('gmail.')?'mail':capability.startsWith('calendar.')?'calendar':'proposals';
  const valid=resourcesFor(state,kind).filter(({connection,resource})=>verifiedResource(state,connection,resource)&&operations.some(operation=>hasOperation(connection,operation)));
@@ -81,7 +87,7 @@ export function companyConnectionCoverage(state:AppSnapshot){
  const agents=state.catalog.map(agent=>{
   const fullRoleSystems=[...(agentSystemRequirements[agent.id]??['other'])];
   // The implemented preparation suite reads approved website snapshots, not future provider inputs.
-  const currentSystems:SystemKind[]=agent.releaseStatus==='implemented'?['website']:agent.releaseStatus==='planned'?[]:[...new Set(agent.requiredCapabilities.flatMap(cap=>cap.startsWith('gmail.')?['mail' as const]:cap.startsWith('calendar.')?['calendar' as const]:cap==='proposals.current'?['proposals' as const]:cap==='website.captured'?['website' as const]:[]))];
+  const currentSystems:SystemKind[]=agent.releaseStatus==='implemented'?['website']:agent.releaseStatus==='planned'?[]:[...new Set(agent.requiredCapabilities.flatMap(cap=>cap.startsWith('gmail.')?['mail' as const]:cap.startsWith('calendar.')&&cap!=='calendar.booking_link'?['calendar' as const]:cap==='proposals.current'?['proposals' as const]:cap==='website.captured'?['website' as const]:[]))];
   const missingCapabilities=agent.requiredCapabilities.filter(cap=>!!connectorOperationsForCapability[cap]&&!hasCurrentCapabilitySource(state,cap));
   const missingCurrentSystems=currentSystems.filter(kind=>!hasVerifiedCompanySource(state,kind)||missingCapabilities.some(cap=>kind==='mail'?cap.startsWith('gmail.'):kind==='calendar'?cap.startsWith('calendar.'):kind==='proposals'?cap==='proposals.current':false));
   return {id:agent.id,selected:selected.has(agent.id),applicable:agent.supportedArchetypes.includes(record.answers.company.businessModel),currentSystems,fullRoleSystems,missingCurrentSystems,missingCapabilities,engineeringRequired:agent.releaseStatus==='planned'};

@@ -24,6 +24,26 @@ export const OnboardingAnswers = z.object({
 export type OnboardingAnswers = z.infer<typeof OnboardingAnswers>;
 export const OnboardingRecord = z.object({version:z.literal(1),revision:z.number().int().nonnegative(),configurationRevision:z.number().int().nonnegative().optional(),configurationUpdatedAt:z.iso.datetime({offset:true}).optional(),appliedRevision:z.number().int().nonnegative().nullable().default(null),answers:OnboardingAnswers,updatedAt:z.iso.datetime({offset:true}),updatedBy:z.string(),reviews:z.array(z.object({artifactId:z.uuid(),revision:z.number().int(),configurationRevision:z.number().int().nonnegative().optional(),at:z.iso.datetime({offset:true})}).strict()).max(100).default([]),history:z.array(z.object({revision:z.number().int(),at:z.iso.datetime({offset:true}),actor:z.string(),summary:z.string()}).strict()).max(100),tasks:z.array(z.object({id:z.string(),title:z.string(),owner:z.string(),status:z.enum(['open','in_progress','resolved']),note:z.string(),revision:z.number().int()}).strict()).max(100),invitations:z.array(z.object({id:z.string(),email:z.email(),role:z.enum(['workspace_owner','workspace_member','workspace_viewer']),status:z.enum(['pending','accepted','revoked','expired']),expiresAt:z.iso.datetime({offset:true})}).strict()).max(100)}).strict();
 export type OnboardingRecord = z.infer<typeof OnboardingRecord>;
+export const AgentRequiredTools = z.object({
+  tools:z.array(z.string().min(1).max(100)).max(20),
+  capabilities:z.array(z.string().min(1).max(100)).max(20),
+  systems:z.array(z.string().min(1).max(40)).max(20),
+  prerequisites:z.array(z.string().min(1).max(100)).max(20),
+}).strict();
+export type AgentRequiredTools = z.infer<typeof AgentRequiredTools>;
+export const AgentOnboardingStatus = z.enum(['not_started','in_progress','blocked','ready']);
+export const AgentOnboardingRecord = z.object({
+  workspaceId:z.uuid(),
+  agentId:z.string().min(1).max(100),
+  status:AgentOnboardingStatus,
+  answers:z.record(z.string(),z.unknown()),
+  requiredTools:AgentRequiredTools,
+  missing:z.array(z.string().max(2000)).max(50),
+  revision:z.number().int().nonnegative(),
+  updatedAt:z.iso.datetime({offset:true}),
+  updatedBy:z.string(),
+}).strict();
+export type AgentOnboardingRecord = z.infer<typeof AgentOnboardingRecord>;
 export function emptyOnboarding(input:{name:string;businessModel:'b2b_services'|'home_services'|'commerce';timeZone:string},at:string):OnboardingRecord {
  return {version:1,revision:0,appliedRevision:null,updatedAt:at,updatedBy:'Not saved',reviews:[],history:[],tasks:[],invitations:[],answers:{company:{name:input.name,businessModel:input.businessModel,timeZone:input.timeZone,website:'',offers:[],customers:[],priorities:[],successDefinition:'',brandGuidance:'',forbiddenClaims:''},team:[],systems:[],operations:{approvalMode:'each_action',automationAcknowledged:false,contactRestrictions:'',workingDays:[1,2,3,4,5],startHour:9,endHour:17,meetingMinutes:30,bufferMinutes:15,dailyCapacity:0,modelDailyBudgetMinor:null,actionDailyBudgetMinor:0,sender:'',calendarId:'',escalationOwner:'',approvedContactIds:[],policyAcknowledged:false},people:[],measurement:{owner:'',outcomeSources:'',baseline:[],sharing:'private'}}};
 }
@@ -38,4 +58,5 @@ export const onboardingCommands = [
  z.object({type:z.literal('create_invitation'),email:z.email(),role:z.enum(['workspace_owner','workspace_member','workspace_viewer'])}).strict(),
  z.object({type:z.literal('revoke_invitation'),invitationId:z.uuid()}).strict(),
  z.object({type:z.literal('apply_onboarding'),expectedRevision:z.number().int().positive()}).strict(),
+ z.object({type:z.literal('save_agent_onboarding'),agentId:z.string().min(1).max(100),expectedRevision:z.number().int().nonnegative(),answers:z.record(z.string(),z.unknown())}).strict(),
 ] as const;

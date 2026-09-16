@@ -1,0 +1,55 @@
+import { describe, expect, it } from 'vitest';
+import { catalog, prepareFromContext, createFixtureState } from '../packages/domain/src/index';
+import { agentDelivery } from '../packages/domain/src/delivery';
+
+describe('Launch agent stack decisions', () => {
+  it('names HeyReach as the LinkedIn send/inbox layer while DAVID stays copy-out', () => {
+    const linkedin = catalog.find(agent => agent.id === 'linkedin-outreach-assistant');
+    expect(linkedin?.modes).toEqual(['preparation']);
+    expect(linkedin?.releaseStatus).toBe('planned');
+    expect(linkedin?.responsibility).toMatch(/HeyReach/);
+    expect(linkedin?.responsibility).toMatch(/does not send LinkedIn/i);
+    expect(linkedin?.toolNames).toContain('heyreach.copy_out');
+    expect(linkedin?.fallback).toMatch(/HeyReach/);
+    const state = createFixtureState();
+    expect(agentDelivery(state, 'linkedin-outreach-assistant').detail).toMatch(/HeyReach/);
+    expect(agentDelivery(state, 'linkedin-outreach-assistant').headline).toMatch(/HeyReach/);
+  });
+
+  it('keeps Technical SEO on captured pages only — no crawl, Search Console, or CMS write-back', () => {
+    const seo = catalog.find(agent => agent.id === 'technical-seo-monitor');
+    expect(seo?.releaseStatus).toBe('implemented');
+    expect(seo?.responsibility).toMatch(/Captured pages only — no crawl, Search Console, or CMS write-back/);
+    const state = createFixtureState();
+    const artifact = prepareFromContext('technical-seo-monitor', state.company);
+    expect(artifact.type).toBe('CapturedPageAudit');
+    expect(artifact.limitation).toMatch(/Only captured pages were checked/);
+    expect(agentDelivery(state, 'technical-seo-monitor').detail).toMatch(/does not change your website|Copy titles/i);
+  });
+
+  it('names Bland as the outbound voice dialer and does not add a catalog agent for it', () => {
+    expect(catalog).toHaveLength(32);
+    expect(catalog.some(agent => /voice|bland|dialer|phone sdr/i.test(`${agent.id} ${agent.name} ${agent.responsibility}`))).toBe(false);
+    expect(catalog.find(agent => agent.id === 'ai-receptionist')?.releaseStatus).toBe('planned');
+  });
+
+  it('keeps Search Growth as the extra easy-to-launch agent and Concierge as an undeployed DAVID-hosted embed', () => {
+    const search = catalog.find(agent => agent.id === 'search-growth');
+    expect(search?.releaseStatus).toBe('implemented');
+    expect(search?.modes).toEqual(['preparation']);
+    const concierge = catalog.find(agent => agent.id === 'website-sales-concierge');
+    expect(concierge?.releaseStatus).toBe('implemented');
+    expect(concierge?.responsibility).toMatch(/DAVID-hosted embed/);
+    expect(concierge?.responsibility).toMatch(/not deployed/);
+    const state = createFixtureState();
+    const faq = prepareFromContext('website-sales-concierge', state.company);
+    expect(faq.limitation).toMatch(/no deployed chat/i);
+    expect(agentDelivery(state, 'website-sales-concierge').detail).toMatch(/not deployed on the public site/i);
+  });
+
+  it('keeps Instantly parent tenancy as one sub-workspace per DAVID workspace', () => {
+    const sdr = catalog.find(agent => agent.id === 'outbound-email-sdr');
+    expect(sdr?.dependencies).toEqual(expect.arrayContaining(['managed_instantly_workspace']));
+    expect(sdr?.responsibility).toMatch(/does not find leads/i);
+  });
+});
