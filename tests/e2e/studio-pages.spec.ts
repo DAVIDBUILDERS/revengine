@@ -16,14 +16,11 @@ test("workspace studio pages fit desktop and mobile with working proposal filter
   }
   await page.goto("/?view=opportunities");
   await expect(page.locator(".studio-app")).toBeVisible();
-  await page.getByRole("button", { name: /On hold.*View records/ }).click();
-  await expect(page.getByRole("button", { name: /On hold.*View records/ })).toHaveAttribute("aria-pressed", "true");
-  const table = page.locator("table").first();
-  const rows = await table.locator("tbody tr").count();
-  if (rows) await expect(table.locator("tbody")).toContainText(/on hold/i);
-  else await expect(page.getByText("No records in this state")).toBeVisible();
-  await page.getByRole("button", { name: /All records.*View records/ }).click();
-  await expect(table.locator("tbody tr").first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Pipeline", exact: true })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Who" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "What the agents did" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Next for sales" })).toBeVisible();
+  await expect(page.locator("table").first().locator("tbody tr").first()).toBeVisible();
 });
 
 test("connection inspection preserves access failures over stale data and returns keyboard focus", async ({ page }) => {

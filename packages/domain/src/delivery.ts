@@ -109,17 +109,22 @@ export function teamActivitySeries(state:AppSnapshot):TeamActivityPoint[] {
 export function teamActivityNarrative(state:AppSnapshot){
  const points=teamActivitySeries(state);
  const active=points.filter(point=>point.total>0);
- const replies=state.metrics.find(item=>item.key==='human_replies')?.value;
- const bookings=state.metrics.find(item=>item.key==='verified_bookings')?.value;
+ const pulse=workspaceOutreach(state);
+ const leads=pipelineLeads(state);
  const onPass=isWalkthroughFloor(state)&&active.some(point=>agentFloorStatus(state,point.agentId,defaultHumanReview(point.agentId))==='on_pass');
  const headline=active.length
   ? onPass
    ?`The team ran overnight. One specialist is still on a pass.`
-   :`The team already ran. ${active.length} specialist${active.length===1?'':'s'} left results you can open.`
+   : isWalkthroughFloor(state)
+    ?`The team ran overnight.`
+    :`The team already ran. ${active.length} specialist${active.length===1?'':'s'} left results you can open.`
   :'The team has not saved work yet.';
- const sentences=active.map(point=>point.latestTitle?`${point.name} — ${point.latestTitle}.`:`${point.name} recorded ${point.artifacts} draft${point.artifacts===1?'':'s'}.`);
- if(typeof replies==='number'&&replies>0)sentences.push(`${replies} human ${replies===1?'reply is':'replies are'} already on the record.`);
- if(typeof bookings==='number'&&bookings>0)sentences.push(`${bookings} ${bookings===1?'booking was':'bookings were'} recorded.`);
+ const sentences:string[]=[];
+ if(leads.length)sentences.push(`${leads.length} lead${leads.length===1?' is':'s are'} in Pipeline.`);
+ if(pulse.meetingsBooked)sentences.push(`${pulse.meetingsBooked} ${pulse.meetingsBooked===1?'meeting was':'meetings were'} booked.`);
+ for(const point of active){
+  sentences.push(`${point.name} — ${agentOvernightRecap(state,point.agentId).headline}`);
+ }
  return {headline,body:sentences.join(' ')};
 }
 
@@ -163,8 +168,8 @@ export function defaultHumanReview(_agentId:string){
  return false;
 }
 
-export function isWalkthroughFloor(state:Pick<AppSnapshot,'workspace'>,quiet?:boolean){
- return !!quiet || state.workspace.name === 'Wallaroo Media';
+export function isWalkthroughFloor(state:Pick<AppSnapshot,'workspace'>,_quiet?:boolean){
+ return state.workspace.name === 'Wallaroo Media';
 }
 
 export function agentFloorStatus(state:AppSnapshot,agentId:string,humanReview=defaultHumanReview(agentId)):FloorStatus {
@@ -172,7 +177,7 @@ export function agentFloorStatus(state:AppSnapshot,agentId:string,humanReview=de
  const installation=state.installations.find(item=>item.agentId===agentId);
  const held=humanReview && state.actions.some(item=>item.installationId===installation?.id && item.status==='not_attempted' && state.approvals.some(approval=>approval.actionId===item.id && approval.status==='pending'));
  if(held)return 'held';
- if(agentId===ON_PASS_AGENT && (work.artifacts||work.actions||work.findings))return 'on_pass';
+ if(isWalkthroughFloor(state)&&agentId===ON_PASS_AGENT && (work.artifacts||work.actions||work.findings))return 'on_pass';
  if(work.artifacts||work.actions||work.findings)return 'completed';
  return 'idle';
 }
@@ -186,7 +191,7 @@ function findingNoticedAt(reviewAt:string){
 }
 
 export function activityLabel(kind:ActivityKind){
- return kind==='held'?'Held for review':kind==='recommendation'?'Flagged':kind==='action'?'Recorded an action':'Wrote to the log';
+ return kind==='held'?'Held':kind==='recommendation'?'Noted':kind==='action'?'Moved':'Wrote';
 }
 
 export function specialistRunLog(state:AppSnapshot,agentId:string,humanReview=defaultHumanReview(agentId)):SpecialistRun[] {
@@ -254,7 +259,7 @@ export function agentConversationLabel(agentId:string){
 export function conversationProposalForAgent(state:AppSnapshot,agentId:string){
  const channel:ConversationChannel|null=agentId==='website-sales-concierge'?'website':agentId==='linkedin-outreach-assistant'?'linkedin':agentId==='outbound-email-sdr'?'email':null;
  if(!channel)return state.proposals[0]?.id??null;
- return state.proposals.find(item=>conversationThread(state,item.opportunityId).some(message=>message.channel===channel))?.id??null;
+ return state.proposals.find(item=>conversationThread(state,item.opportunityId).some(message=>message.channel===channel))?.id??state.proposals[0]?.id??null;
 }
 
 function timelineFor(state:AppSnapshot,opportunityId?:string){
@@ -286,18 +291,7 @@ export function workspaceOutreach(state:AppSnapshot):ConversationPulse {
 }
 
 export function opportunityNextStep(state:AppSnapshot,proposalId:string){
- const proposal=state.proposals.find(item=>item.id===proposalId);
- if(!proposal)return 'Open the log';
- const contact=state.contacts.find(item=>item.id===proposal.contactId);
- if(contact?.humanTakeover)return 'Owner holding further contact';
- if(proposal.status==='accepted')return 'Signed — hold further contact';
- const pulse=conversationPulse(state,proposal.opportunityId);
- if(pulse.meetingsBooked)return 'Meeting booked';
- if(pulse.emailIn||pulse.linkedinMessages>pulse.linkedinSent)return 'In conversation';
- if(pulse.websiteTurns)return 'Website chat in motion';
- if(pulse.linkedinSent&&pulse.linkedinAccepted<pulse.linkedinSent)return 'Connection pending';
- if(pulse.emailOut||pulse.linkedinSent)return 'Waiting on a reply';
- return 'Open the log';
+ return leadSalesNext(state,proposalId);
 }
 
 export function initiativeImpact(state:AppSnapshot,initiative:AppSnapshot['initiatives'][number]):InitiativeImpact {
@@ -335,6 +329,185 @@ export function initiativeImpact(state:AppSnapshot,initiative:AppSnapshot['initi
   baseline:initiative.baseline,
   target:initiative.target,
   moves:moves.length?moves:[{label:'In motion',value:'Logged'}],
+ };
+}
+
+export type PipelineLeadFilter = 'all' | 'leads' | 'meetings' | 'replies' | 'won';
+export type PipelineLead = {
+ proposalId:string;name:string;company:string;whatAgentsDid:string;salesNext:string;tags:PipelineLeadFilter[];
+};
+export type CustomerResult = {
+ key:PipelineLeadFilter;label:string;value:number;unit:'count'|'money';currency?:string;hint:string;filter:PipelineLeadFilter;
+};
+export type AgentPrimaryAction = {label:string;kind:'conversation'|'pipeline'|'none'};
+export type AgentOvernightRecap = {
+ headline:string;body:string;createsTrackableLeads:boolean;primary:AgentPrimaryAction;facts:{label:string;value:string}[];
+};
+
+function countWords(count:number,one:string,many:string){
+ return `${count} ${count===1?one:many}`;
+}
+
+export function channelPulse(state:AppSnapshot,channel:ConversationChannel):ConversationPulse {
+ const items=timelineFor(state).filter(item=>conversationChannel(item.kind)===channel);
+ return {
+  emailOut:countKinds(items,['email_out','message_out']),
+  emailIn:countKinds(items,['email_in','message_in','reply']),
+  linkedinSent:countKinds(items,['linkedin_connect']),
+  linkedinAccepted:countKinds(items,['linkedin_accept']),
+  linkedinMessages:countKinds(items,['linkedin_out','linkedin_in']),
+  websiteTurns:countKinds(items,['website_out','website_in']),
+  meetingsBooked:countKinds(items,['meeting_booked']),
+  moves:items.length,
+ };
+}
+
+export function leadWhatHappened(state:AppSnapshot,proposalId:string){
+ const proposal=state.proposals.find(item=>item.id===proposalId);
+ if(!proposal)return 'On the record.';
+ const pulse=conversationPulse(state,proposal.opportunityId);
+ if(pulse.meetingsBooked)return 'Booked a meeting from a CTA.';
+ if(pulse.websiteTurns)return 'Website chat with the concierge.';
+ if(pulse.linkedinAccepted)return 'LinkedIn accept — the thread is moving.';
+ if(pulse.linkedinSent)return 'LinkedIn connection sent.';
+ if(pulse.emailIn)return 'Replied to outbound email.';
+ if(pulse.emailOut)return 'Outbound email is in the log.';
+ const action=state.actions.filter(item=>item.proposalId===proposalId).at(-1);
+ if(action)return action.payload.subject;
+ return proposal.scopeSummary.slice(0,96) || 'On the record.';
+}
+
+export function leadSalesNext(state:AppSnapshot,proposalId:string){
+ const proposal=state.proposals.find(item=>item.id===proposalId);
+ if(!proposal)return 'Open the record and decide the next human step.';
+ const contact=state.contacts.find(item=>item.id===proposal.contactId);
+ if(contact?.humanTakeover)return 'Owner is holding this. Do not double-contact.';
+ if(proposal.status==='accepted')return 'Won — no further outreach.';
+ const pulse=conversationPulse(state,proposal.opportunityId);
+ if(pulse.meetingsBooked)return 'Show up. A person owns the meeting.';
+ if(pulse.emailIn||pulse.linkedinMessages>pulse.linkedinSent||pulse.websiteTurns)return 'A person should reply as the owner.';
+ if(pulse.linkedinSent&&pulse.linkedinAccepted<pulse.linkedinSent)return 'Wait on the connection, or take over if this is yours.';
+ if(pulse.emailOut||pulse.linkedinSent)return 'Nothing yet — they have not written back.';
+ return 'Open the record and decide the next human step.';
+}
+
+export function pipelineLeads(state:AppSnapshot):PipelineLead[] {
+ return state.proposals.map(proposal=>{
+  const contact=state.contacts.find(item=>item.id===proposal.contactId);
+  const pulse=conversationPulse(state,proposal.opportunityId);
+  const tags:PipelineLeadFilter[]=['leads'];
+  if(pulse.meetingsBooked)tags.push('meetings');
+  if(pulse.emailIn||pulse.linkedinMessages>pulse.linkedinSent||pulse.websiteTurns)tags.push('replies');
+  if(proposal.status==='accepted')tags.push('won');
+  return {
+   proposalId:proposal.id,
+   name:contact?.name??'Unknown contact',
+   company:contact?.account??'Unknown company',
+   whatAgentsDid:leadWhatHappened(state,proposal.id),
+   salesNext:leadSalesNext(state,proposal.id),
+   tags,
+  };
+ });
+}
+
+export function filterPipelineLeads(leads:PipelineLead[],filter:PipelineLeadFilter){
+ if(filter==='all'||filter==='leads')return leads;
+ return leads.filter(item=>item.tags.includes(filter));
+}
+
+export function customerResults(state:AppSnapshot):CustomerResult[] {
+ const pulse=workspaceOutreach(state);
+ const leads=pipelineLeads(state);
+ const signed=state.metrics.find(item=>item.key==='signed_value');
+ const replies=state.metrics.find(item=>item.key==='human_replies');
+ const bookings=state.metrics.find(item=>item.key==='verified_bookings');
+ const wonCount=leads.filter(item=>item.tags.includes('won')).length;
+ const moneyUnit=typeof signed?.unit==='string'&&signed.unit.includes('minor');
+ return [
+  {key:'leads',label:'New leads',value:leads.length,unit:'count',hint:'Everyone the agents already moved',filter:'leads'},
+  {key:'meetings',label:'Meetings booked',value:pulse.meetingsBooked||(typeof bookings?.value==='number'?bookings.value:leads.filter(item=>item.tags.includes('meetings')).length),unit:'count',hint:'From a book-a-meeting CTA',filter:'meetings'},
+  {key:'replies',label:'Replies',value:pulse.emailIn||(typeof replies?.value==='number'?replies.value:leads.filter(item=>item.tags.includes('replies')).length),unit:'count',hint:'People who wrote back',filter:'replies'},
+  {key:'won',label:'Won',value:moneyUnit&&typeof signed?.value==='number'?signed.value:wonCount,unit:moneyUnit&&typeof signed?.value==='number'?'money':'count',currency:state.workspace.currency,hint:'Closed records',filter:'won'},
+ ];
+}
+
+function recapPrimary(agentId:string):AgentPrimaryAction {
+ if(agentId==='website-sales-concierge')return {label:'Watch this conversation',kind:'conversation'};
+ if(agentId==='linkedin-outreach-assistant'||agentId==='outbound-email-sdr')return {label:'See the conversation',kind:'conversation'};
+ if(agentId==='technical-seo-monitor'||agentId==='search-growth'||agentId==='account-intelligence'||agentId==='landing-page-optimizer'||agentId==='partner-development'||agentId==='rfp-opportunity-scout')return {label:'',kind:'none'};
+ return {label:'Open pipeline',kind:'pipeline'};
+}
+
+export function agentOvernightRecap(state:AppSnapshot,agentId:string):AgentOvernightRecap {
+ const agent=state.catalog.find(item=>item.id===agentId);
+ const name=agent?.name??agentId;
+ const work=specialistWorkSnapshot(state,agentId);
+ const primary=recapPrimary(agentId);
+ const floor=isWalkthroughFloor(state);
+ if(agentId==='linkedin-outreach-assistant'){
+  const pulse=channelPulse(state,'linkedin');
+  return {
+   headline:pulse.linkedinAccepted?`${countWords(pulse.linkedinAccepted,'LinkedIn accept','LinkedIn accepts')} overnight.`:floor?'LinkedIn ran overnight.':work.latestTitle??'LinkedIn work is on the record.',
+   body:`${countWords(pulse.linkedinSent,'connection request','connection requests')}. ${countWords(pulse.linkedinMessages,'message','messages')} in motion. A sales person should open the thread and take the next human step.`,
+   createsTrackableLeads:true,
+   primary,
+   facts:[{label:'Connects sent',value:String(pulse.linkedinSent)},{label:'Accepted',value:String(pulse.linkedinAccepted)},{label:'Messages',value:String(pulse.linkedinMessages)}],
+  };
+ }
+ if(agentId==='outbound-email-sdr'){
+  const pulse=channelPulse(state,'email');
+  const booked=workspaceOutreach(state).meetingsBooked;
+  return {
+   headline:pulse.emailIn?`${countWords(pulse.emailIn,'reply','replies')} on outbound email.`:floor?'Outbound ran overnight.':work.latestTitle??'Outbound email is on the record.',
+   body:`${countWords(pulse.emailOut,'email','emails')} in the log. ${countWords(booked,'meeting','meetings')} booked from a CTA. A sales person should open the conversation.`,
+   createsTrackableLeads:true,
+   primary,
+   facts:[{label:'Emails',value:String(pulse.emailOut)},{label:'Replies',value:String(pulse.emailIn)},{label:'Meetings',value:String(booked)}],
+  };
+ }
+ if(agentId==='website-sales-concierge'){
+  const pulse=channelPulse(state,'website');
+  return {
+   headline:pulse.websiteTurns?`Website chat moved ${countWords(pulse.websiteTurns,'turn','turns')}.`:floor?'The concierge ran overnight.':work.latestTitle??'Website chat is on the record.',
+   body:'This is the included website concierge. Open the conversation to see it happen — a person takes the meeting from here.',
+   createsTrackableLeads:true,
+   primary,
+   facts:[{label:'Chat turns',value:String(pulse.websiteTurns)},{label:'Meetings',value:String(workspaceOutreach(state).meetingsBooked)}],
+  };
+ }
+ if(agentId==='technical-seo-monitor'){
+  return {
+   headline:'SEO checks are copied for the site.',
+   body:'This specialist does not create trackable leads. Titles, descriptions and fixes are ready to copy onto the website. It supports the rest of the team.',
+   createsTrackableLeads:false,
+   primary,
+   facts:[{label:'Checks on the record',value:String(work.artifacts||work.findings)}],
+  };
+ }
+ if(agentId==='partner-development'){
+  return {
+   headline:work.latestTitle??'Partner intros are on the record.',
+   body:'Partner development is long-term. It does not fill Pipeline the same week. A person decides who to introduce.',
+   createsTrackableLeads:false,
+   primary,
+   facts:[{label:'Intros',value:String(work.artifacts)}],
+  };
+ }
+ if(agentId==='rfp-opportunity-scout'){
+  return {
+   headline:work.latestTitle??'RFP outlines are ready.',
+   body:'Outlines are on the record for a person to file. This is not a same-week lead list.',
+   createsTrackableLeads:false,
+   primary,
+   facts:[{label:'Outlines',value:String(work.artifacts)}],
+  };
+ }
+ return {
+  headline:work.latestTitle??`${name} has not left a recap yet.`,
+  body:work.latestTitle?`${work.latestTitle}. This is the pass from 3:00 AM to 3:00 AM.`:`Nothing on the record yet for ${name}.`,
+  createsTrackableLeads:primary.kind!=='none',
+  primary,
+  facts:work.latestTitle?[{label:'On the record',value:work.latestTitle}]:[],
  };
 }
 

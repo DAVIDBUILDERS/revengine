@@ -3,9 +3,12 @@ test('studio focuses on one agent, keeps configuration optional, and fits mobile
  await page.goto('/?view=team');
  await expect(page.getByRole('heading',{name:'AI agents',exact:true})).toBeVisible();
  await expect(page.locator('.agent-card')).toHaveCount(0);
- await page.getByRole('button',{name:/Account Intelligence.*saved|Account Intelligence.*Awaiting/}).click();
- await expect(page.getByRole('region',{name:'Account Intelligence workbench'})).toBeVisible();
- await page.getByRole('button',{name:'Access, limits & history'}).click();
+ await expect(page.getByRole('button',{name:'Watch this conversation'})).toBeVisible();
+ await page.getByRole('button',{name:'Open Account Intelligence recap'}).click();
+ await expect(page).toHaveURL(/view=today/);
+ await expect(page.getByRole('region',{name:'Account Intelligence recap'})).toBeVisible();
+ await page.getByRole('link',{name:'AI Agents',exact:true}).click();
+ await page.getByRole('button',{name:'Workspace limits'}).click();
  await expect(page.getByRole('dialog')).toBeVisible();
  await page.getByRole('button',{name:'Close details'}).click();
  await page.getByRole('button',{name:'Build your team',exact:true}).click();
@@ -26,29 +29,25 @@ test('studio focuses on one agent, keeps configuration optional, and fits mobile
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
 
-test('Dashboard opens a specialist tab and copy-out is available without a destination',async({page,context})=>{
- await context.grantPermissions(['clipboard-read','clipboard-write']);
+test('Dashboard opens a specialist recap and Results open Pipeline',async({page})=>{
  await page.goto('/?view=today');
  const resume=page.getByRole('button',{name:'Check readiness & resume'});
  if(await resume.isVisible())await resume.click();
- await page.getByRole('tab',{name:'Search Growth'}).click();
+ await expect(page.getByRole('heading',{name:'Activity',exact:true})).toHaveCount(0);
+ await page.locator('.today-specialist[aria-label="Open Search Growth recap"]').click();
  await expect(page).toHaveURL(/view=today/);
  await expect(page).toHaveURL(/agent=search-growth/);
- await expect(page.getByRole('button',{name:'Record needed systems'})).toBeVisible();
- await expect(page.getByRole('button',{name:'Connect sources'})).toHaveCount(0);
- await page.getByRole('tab',{name:'SEO',exact:true}).click();
+ await expect(page.getByRole('region',{name:'Search Growth recap'})).toBeVisible();
+ await expect(page.getByRole('button',{name:'Prepare first draft'})).toHaveCount(0);
+ await expect(page.getByRole('button',{name:'Access, limits & history'})).toHaveCount(0);
+ await page.getByRole('button',{name:'All specialists'}).click();
+ await page.locator('.today-specialist[aria-label="Open Technical SEO recap"]').click();
  await expect(page).toHaveURL(/agent=technical-seo-monitor/);
- await expect(page.getByRole('region',{name:'Technical SEO dashboard'})).toBeVisible();
- await expect(page.getByText('Copy these checks onto your site')).toBeVisible();
- await expect(page.getByRole('button',{name:'Company sources'})).toBeVisible();
- await page.getByRole('button',{name:'Prepare first draft'}).click();
- await expect(page.locator('.studio-output h2')).toContainText('Captured-page technical check');
- await expect(page.locator('.studio-output-content')).toContainText('ILLUSTRATIVE FIXTURE');
- await expect(page.getByText(/DAVID does not change your website/)).toBeVisible();
- await page.getByRole('button',{name:'Copy',exact:true}).click();
- await expect(page.getByRole('status').filter({hasText:'Copied to clipboard'})).toBeVisible();
- const [download]=await Promise.all([page.waitForEvent('download'),page.getByRole('button',{name:'Download'}).click()]);
- expect(download.suggestedFilename()).toMatch(/\.md$/);
+ await expect(page.getByRole('region',{name:'Technical SEO recap'})).toBeVisible();
+ await expect(page.getByText(/does not create trackable leads/i)).toBeVisible();
+ await page.getByRole('button',{name:'All specialists'}).click();
+ await page.getByRole('button',{name:/New leads/}).click();
+ await expect(page.getByRole('heading',{name:'Pipeline',exact:true})).toBeVisible();
  await page.setViewportSize({width:390,height:844});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });

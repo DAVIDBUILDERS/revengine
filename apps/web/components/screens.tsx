@@ -43,10 +43,12 @@ import { forecastCases, deliveryEconomics, scenarioComparison } from "@david/dom
 import {
   channelLabel,
   conversationPulse,
+  filterPipelineLeads,
   initiativeImpact,
   isWalkthroughFloor,
   journeyMoves,
-  opportunityNextStep,
+  pipelineLeads,
+  type PipelineLeadFilter,
   workspaceOutreach,
 } from "@david/domain/delivery";
 import { money, words } from "@david/ui";
@@ -190,14 +192,18 @@ export function Opportunities(props: ScreenProps) {
   const { state, act, busy } = props;
   const quiet = useContext(QuietWalkthroughContext);
   const floor = isWalkthroughFloor(state, quiet);
-  const outreach = workspaceOutreach(state);
+  const leads = pipelineLeads(state);
   const [proposalId, setProposalId] = useState<string | null>(() =>
     typeof window === "undefined"
       ? null
       : new URLSearchParams(window.location.search).get("proposal"),
   );
-  const [recordStatus,setRecordStatus]=useState("all");
-  const visibleProposals=state.proposals.filter(p=>recordStatus==="all"||p.status===recordStatus);
+  const [leadFilter, setLeadFilter] = useState<PipelineLeadFilter>(() => {
+    if (typeof window === "undefined") return "all";
+    const value = new URLSearchParams(window.location.search).get("lead");
+    return value === "meetings" || value === "replies" || value === "won" || value === "leads" ? value : "all";
+  });
+  const visibleLeads = filterPipelineLeads(leads, leadFilter);
   const [importOpen, setImportOpen] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("import") === "csv");
   function closeImport() {
     setImportOpen(false);
@@ -207,108 +213,64 @@ export function Opportunities(props: ScreenProps) {
       window.history.replaceState({}, "", url.pathname + url.search);
     }
   }
+  useEffect(() => {
+    const sync = () => {
+      const params = new URLSearchParams(window.location.search);
+      setProposalId(params.get("proposal"));
+      const value = params.get("lead");
+      setLeadFilter(value === "meetings" || value === "replies" || value === "won" || value === "leads" ? value : "all");
+    };
+    window.addEventListener("popstate", sync);
+    return () => window.removeEventListener("popstate", sync);
+  }, []);
   const proposal = state.proposals.find((item) => item.id === proposalId);
   return (
     <div className="stack workspace-studio opportunities-studio">
       <PageHeading
         eyebrow="Leads the team already moved"
         title="Pipeline"
-        description="Every lead the agents produced — from yesterday and the day before. This is a lightweight list, not a CRM."
-        action={
-          <Button onClick={() => setImportOpen(true)}>
-            <Upload size={14} />
-            Import proposal CSV
-          </Button>
-        }
+        description="Who, company, what the agents did, and what a sales person should do next. This is a list, not a CRM."
       />
-      <WorkspaceOverview eyebrow={floor ? "THE TEAM ALREADY MOVED" : "OPPORTUNITY DESK"} title={floor ? "Conversations are already in motion." : "Every next step has a source."} description={floor ? "Open a record to read the LinkedIn, email, and website threads — including connection accepts and the booking CTA." : "Inspect the current proposal, the person behind it, and the action ready for review."}>
-        {floor ? (
-          <div className="studio-signal-grid" aria-label="Overnight outreach">
-            <div className="studio-signal"><span>LinkedIn connects</span><strong>{outreach.linkedinAccepted}/{outreach.linkedinSent}</strong><small>Accepted / sent overnight</small></div>
-            <div className="studio-signal"><span>Messages</span><strong>{outreach.emailOut + outreach.linkedinMessages + outreach.websiteTurns}</strong><small>Email, LinkedIn, website</small></div>
-            <div className="studio-signal"><span>Meetings booked</span><strong>{outreach.meetingsBooked}</strong><small>From a book-a-meeting CTA</small></div>
-          </div>
-        ) : (
-          <div className="studio-signal-grid" aria-label="Filter proposal records">{[['all','All records'],['open','Open'],['on_hold','On hold'],['accepted','Accepted']].map(([value,label])=><button key={value} className="studio-signal" aria-pressed={recordStatus===value} onClick={()=>setRecordStatus(value)}><span>{label}</span><strong>{state.proposals.filter(p=>value==='all'||p.status===value).length}</strong><small>View records <ArrowUpRight size={12}/></small></button>)}</div>
-        )}
-      </WorkspaceOverview>
-      <section className="card">
+      <section className="card lead-desk">
           <div className="card-head">
             <div>
               <h2>Leads</h2>
               <p className="help" style={{ marginTop: 6 }}>
-                Current source status and contact permissions are checked before
-                dispatch.
+                {visibleLeads.length} {visibleLeads.length === 1 ? "lead" : "leads"}
+                {leadFilter !== "all" && leadFilter !== "leads" ? ` · ${leadFilter}` : ""}
+                {floor ? " from yesterday and the day before" : ""}.
               </p>
             </div>
-            {!floor && <Badge tone="info">Deal Follow-up playbook</Badge>}
           </div>
           <div className="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>Company / contact</th>
-                  <th>Proposal</th>
-                  <th>Value</th>
-                  <th>Status</th>
-                  <th>Next step</th>
+                  <th>Who</th>
+                  <th>Company</th>
+                  <th>What the agents did</th>
+                  <th>Next for sales</th>
                   <th>
                     <span className="sr-only">Open record</span>
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {visibleProposals.map((item) => {
-                  const contact = state.contacts.find(
-                    (c) => c.id === item.contactId,
-                  );
-                  const action = state.actions
-                    .filter((a) => a.proposalId === item.id)
-                    .at(-1);
+                {visibleLeads.map((item) => {
+                  const record = state.proposals.find((row) => row.id === item.proposalId);
                   return (
-                    <tr key={item.id}>
+                    <tr key={item.proposalId}>
                       <td>
-                        <strong>{contact?.account ?? "Unknown account"}</strong>
-                        <div className="help">
-                          {contact?.name ?? "Unknown contact"}
-                        </div>
+                        <strong>{item.name}</strong>
+                        {record ? <div className="help">{record.reference}</div> : null}
                       </td>
-                      <td>
-                        {item.reference}
-                        <div className="help">Version {item.version}</div>
-                      </td>
-                      <td className="numeric">
-                        {money(item.amountMinor, item.currency)}
-                        <div className="help">{words(item.valueKind)}</div>
-                      </td>
-                      <td>
-                        <Badge
-                          status={
-                            contact?.suppressed
-                              ? "blocked"
-                              : contact?.humanTakeover
-                                ? "paused"
-                                : item.status
-                          }
-                        />
-                      </td>
-                      <td>
-                        {floor ? (
-                          <span className="help">{opportunityNextStep(state, item.id)}</span>
-                        ) : action ? (
-                          <Badge status={action.status} />
-                        ) : (
-                          <span className="help">
-                            {item.status === "open"
-                              ? "Evaluate eligibility"
-                              : "No outreach permitted"}
-                          </span>
-                        )}
-                      </td>
+                      <td>{item.company}</td>
+                      <td>{item.whatAgentsDid}</td>
+                      <td>{item.salesNext}</td>
                       <td>
                         <Button
                           className="btn-small"
-                          onClick={() => setProposalId(item.id)}
+                          onClick={() => setProposalId(item.proposalId)}
                         >
                           Open
                           <ChevronRight size={12} />
@@ -320,20 +282,17 @@ export function Opportunities(props: ScreenProps) {
               </tbody>
             </table>
           </div>
-          {!!state.proposals.length&&!visibleProposals.length&&<Empty title="No records in this state"><button className="link-button" onClick={()=>setRecordStatus("all")}>Show all records</button></Empty>}
-          {!state.proposals.length && (
-            <Empty
-              title="No proposal records yet"
-              action={
-                <Button onClick={() => setImportOpen(true)}>
-                  Preview a CSV import
-                </Button>
-              }
-            >
-              Start with a source export containing stable IDs, current status,
-              contact channel and factual scope.
+          {!!leads.length && !visibleLeads.length && (
+            <Empty title="No leads in this view">
+              <button className="link-button" onClick={() => setLeadFilter("all")}>Show all leads</button>
             </Empty>
           )}
+          {!leads.length && (
+            <Empty title="No leads yet">The team has not moved anyone into Pipeline.</Empty>
+          )}
+          <p className="help" style={{ marginTop: 16 }}>
+            <button className="link-button" onClick={() => setImportOpen(true)}>Import proposal CSV</button>
+          </p>
         </section>
       <Drawer
         open={!!proposal}
@@ -343,7 +302,7 @@ export function Opportunities(props: ScreenProps) {
             ? `${proposal.reference} · ${state.contacts.find((c) => c.id === proposal.contactId)?.account ?? "Proposal"}`
             : ""
         }
-        description="One customer journey, one shared owner. Actions keep their exact approval, current-state checks and source evidence."
+        description="One conversation. A person decides the next step."
       >
         {proposal && <ProposalDetail {...props} proposalId={proposal.id} />}
       </Drawer>
@@ -1461,7 +1420,7 @@ export function Scenarios({ state, act, busy }: ScreenProps) {
     id: crypto.randomUUID(),
     workspaceId: state.workspace.id,
     version: 1,
-    name: "Proposal recovery · planning scenario",
+    name: "Proposal recovery · planning forecast",
     businessModel: state.workspace.businessModel,
     currency: state.workspace.currency,
     horizonDays: 90,
@@ -1485,7 +1444,21 @@ export function Scenarios({ state, act, busy }: ScreenProps) {
     createdAt: state.asOf,
   });
   const [scenario, setScenario] = useState<ForecastScenario>(
-    () => state.scenarios[0] ?? makeScenario(),
+    () => {
+      const current = state.scenarios[0] ?? makeScenario();
+      return {
+        ...current,
+        valueMinor: current.valueMinor ?? 500000,
+        spendMinor: current.spendMinor ?? 250000,
+        baselineWins: current.baselineWins ?? 1,
+        counterfactual:
+          current.counterfactual ??
+          "Same horizon with specialists idle: recorded wins only.",
+        assumptions: current.assumptions.length
+          ? current.assumptions
+          : ["Planning inputs; replace with a source-backed baseline."],
+      };
+    },
   );
   const [validation, setValidation] = useState("");
   let cases: ReturnType<typeof forecastCases> = [];
@@ -1540,11 +1513,11 @@ export function Scenarios({ state, act, busy }: ScreenProps) {
             onClick={() => void save()}
           >
             <Check size={14} />
-            Save scenario
+            Save forecast
           </Button>
         }
       />
-      <div className="scenario-range-board" aria-label="Live scenario comparison">
+      <div className="scenario-range-board" aria-label="Live forecast comparison">
         {cases.map((item) => (
           <section
             className={`scenario-case studio-case ${item.case === "base" ? "featured" : ""}`}
@@ -1552,7 +1525,7 @@ export function Scenarios({ state, act, busy }: ScreenProps) {
           >
             <div className="between">
               <span className="eyebrow">{item.case} case</span>
-              <Badge tone="warning">Scenario</Badge>
+              <Badge tone="warning">Forecast</Badge>
             </div>
             <div className="scenario-number numeric">
               {item.wins.toFixed(1)} <span className="small muted">wins</span>
@@ -1568,9 +1541,7 @@ export function Scenarios({ state, act, busy }: ScreenProps) {
               <br />
               Incremental ROI:{" "}
               {item.incrementalRoi === null
-                ? floor
-                  ? "Complete the baseline, spend, and counterfactual above."
-                  : "Unavailable"
+                ? "Complete baseline, spend, and counterfactual."
                 : `${(item.incrementalRoi * 100).toFixed(1)}%`}
             </p>
           </section>
@@ -1605,7 +1576,7 @@ export function Scenarios({ state, act, busy }: ScreenProps) {
       )}
       <div className="between">
         <label className="field" style={{ flex: 1, maxWidth: 500 }}>
-          Saved scenarios
+          Saved forecasts
           <select
             className="input"
             value={
@@ -1622,7 +1593,7 @@ export function Scenarios({ state, act, busy }: ScreenProps) {
           >
             {floor ? null : (
             <option value="" disabled>
-              Unsaved scenario
+              Unsaved forecast
             </option>
             )}
             {state.scenarios.map((item) => (
@@ -1644,14 +1615,14 @@ export function Scenarios({ state, act, busy }: ScreenProps) {
           }
         >
           <Plus size={14} />
-          Duplicate scenario
+          Duplicate forecast
         </Button>
       </div>
       <div className="card card-body stack">
         <h2 style={{ fontSize: 17 }}>Shared assumptions</h2>
         <div className="grid-two">
           <label className="field">
-            Scenario name
+            Forecast name
             <input
               className="input"
               value={scenario.name}
@@ -1732,9 +1703,8 @@ export function Scenarios({ state, act, busy }: ScreenProps) {
               min="0"
               step=".01"
               value={
-                scenario.valueMinor === null ? "" : scenario.valueMinor / 100
+                scenario.valueMinor === null ? 5000 : scenario.valueMinor / 100
               }
-              placeholder={floor ? undefined : "Unknown"}
               onChange={(e) =>
                 set(
                   "valueMinor",
@@ -1753,9 +1723,8 @@ export function Scenarios({ state, act, busy }: ScreenProps) {
               min="0"
               step=".01"
               value={
-                scenario.spendMinor === null ? "" : scenario.spendMinor / 100
+                scenario.spendMinor === null ? 2500 : scenario.spendMinor / 100
               }
-              placeholder={floor ? undefined : "Unknown — ROI unavailable"}
               onChange={(e) =>
                 set(
                   "spendMinor",
@@ -1869,8 +1838,7 @@ export function Scenarios({ state, act, busy }: ScreenProps) {
               type="number"
               min="0"
               step=".1"
-              value={scenario.baselineWins ?? ""}
-              placeholder={floor ? undefined : "Unknown"}
+              value={scenario.baselineWins ?? 1}
               onChange={(e) =>
                 set(
                   "baselineWins",
@@ -1883,9 +1851,8 @@ export function Scenarios({ state, act, busy }: ScreenProps) {
             Counterfactual / what would happen otherwise
             <input
               className="input"
-              value={scenario.counterfactual ?? ""}
-              placeholder={floor ? undefined : "Explain the baseline and evidence"}
-              onChange={(e) => set("counterfactual", e.target.value || null)}
+              value={scenario.counterfactual ?? "Same horizon with specialists idle: recorded wins only."}
+              onChange={(e) => set("counterfactual", e.target.value || "Same horizon with specialists idle: recorded wins only.")}
             />
           </label>
         </div>
@@ -1922,7 +1889,7 @@ export function Scenarios({ state, act, busy }: ScreenProps) {
             disabled={busy || !!scenarioError}
             onClick={() => void save()}
           >
-            Save assumptions
+            Save forecast
             <Check size={14} />
           </Button>
         </div>

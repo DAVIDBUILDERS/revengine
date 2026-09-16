@@ -1,11 +1,5 @@
 import type { TeamActivityPoint } from "@david/domain/delivery";
 
-const SERIES = [
-  { key: "artifacts" as const, label: "Drafts saved", color: "#d7e2c0" },
-  { key: "actions" as const, label: "Actions recorded", color: "#8fa67a" },
-  { key: "findings" as const, label: "Recommendations", color: "#5f7354" },
-];
-
 export function DashboardActivityChart({
   points,
   onSelect,
@@ -14,34 +8,30 @@ export function DashboardActivityChart({
   onSelect: (agentId: string) => void;
 }) {
   const width = 720;
-  const height = 300;
+  const height = 280;
   const pad = { top: 18, right: 16, bottom: 58, left: 42 };
   const plotWidth = width - pad.left - pad.right;
   const plotHeight = height - pad.top - pad.bottom;
-  const max = Math.max(1, ...points.flatMap((point) => [point.artifacts, point.actions, point.findings]));
+  const max = Math.max(1, ...points.map((point) => point.total));
   const ticks = [0, Math.ceil(max / 2), max];
   const groupWidth = points.length ? plotWidth / points.length : plotWidth;
-  const barWidth = Math.min(16, Math.max(8, (groupWidth - 20) / SERIES.length));
+  const barWidth = Math.min(36, Math.max(14, groupWidth - 24));
 
   return (
     <figure className="dashboard-chart">
       <div className="dashboard-chart-legend">
-        {SERIES.map((series) => (
-          <span key={series.key}>
-            <i style={{ background: series.color }} aria-hidden="true" />
-            {series.label}
-          </span>
-        ))}
+        <span>
+          <i style={{ background: "#8fa67a" }} aria-hidden="true" />
+          Volume
+        </span>
       </div>
       <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-labelledby="dashboard-chart-title dashboard-chart-desc">
-        <title id="dashboard-chart-title">Work already produced by each specialist</title>
+        <title id="dashboard-chart-title">Volume by specialist</title>
         <desc id="dashboard-chart-desc">
-          {points
-            .map((point) => `${point.name}: ${point.artifacts} drafts, ${point.actions} actions, ${point.findings} recommendations`)
-            .join(". ")}
+          {points.map((point) => `${point.name}: ${point.total}`).join(". ")}
         </desc>
         <text className="dashboard-chart-axis-label" x={14} y={pad.top + plotHeight / 2} transform={`rotate(-90 14 ${pad.top + plotHeight / 2})`}>
-          Work recorded
+          Volume
         </text>
         {ticks.map((tick) => {
           const y = pad.top + plotHeight - (tick / max) * plotHeight;
@@ -64,26 +54,18 @@ export function DashboardActivityChart({
         />
         {points.map((point, index) => {
           const groupX = pad.left + index * groupWidth + groupWidth / 2;
+          const barHeight = Math.max(point.total ? 4 : 0, (point.total / max) * plotHeight);
           return (
             <g key={point.agentId}>
-              {SERIES.map((series, bar) => {
-                const value = point[series.key];
-                const barHeight = Math.max(value ? 4 : 0, (value / max) * plotHeight);
-                const x = groupX - (SERIES.length * barWidth + 6) / 2 + bar * (barWidth + 3);
-                const y = pad.top + plotHeight - barHeight;
-                return (
-                  <rect
-                    key={series.key}
-                    className="dashboard-chart-bar"
-                    x={x}
-                    y={y}
-                    width={barWidth}
-                    height={barHeight}
-                    rx="2"
-                    fill={series.color}
-                  />
-                );
-              })}
+              <rect
+                className="dashboard-chart-bar"
+                x={groupX - barWidth / 2}
+                y={pad.top + plotHeight - barHeight}
+                width={barWidth}
+                height={barHeight}
+                rx="3"
+                fill="#8fa67a"
+              />
               <text className="dashboard-chart-x" x={groupX} y={height - 28} textAnchor="middle">
                 {point.shortLabel}
               </text>
@@ -96,11 +78,9 @@ export function DashboardActivityChart({
       </svg>
       <div className="dashboard-chart-points">
         {points.map((point) => (
-          <button key={point.agentId} type="button" onClick={() => onSelect(point.agentId)} aria-label={`Open ${point.name} work`}>
+          <button key={point.agentId} type="button" onClick={() => onSelect(point.agentId)} aria-label={`Volume for ${point.name}`}>
             <strong>{point.shortLabel}</strong>
-            <span>
-              {point.artifacts} drafts · {point.actions} actions · {point.findings} recs
-            </span>
+            <span>{point.total} volume</span>
           </button>
         ))}
       </div>

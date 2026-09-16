@@ -1,7 +1,7 @@
 import {describe,expect,it} from 'vitest';
 import {createFixtureState,snapshot} from '@david/domain';
 import {saveOnboarding} from '../packages/domain/src/onboarding';
-import {agentConversationLabel,agentDelivery,agentDestinations,agentFloorStatus,artifactCopyText,conversationProposalForAgent,conversationThread,specialistWorkSnapshot,teamActivityFeed,teamActivityNarrative,teamActivitySeries} from '../packages/domain/src/delivery';
+import {agentConversationLabel,agentDelivery,agentDestinations,agentFloorStatus,agentOvernightRecap,artifactCopyText,conversationProposalForAgent,conversationThread,customerResults,pipelineLeads,specialistWorkSnapshot,teamActivityFeed,teamActivityNarrative,teamActivitySeries} from '../packages/domain/src/delivery';
 import {onboardingFor} from '@david/domain';
 
 describe('agent delivery modes',()=>{
@@ -88,6 +88,18 @@ describe('agent delivery modes',()=>{
   expect(teamActivityNarrative(wallaroo).headline).toMatch(/ran overnight/i);
   expect(teamActivityNarrative(wallaroo).body).toMatch(/LinkedIn Outreach Assistant/);
   expect(teamActivityNarrative(snapshot(createFixtureState())).headline).toMatch(/already ran/i);
+ });
+ it('writes a customer recap, lead results, and a pipeline list',()=>{
+  const wallaroo=snapshot(createFixtureState('wallaroo'));
+  const seo=agentOvernightRecap(wallaroo,'technical-seo-monitor');
+  expect(seo.createsTrackableLeads).toBe(false);
+  expect(seo.primary.kind).toBe('none');
+  expect(seo.body).toMatch(/does not create trackable leads/i);
+  expect(agentOvernightRecap(wallaroo,'website-sales-concierge').primary).toEqual({label:'Watch this conversation',kind:'conversation'});
+  const results=customerResults(wallaroo);
+  expect(results[0].label).toBe('New leads');
+  expect(results[0].value).toBeGreaterThan(0);
+  expect(pipelineLeads(wallaroo).some(item=>item.company==='Called to Surf'&&item.whatAgentsDid.length>0&&item.salesNext.length>0)).toBe(true);
  });
  it('orders the Wallaroo activity feed with SEO on a pass and conversations already moving',()=>{
   const wallaroo=snapshot(createFixtureState('wallaroo'));
