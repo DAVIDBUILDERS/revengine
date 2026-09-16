@@ -1,7 +1,9 @@
-import { onboardingCommands, type OnboardingRecord } from './onboarding';
+import { onboardingCommands, type OnboardingRecord, type AgentOnboardingRecord } from './onboarding';
 export * from './onboarding';
 import {setupCommands,type SetupDocument,type PreparedSetup} from './setup';
 export * from './setup';
+export * from './outbound';
+import { type OutboundSdrState } from './outbound';
 import { z } from 'zod';
 
 export const Id = z.uuid();
@@ -21,9 +23,9 @@ export const InstallationStatus = z.enum(['selected', 'installed', 'monitoring',
 export const EvidenceQuality = z.enum(['fixture', 'provider_verified', 'manually_reported', 'unknown']);
 export const EvidenceRef = z.object({ id: Id, label: z.string(), source: z.string(), capturedAt: Utc, quality: EvidenceQuality, url: z.url().optional() }).strict();
 export const WorkspaceContext = z.object({ schemaVersion: z.literal(1), actorId: Id, workspaceId: Id, membershipId: Id, role: Role, environment: Mode, permittedOperations: z.array(z.string()), assurance: z.enum(['aal1', 'aal2']) }).strict();
-export const ConnectionResource = z.object({id:Id,type:z.enum(['sheet','mailbox','calendar','csv','website']),resource:z.string(),owner:z.string(),verifiedAt:Utc.nullable(),range:z.string().nullable().optional()}).strict();
+export const ConnectionResource = z.object({id:Id,type:z.enum(['sheet','mailbox','calendar','csv','website','campaign']),resource:z.string(),owner:z.string(),verifiedAt:Utc.nullable(),range:z.string().nullable().optional()}).strict();
 export type ConnectionResource = z.infer<typeof ConnectionResource>;
-export const ConnectionCapability = z.object({ id: Id, workspaceId: Id, provider: z.enum(['google', 'csv', 'website', 'fixture']), identity: z.string(), resource: z.string(), scopes: z.array(z.string()), operations: z.array(z.string()), health: z.enum(['unconfigured', 'healthy', 'expired', 'revoked', 'failed', 'fixture']), lastSyncAt: Utc.nullable(), verifiedAt: Utc.nullable(), owner: z.string(), freshnessSeconds: z.number().int().positive(), boundResources:z.array(ConnectionResource).optional() }).strict();
+export const ConnectionCapability = z.object({ id: Id, workspaceId: Id, provider: z.enum(['google', 'csv', 'website', 'fixture', 'instantly', 'hubspot']), identity: z.string(), resource: z.string(), scopes: z.array(z.string()), operations: z.array(z.string()), health: z.enum(['unconfigured', 'healthy', 'expired', 'revoked', 'failed', 'fixture']), lastSyncAt: Utc.nullable(), verifiedAt: Utc.nullable(), owner: z.string(), freshnessSeconds: z.number().int().positive(), boundResources:z.array(ConnectionResource).optional() }).strict();
 export const ContactRecord = z.object({ id: Id, workspaceId: Id, name: z.string(), email: z.email(), account: z.string(), suppressed: z.boolean(), enrolled: z.boolean(), humanTakeover: z.boolean(), owner: z.string(), lastContactAt: Utc.nullable() }).strict();
 export const OpportunityRecord = z.object({ schemaVersion: z.literal(1), id: Id, workspaceId: Id, contactId: Id, accountId: Id, businessModel: BusinessModel, owner: z.string(), stage: OpportunityStage, rawStage: z.string(), evidence: z.array(EvidenceRef) }).strict();
 export const ProposalRecord = z.object({ schemaVersion: z.literal(1), id: Id, workspaceId: Id, opportunityId: Id, contactId: Id, version: z.number().int().positive(), reference: z.string(), issuedAt: Utc, validUntil: Utc.nullable(), amountMinor: Money, currency: Currency, valueKind: z.enum(['one_time', 'monthly_recurring', 'total_contract', 'unknown']), scopeSummary: z.string().min(1).max(4000), sourceUrl: z.url().nullable(), status: ProposalStatus, rawStatus: z.string(), owner: z.string().min(1), sourceVerifiedAt: Utc, syncedAt: Utc, evidence: z.array(EvidenceRef), fixture: z.boolean() }).strict();
@@ -34,7 +36,7 @@ export const Blocker = z.object({ code: z.string(), message: z.string(), owner: 
 export const ReadinessResult = z.object({ integration: z.boolean(), action: z.boolean(), measurement: z.boolean(), blockers: z.array(Blocker), evaluatedAt: Utc, freshUntil: Utc.nullable(), fallback: z.string() }).strict();
 export const ActionPayload = z.object({ recipient: z.email(), subject: z.string().max(200), body: z.string().max(8000), proposalVersion: z.number().int().positive(), calendarId: z.string().optional(), startAt: Utc.optional(), endAt: Utc.optional(), timeZone: TimeZone.optional() }).strict();
 export const ActionProposal = z.object({ schemaVersion: z.literal(1), id: Id, workspaceId: Id, installationId: Id, runId: Id, contactId: Id, proposalId: Id, type: z.enum(['send_follow_up', 'book_appointment']), payload: ActionPayload, payloadHash: z.string(), evidence: z.array(EvidenceRef), approvalId: Id.nullable(), reservedCostMinor: z.number().int().nonnegative(), status: ActionStatus, createdAt: Utc, expiresAt: Utc }).strict();
-export const ActionReceipt = z.object({ id: Id, workspaceId: Id, actionId: Id, status: ActionStatus, provider: z.enum(['google', 'fixture']), providerId: z.string().nullable(), message: z.string(), reconciliation: z.enum(['not_required', 'pending', 'resolved', 'operator_review']), observedAt: Utc, evidence: z.array(EvidenceRef) }).strict();
+export const ActionReceipt = z.object({ id: Id, workspaceId: Id, actionId: Id, status: ActionStatus, provider: z.enum(['google', 'fixture', 'instantly']), providerId: z.string().nullable(), message: z.string(), reconciliation: z.enum(['not_required', 'pending', 'resolved', 'operator_review']), observedAt: Utc, evidence: z.array(EvidenceRef) }).strict();
 export const Approval = z.object({ id: Id, workspaceId: Id, actionId: Id, status: ApprovalStatus, payloadHash: z.string(), approverId: Id.nullable(), decidedAt: Utc.nullable(), expiresAt: Utc }).strict();
 export const OutcomeObservation = z.object({ id: Id, workspaceId: Id, opportunityId: Id, metric: z.string(), metricVersion: z.literal(1), stage: z.enum(['reply', 'booked', 'attended', 'signed', 'completed', 'invoiced', 'paid']), source: z.string(), periodStart: Utc, periodEnd: Utc, value: z.number().nullable(), valueType: z.enum(['count', 'money_minor', 'duration_minutes']), currency: Currency.nullable(), quality: EvidenceQuality, evidence: z.array(EvidenceRef) }).strict();
 export const Metric = z.object({ key: z.string(), label: z.string(), value: z.number().nullable(), unit: z.string(), stage: z.string(), evidenceIds: z.array(Id), limitation: z.string().nullable() }).strict();
@@ -82,12 +84,14 @@ export interface AppSnapshot {
   setupIdentity?: {email:string;name:string};
   onboardingCapture?: {evidence?:EvidenceRef[];requestId?:string;id:string;sourceHash:string;fixture:boolean;pages:{url:string;title:string;description:string;text:string;capturedAt:string}[]};
   onboarding?: OnboardingRecord;
+  agentOnboarding?: AgentOnboardingRecord[];
   workspace: { entitlement?: number; id: string; name: string; businessModel: z.infer<typeof BusinessModel>; timeZone: string; mode: z.infer<typeof Mode>; paused: boolean; subscriptionMinor: number; currency: string };
   asOf: string; context: WorkspaceContext; contacts: ContactRecord[]; opportunities: OpportunityRecord[]; proposals: ProposalRecord[];
   catalog: AgentDefinition[]; installations: AgentInstallation[]; recommendation: TeamRecommendation; activation: ActivationPlan;
   readiness: ReadinessResult; connections: ConnectionCapability[]; actions: ActionProposal[]; approvals: Approval[]; receipts: ActionReceipt[];
   outcomes: OutcomeObservation[]; metrics: Metric[]; timeline: TimelineEntry[]; artifacts: PreparedArtifact[]; findings: WorkOpportunity[];
   initiatives: Initiative[]; scenarios: ForecastScenario[]; health: RuntimeHealth[]; usage: UsageRecord[]; brief: BriefSnapshot | null;
+  outboundSdr?: OutboundSdrState;
 }
 export const Command = z.discriminatedUnion('type', [
   ...onboardingCommands,
@@ -111,8 +115,16 @@ export const Command = z.discriminatedUnion('type', [
   z.object({type: z.literal('save_scenario'), scenario: ForecastScenario}).strict(),
   z.object({type: z.literal('log_time'), category: z.enum(['setup','recurring_support','provider','infrastructure','research']), minutes: z.number().min(0).max(1440), costMinor: Money, note: z.string().min(1).max(500)}).strict(),
   z.object({type: z.literal('import_csv'), csv: z.string().max(1000000), preview: z.boolean()}).strict(),
+  z.object({type: z.literal('import_lead_csv'), csv: z.string().max(1000000), preview: z.boolean(), mapping: z.record(z.string(), z.string()).optional()}).strict(),
+  z.object({type: z.literal('set_booking_url'), url: z.string().min(1).max(500)}).strict(),
+  z.object({type: z.literal('bind_instantly_workspace'), instantlyWorkspaceId: z.string().min(1).max(128)}).strict(),
+  z.object({type: z.literal('generate_outbound_sequence')}).strict(),
+  z.object({type: z.literal('start_outbound_sdr')}).strict(),
+  z.object({type: z.literal('pause_outbound_sdr')}).strict(),
+  z.object({type: z.literal('set_outbound_crm'), provider: z.enum(['none', 'hubspot'])}).strict(),
+  z.object({type: z.literal('ingest_outbound_event'), eventType: z.enum(['email_sent','reply_received','auto_reply_received','email_bounced','lead_unsubscribed','lead_meeting_booked']), email: z.email(), text: z.string().max(8000).optional(), providerEventId: z.string().min(1).max(200), campaignId: z.string().max(128).optional(), occurredAt: Utc.optional()}).strict(),
   z.object({type: z.literal('brief')}).strict(),
   z.object({type: z.literal('reset')}).strict()
 ]);
 export type Command = z.infer<typeof Command>;
-export type CommandResult = { snapshot: AppSnapshot; message: string; invitationUrl?: string; preview?: { valid: number; errors: {row: number; message: string}[]; rows: Record<string,string>[] } };
+export type CommandResult = { snapshot: AppSnapshot; message: string; invitationUrl?: string; preview?: { valid: number; errors: {row: number; message: string}[]; rows: Record<string,string>[]; headers?: string[]; mapping?: Record<string, string> } };

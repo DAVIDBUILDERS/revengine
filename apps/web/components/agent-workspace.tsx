@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowRight, FileText, Play, ShieldCheck } from "lucide-react";
-import type { AgentDefinition } from "@david/contracts";
+import { useContext, useState } from "react";
+import { ArrowRight, Calendar, FileText, Pause, Play, ShieldCheck, Upload } from "lucide-react";
+import type { AgentDefinition, CommandResult } from "@david/contracts";
 import { words } from "@david/ui";
 import { agentDelivery } from "@david/domain/delivery";
+import { bookingUrlInfo } from "@david/domain/outbound-sdr";
 import type { ScreenProps } from "./app-shell";
 import { ArtifactCopyOut } from "./artifact-copy-out";
-import { Badge, Button, dateTime, Drawer, Evidence } from "./ui";
+import { Badge, Button, dateTime, Drawer, Evidence, QuietWalkthroughContext } from "./ui";
 
 type AgentProps = Pick<ScreenProps, "state" | "act" | "busy" | "navigate">;
 
@@ -214,8 +215,16 @@ function AgentRecord({
               Use the supported controls below. Requests and saved results stay
               attached to this workspace.
             </p>
-            {agent.releaseStatus !== "planned" &&
-            agent.modes.includes("preparation") ? (
+            {agent.id === "outbound-email-sdr" ? (
+              <OutboundEmailSdrPanel
+                state={state}
+                act={act}
+                busy={busy}
+                installation={!!installation}
+                onOpenPipeline={() => go("opportunities")}
+              />
+            ) : agent.releaseStatus !== "planned" &&
+              agent.modes.includes("preparation") ? (
               <>
                 <Button
                   variant="primary"
@@ -518,6 +527,267 @@ function AgentRecord({
           </section>
         </div>
       )}
+    </div>
+  );
+}
+
+const LEAD_FIELDS = [
+  ["email", "Email"],
+  ["firstName", "First name"],
+  ["lastName", "Last name"],
+  ["company", "Company"],
+  ["title", "Title"],
+  ["website", "Website"],
+] as const;
+
+function OutboundEmailSdrPanel({
+  state,
+  act,
+  busy,
+  installation,
+  onOpenPipeline,
+}: Pick<AgentProps, "state" | "act" | "busy"> & { installation: boolean; onOpenPipeline: () => void }) {
+  const quiet = useContext(QuietWalkthroughContext);
+  const sdr = state.outboundSdr;
+  const [bookingUrl, setBookingUrl] = useState(sdr?.bookingUrl ?? "");
+  const [instantlyWorkspaceId, setInstantlyWorkspaceId] = useState(
+    sdr?.instantlyWorkspaceId && sdr.instantlyWorkspaceId !== "fixture" ? sdr.instantlyWorkspaceId : "",
+  );
+  const [csv, setCsv] = useState("");
+  const [fileError, setFileError] = useState("");
+  const [preview, setPreview] = useState<CommandResult["preview"]>();
+  const [mapping, setMapping] = useState<Record<string, string>>({});
+  const booking = bookingUrlInfo(bookingUrl || sdr?.bookingUrl);
+  const replies = (sdr?.leads ?? []).filter(
+    (lead) => lead.lastReply || lead.status === "replied" || lead.status === "booked",
+  );
+  const booked = (sdr?.leads ?? []).filter((lead) => lead.status === "booked").length;
+  const fixture = state.workspace.mode === "fixture";
+  const blocked = busy || state.workspace.paused || !installation;
+  return (
+    <div className="stack">
+      <p className="help">
+        Upload a list. DAVID writes the sequence. Instantly sends, warms inboxes, handles replies, and books. This agent does not find leads. There is no per-email approval.
+      </p>
+      {fixture && !quiet && (
+        <p className="agent-disclosure">
+          Instantly send is not live in this fixture. Ready gates still apply; start records a fixture campaign only.
+        </p>
+      )}
+      {sdr?.lastError && (
+        <p className="notice notice-warning">{sdr.lastError}</p>
+      )}
+      <label className="field">
+        Meeting link
+        <input
+          className="input"
+          value={bookingUrl}
+          onChange={(event) => setBookingUrl(event.target.value)}
+          placeholder="https://calendly.com/you/30min"
+        />
+      </label>
+      <p className="help">{booking.message}</p>
+      <Button
+        disabled={blocked || !bookingUrl.trim()}
+        onClick={() => void act({ type: "set_booking_url", url: bookingUrl.trim() })}
+      >
+        <Calendar size={14} />
+        Save meeting link
+      </Button>
+      <label className="field">
+        Instantly sub-workspace
+        <input
+          className="input"
+          value={instantlyWorkspaceId}
+          onChange={(event) => setInstantlyWorkspaceId(event.target.value)}
+          placeholder="Instantly workspace UUID"
+        />
+      </label>
+      <p className="help">
+        {sdr?.instantlyWorkspaceId && sdr.instantlyWorkspaceId !== "fixture"
+          ? "Bound. Live Instantly calls send x-as-workspace for this DAVID workspace only."
+          : "Operator binds the Instantly sub-workspace UUID. Do not use the DAVID Ops admin workspace for customer send."}
+      </p>
+      <Button
+        disabled={blocked || !instantlyWorkspaceId.trim()}
+        onClick={() => void act({ type: "bind_instantly_workspace", instantlyWorkspaceId: instantlyWorkspaceId.trim() })}
+      >
+        Bind Instantly workspace
+      </Button>
+      <label className="field">
+        Lead CSV
+        <input
+          type="file"
+          accept=".csv,text/csv"
+          onChange={async (event) => {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            if (file.size > 1000000) {
+              setFileError("Choose a CSV smaller than 1 MB.");
+              return;
+            }
+            setFileError("");
+            setCsv(await file.text());
+            setPreview(undefined);
+          }}
+        />
+      </label>
+      {fileError && (
+        <p role="alert" className="notice notice-danger">
+          {fileError}
+        </p>
+      )}
+      <label className="field">
+        CSV content
+        <textarea
+          className="input"
+          style={{ minHeight: 120, fontFamily: "monospace", fontSize: 11 }}
+          value={csv}
+          onChange={(event) => {
+            setCsv(event.target.value);
+            setPreview(undefined);
+          }}
+          placeholder="email,first_name,company"
+        />
+      </label>
+      <Button
+        disabled={blocked || !csv.trim()}
+        onClick={async () => {
+          const result = await act({
+            type: "import_lead_csv",
+            csv,
+            preview: true,
+            mapping,
+          });
+          setPreview(result?.preview);
+          if (result?.preview?.mapping) setMapping(result.preview.mapping);
+        }}
+      >
+        <Upload size={14} />
+        Preview lead mapping
+      </Button>
+      {preview && (
+        <div className="stack-small">
+          <Badge tone={preview.errors.length ? "warning" : "positive"}>
+            {preview.valid} valid rows · {preview.errors.length} errors
+          </Badge>
+          {LEAD_FIELDS.map(([field, label]) => (
+            <label className="field" key={field}>
+              {label}
+              <select
+                className="input"
+                value={mapping[field] ?? preview.mapping?.[field] ?? ""}
+                onChange={(event) =>
+                  setMapping((current) => ({ ...current, [field]: event.target.value }))
+                }
+              >
+                <option value="">{field === "email" ? "Select email column" : "Optional"}</option>
+                {(preview.headers ?? Object.keys(preview.rows[0] ?? {})).map((header) => (
+                  <option key={header} value={header}>
+                    {header}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ))}
+          {preview.errors.slice(0, 8).map((error, index) => (
+            <p className="notice notice-danger" key={index}>
+              Row {error.row}: {error.message}
+            </p>
+          ))}
+          <Button
+            variant="primary"
+            disabled={blocked || preview.errors.length > 0 || !preview.valid}
+            onClick={async () => {
+              const result = await act({
+                type: "import_lead_csv",
+                csv,
+                preview: false,
+                mapping,
+              });
+              if (result) setPreview(undefined);
+            }}
+          >
+            Import leads
+          </Button>
+        </div>
+      )}
+      <p className="small muted">
+        {`${sdr?.leads.length ?? 0} imported ${sdr?.leads.length === 1 ? "lead" : "leads"}. Email is the only required column.`}
+      </p>
+      <Button
+        disabled={blocked || !state.activation.confirmedFacts}
+        onClick={() => void act({ type: "generate_outbound_sequence" })}
+      >
+        Write 3-step sequence
+      </Button>
+      {!!sdr?.sequence.length && (
+        <ol className="record-list">
+          {sdr.sequence.map((step, index) => (
+            <li key={index}>
+              <strong>{step.subject}</strong>
+              <p className="small muted">{step.body}</p>
+            </li>
+          ))}
+        </ol>
+      )}
+      <div className="flex wrap">
+        <Button
+          variant="primary"
+          disabled={blocked || (sdr?.status !== "ready" && sdr?.status !== "paused")}
+          onClick={() => void act({ type: "start_outbound_sdr" })}
+        >
+          <Play size={14} />
+          Start sending
+        </Button>
+        <Button
+          disabled={blocked || (sdr?.status !== "sending" && sdr?.status !== "paused")}
+          onClick={() => void act({ type: "pause_outbound_sdr" })}
+        >
+          <Pause size={14} />
+          Pause Instantly
+        </Button>
+        <Button onClick={onOpenPipeline}>
+          Open replies <ArrowRight size={14} />
+        </Button>
+      </div>
+      <p className="help">
+        Status: {sdr ? words(sdr.status) : "needs setup"}
+        {sdr?.warmupReady ? " · warmup healthy" : " · warmup is a send gate, not an approval queue"}
+        {sdr?.campaignId?.startsWith("FIXTURE_ONLY") ? " · fixture campaign" : ""}
+        . {booked} meeting{booked === 1 ? "" : "s"} booked.
+      </p>
+      <Button
+        disabled={blocked}
+        onClick={() =>
+          void act({
+            type: "set_outbound_crm",
+            provider: sdr?.crmProvider === "hubspot" ? "none" : "hubspot",
+          })
+        }
+      >
+        {sdr?.crmProvider === "hubspot" ? "Disconnect HubSpot" : "Use HubSpot as the first CRM"}
+      </Button>
+      {sdr?.crmProvider === "hubspot" && (
+        <p className="help">
+          HubSpot is recorded as {words(sdr.crmStatus)}. Authorize it so DAVID can pull contacts into Instantly. CSV upload works now. Salesforce and Pipedrive are later.
+        </p>
+      )}
+      <h4>Replies & bookings</h4>
+      {!replies.length && (
+        <p className="small muted">
+          Instantly Unibox stays invisible. Replies land in this workspace after webhooks.
+        </p>
+      )}
+      {replies.slice(0, 8).map((lead) => (
+        <article className="agent-output" key={lead.id}>
+          <div className="between">
+            <strong>{lead.email}</strong>
+            <Badge status={lead.status} />
+          </div>
+          <p className="small">{lead.lastReply ?? words(lead.status)}</p>
+        </article>
+      ))}
     </div>
   );
 }

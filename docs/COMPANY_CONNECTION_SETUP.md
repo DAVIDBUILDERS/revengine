@@ -4,6 +4,8 @@
 
 Connect the company's systems once for the full 32-specialist roster, then choose the five specialists to use. Changing the lineup reuses saved company context, account grants, selected resources and source ownership. It must not restart the questionnaire or imply that every catalog capability is implemented.
 
+Company connections are not agent onboarding. Each selected specialist still has its own checklist, required tools, and per-client `agent_onboarding` row. See [per-agent onboarding](AGENT_ONBOARDING.md).
+
 ## Implementation plan
 
 1. Expose shared system coverage for all 32 responsibilities, separate from the currently selected team and operational readiness. Show implemented access, missing access, unavailable tools and missing engineering distinctly.

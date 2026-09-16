@@ -16,7 +16,7 @@ for(const file of sources){
   }visit(ast);
   for(const specifier of imports){
     const target=specifier.startsWith('.')?relative(process.cwd(),resolve(dirname(file),specifier)):specifier;
-    if(/provider-writes/.test(target)&&file!=='packages/orchestration/src/action-service.ts'&&!file.startsWith('packages/connectors/src/internal/')&&!file.endsWith('.test.ts'))failures.push(`${file}: raw provider writes outside action service`);
+    if(/provider-writes|instantly-writes/.test(target)&&file!=='packages/orchestration/src/action-service.ts'&&!file.startsWith('packages/connectors/src/internal/')&&!file.endsWith('.test.ts'))failures.push(`${file}: raw provider writes outside action service`);
     if(file.startsWith('packages/domain/')&&/next\/|supabase|postgres|connectors|workflow/.test(specifier))failures.push(`${file}: domain imports platform implementation`);
     if(file.startsWith('apps/demo/')&&/packages\/(db|connectors|orchestration|ai)|@david\/(db|connectors|orchestration|ai)|apps\/web/.test(target))failures.push(`${file}: public demo imports operational code`);
     if(file.startsWith('apps/preview/')&&/packages\/(db|connectors|orchestration|ai)|@david\/(db|connectors|orchestration|ai)|apps\/web\/(lib|workflows|app\/api)/.test(target))failures.push(`${file}: browser preview imports operational server code`);

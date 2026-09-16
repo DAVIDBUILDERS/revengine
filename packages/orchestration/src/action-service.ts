@@ -2,8 +2,9 @@ import {z} from 'zod';
 import {ActionProposal} from '../../contracts/src/index';
 import {actionHash,classifyReply} from '../../domain/src/index';
 import {createVaultSecretStore,type Database} from '../../db/src/index';
-import {createGoogleConnector,type GoogleConnector,GoogleError} from '../../connectors/src/index';
+import {createGoogleConnector,type GoogleConnector,GoogleError,createInstantlyClient,parseInstantlyAccounts,requireInstantlySubWorkspace,InstantlyError} from '../../connectors/src/index';
 import {executeGoogleWrite} from '../../connectors/src/internal/provider-writes';
+import {executeInstantlyWrite} from '../../connectors/src/internal/instantly-writes';
 import {environment} from './environment';
 import {chooseBoundResource,inboundSince,validateCriticalSheet,type ApprovedSourceSnapshot} from './provider-evidence';
 
@@ -104,4 +105,49 @@ export async function reconcileCheckedAction(database:Database,runId:string,acti
  const status=action.type==='book_appointment'?'confirmed':'provider_accepted';
  await database.withRun(runId,async tx=>{await tx`select private.record_receipt(${actionId}::uuid,${row.claim_token}::uuid,${Number(row.fence)},${status},'google',${providerId},'Reconciled retained provider evidence without another external write.',${action.reservedCostMinor})`;await tx`select private.complete_action_evidence(${actionId}::uuid,${providerId},null)`;});
  return {actionId,status};
+}
+
+export type InstantlyLaunchInput = {
+ name:string;
+ dailyLimit:number;
+ sequence:{subject:string;body:string}[];
+ leads:{email:string;firstName?:string;lastName?:string;company?:string;title?:string;website?:string;custom?:Record<string,string>}[];
+ campaignId?:string|null;
+ instantlyWorkspaceId:string;
+};
+
+export async function launchManagedInstantlyCampaign(input:InstantlyLaunchInput,fetchImpl?:typeof fetch){
+ const env=environment();
+ if(env.DAVID_MODE==='fixture')throw new InstantlyError('fixture_denied','Instantly credentials are denied in fixture mode.');
+ if(env.DAVID_LIVE_EXECUTION!=='true'||env.DAVID_MODE!=='live')throw new InstantlyError('live_disabled','Live Instantly send is disabled until production live execution is enabled.');
+ if(!env.INSTANTLY_API_KEY)throw new InstantlyError('unconfigured','INSTANTLY_API_KEY is required for DAVID-managed Instantly.');
+ const asWorkspace=requireInstantlySubWorkspace(input.instantlyWorkspaceId);
+ const client=createInstantlyClient({apiKey:env.INSTANTLY_API_KEY,asWorkspace,fetch:fetchImpl});
+ const accounts=parseInstantlyAccounts(await client.listAccounts());
+ const ready=accounts.filter(account=>account.warmupReady);
+ if(!ready.length)throw new InstantlyError('warmup_unhealthy','Wait until Instantly warmup is healthy. Cold inboxes do not send.');
+ if(input.campaignId){
+  const resumed=await executeInstantlyWrite(env.INSTANTLY_API_KEY,asWorkspace,{type:'resume_campaign',campaignId:input.campaignId},fetchImpl);
+  return {campaignId:resumed.campaignId,status:resumed.status,sendingAccounts:ready,warmupReady:true};
+ }
+ const launched=await executeInstantlyWrite(env.INSTANTLY_API_KEY,asWorkspace,{
+  type:'launch_campaign',
+  campaign:{name:input.name,dailyLimit:input.dailyLimit,senderEmails:ready.map(account=>account.email),steps:input.sequence},
+  leads:input.leads.map(lead=>({
+   email:lead.email,
+   first_name:lead.firstName,
+   last_name:lead.lastName,
+   company_name:lead.company,
+   website:lead.website,
+   custom_variables:{...(lead.title?{title:lead.title}:{}),...(lead.custom??{})},
+  })),
+ },fetchImpl);
+ return {campaignId:launched.campaignId,status:launched.status,sendingAccounts:ready,warmupReady:true};
+}
+
+export async function pauseManagedInstantlyCampaign(campaignId:string,instantlyWorkspaceId:string,fetchImpl?:typeof fetch){
+ const env=environment();
+ if(env.DAVID_MODE==='fixture')throw new InstantlyError('fixture_denied','Instantly credentials are denied in fixture mode.');
+ if(!env.INSTANTLY_API_KEY)throw new InstantlyError('unconfigured','INSTANTLY_API_KEY is required for DAVID-managed Instantly.');
+ return executeInstantlyWrite(env.INSTANTLY_API_KEY,requireInstantlySubWorkspace(instantlyWorkspaceId),{type:'pause_campaign',campaignId},fetchImpl);
 }

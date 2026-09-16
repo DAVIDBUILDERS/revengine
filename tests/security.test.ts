@@ -5,7 +5,7 @@ import { redact } from '../packages/observability/src';
 describe('deployment and schema safety boundaries',()=>{
   it('allows offline fixtures without credentials, blocks cloud impersonation and real secrets',()=>{
     expect(environment({}).DAVID_MODE).toBe('fixture');
-    for(const values of [{VERCEL:'1'},{DAVID_DEPLOYMENT:'test'},{GOOGLE_CLIENT_SECRET:'secret'},{WORKER_DATABASE_URL:'secret'},{AI_GATEWAY_API_KEY:'secret'},{PRIVACY_DATABASE_URL:'secret'},{PRIVACY_STORAGE_SERVICE_KEY:'secret'}])expect(()=>environment(values)).toThrow();
+    for(const values of [{VERCEL:'1'},{DAVID_DEPLOYMENT:'test'},{GOOGLE_CLIENT_SECRET:'secret'},{WORKER_DATABASE_URL:'secret'},{AI_GATEWAY_API_KEY:'secret'},{PRIVACY_DATABASE_URL:'secret'},{PRIVACY_STORAGE_SERVICE_KEY:'secret'},{INSTANTLY_API_KEY:'secret'}])expect(()=>environment(values)).toThrow();
   });
   it('rejects preview live activation, production data in test and wrong project',()=>{
     const base={DAVID_MODE:'shadow',DAVID_DEPLOYMENT:'test',NEXT_PUBLIC_SUPABASE_URL:'https://testref.supabase.co',NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:'public',EXPECTED_SUPABASE_PROJECT_ID:'testref'};

@@ -39,6 +39,8 @@ A connected account, imported file or selected agent is not proof of successful 
 
 The design direction is a polished, futuristic DAVID workspace with clear agent interactions and minimal repetitive form filling. Company setup should support the work, rather than become a questionnaire clients must repeatedly complete. Advanced setup and permissions remain available when needed.
 
+**Each specialist has its own onboarding.** Company briefing, Connections, and operating rules are shared once per client workspace. That is not the agent’s onboarding. Every catalog role has required tools and unique inputs; those are stored per client in `agent_onboarding`. Completing the company questionnaire does not onboard Account Intelligence, Deal Follow-up, or Outbound Email SDR. Swapping a specialist reuses company connections and shows **that** agent’s remaining setup. See [per-agent onboarding](docs/AGENT_ONBOARDING.md).
+
 **Scenarios** is an existing planning calculator inherited from the original brief. It models low/base/high cases from explicit assumptions. It is secondary to the core agent workflow; moving it out of the main navigation has been discussed but is not yet implemented.
 
 ## Next phase: one agent at a time
@@ -50,6 +52,7 @@ We are moving through the catalog **1/32 to 32/32**, completing and reviewing ea
 Use this checklist for every agent and retain its findings, evidence, unresolved items and approval in the repository:
 
 - [ ] **Purpose:** define the responsibility and useful result.
+- [ ] **Onboarding:** define this agent’s own setup, required tools, and per-client stored records. Do not reuse another specialist’s process. Company briefing complete is not agent onboarded.
 - [ ] **Connections:** identify required systems, data, ownership and permissions; reuse company setup.
 - [ ] **Functionality:** demonstrate real inputs producing usable work at the agent's implemented mode.
 - [ ] **UI/UX:** review selection, configuration, requesting work, progress, output and approval flows.
@@ -127,6 +130,7 @@ Those results verify the tested flows; they do not establish live success for al
 Start with this README and the latest feature/release notes:
 
 - [Shared company setup and release evidence](docs/COMPANY_CONNECTION_SETUP.md)
+- [Per-agent onboarding, tools, and per-client store](docs/AGENT_ONBOARDING.md)
 - [Agent registry and implemented modes](docs/AGENT_REGISTRY.md)
 - [Team studio](docs/TEAM_STUDIO.md) and [workspace design](docs/WORKSPACE_STUDIO.md)
 - [Google authorization handoff](docs/GOOGLE_HANDOFF.md) and [Firecrawl activation](docs/FIRECRAWL_ACTIVATION.md)

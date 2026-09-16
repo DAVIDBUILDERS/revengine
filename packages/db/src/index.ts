@@ -34,6 +34,11 @@ export function createDatabase(options: DatabaseOptions) {
       z.number().int().min(1).max(100).parse(limit);
       return await dispatcher<DispatchClaim[]>`select * from private.claim_due(${limit})`;
     },
+    async ingestInstantlyWebhook(payload: unknown): Promise<string> {
+      const jsonPayload = JSON.parse(JSON.stringify(payload)) as postgres.JSONValue;
+      const [row] = await dispatcher<{ingest_instantly_webhook:string}[]>`select private.ingest_instantly_webhook(${dispatcher.json(jsonPayload)}::jsonb) as ingest_instantly_webhook`;
+      return row?.ingest_instantly_webhook ?? 'ignored';
+    },
     async finishDispatch(outboxId: string, leaseToken: string, workflowId: string | null): Promise<boolean> {
       Uuid.parse(outboxId); Uuid.parse(leaseToken);
       const [row] = await dispatcher<{done:boolean}[]>`select private.finish_dispatch(${outboxId}::uuid,${leaseToken}::uuid,${workflowId}) as done`;

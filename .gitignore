@@ -20,3 +20,5 @@ artifacts/
 
 # Supabase CLI local project metadata
 /supabase/.temp/
+.vercel
+.env*.local

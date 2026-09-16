@@ -1,6 +1,6 @@
 # Versioned specialist registry
 
-The executable source of truth is `packages/agents/src/index.ts`. Definitions are version `1.0.0`; schema validation checks every registry entry. Catalog visibility, selection, preparation, scheduled work and external execution are distinct. No v13 source was available to validate persisted identifier mappings; these identifiers are new target-platform identifiers and require a legacy mapping before migration.
+The executable source of truth is `packages/agents/src/index.ts`. Definitions are version `1.0.0`; schema validation checks every registry entry. Catalog visibility, selection, preparation, scheduled work and external execution are distinct. Each specialist also has its own onboarding, required tools, and per-client store — see [per-agent onboarding](AGENT_ONBOARDING.md). No v13 source was available to validate persisted identifier mappings; these identifiers are new target-platform identifiers and require a legacy mapping before migration.
 
 The standard entitlement is five distinct specialists. Shared company context, suppression, coordination, strategy, reporting and health use no slots. Aliases resolve to their canonical responsibility and cannot consume an additional slot. Manual selection is persisted and checked server-side. Planned capabilities can be selected to expose engineering prerequisites; selection never enables them. Tests exercise all nine preparation functions using separate five-slot-valid selections, without a client-controlled evaluation exemption.
 
@@ -8,13 +8,13 @@ The standard entitlement is five distinct specialists. Shared company context, s
 | --- | --- | --- | --- |
 | Find demand | account-intelligence | Account Intelligence | Preparation implemented |
 | Find demand | buying-signal-scout | Buying Signal Scout | Planned |
-| Find demand | outbound-email-sdr | Outbound Email SDR | Planned |
-| Find demand | linkedin-outreach-assistant | LinkedIn Outreach Assistant | Preparation planned; human sending only |
+| Find demand | outbound-email-sdr | Outbound Email SDR | Instantly-backed bounded autonomous execution (pilot); no lead gen |
+| Find demand | linkedin-outreach-assistant | LinkedIn Outreach Assistant | Preparation planned; HeyReach is the intended send/inbox layer |
 | Find demand | partner-development | Partner Development | Planned |
 | Find demand | rfp-opportunity-scout | RFP Opportunity Scout | Planned |
 | Find demand | competitor-intelligence | Competitor Intelligence | Planned |
 | Create demand | search-growth | Search Growth | Preparation implemented |
-| Create demand | technical-seo-monitor | Technical SEO Monitor | Preparation implemented |
+| Create demand | technical-seo-monitor | Technical SEO Monitor | Preparation implemented; captured pages only — no crawl, GSC, or CMS write-back |
 | Create demand | local-search-manager | Local Search Manager | Preparation implemented |
 | Create demand | creative-performance | Creative Performance | Preparation implemented |
 | Create demand | paid-campaign-operator | Paid Campaign Operator | Planned |
@@ -24,7 +24,7 @@ The standard entitlement is five distinct specialists. Shared company context, s
 | Create demand | product-merchandiser | Product Merchandiser | Commerce only; planned |
 | Convert demand | speed-to-lead-responder | Speed-to-Lead Responder | Planned |
 | Convert demand | ai-receptionist | AI Receptionist | Planned |
-| Convert demand | website-sales-concierge | Website Sales Concierge | Preparation implemented; live chat unavailable |
+| Convert demand | website-sales-concierge | Website Sales Concierge | Preparation implemented; DAVID-hosted embed not deployed |
 | Convert demand | appointment-coordinator | Appointment Coordinator | Monitored execution pilot implementation |
 | Convert demand | lead-qualification | Lead Qualification | Planned |
 | Close revenue | proposal-operations | Proposal Operations | Planned; no generated contracts |
@@ -46,6 +46,8 @@ Aliases: Account Prospector → `account-intelligence`; SEO Content Writer → `
 Deal Follow-up requires a selected installation, current verified open proposal, known contact identity, explicit cohort enrollment, matching conversation/source owner, approved sender, current Gmail reply/send coverage, confirmed policy and staffed operator. The generated follow-up is grounded in the approved scope. A current exact approval binds recipient, body, subject, proposal version, type, installation, expiry, reservation and policy version through SHA-256. Current source, suppression, takeover, pause and budget checks still run at dispatch. Any reply stops follow-up; automatic replies and bounces are distinct from human replies. Uncertain writes preserve the contact reservation and require provider reconciliation without a blind retry.
 
 Appointment Coordinator receives a positive reviewed handoff and proposes an explicit UTC time plus IANA zone on the approved calendar. The action is separately approved and rechecks current availability, duration, working hours and capacity before submission. A confirmed Calendar booking ends chasing. It never implies attendance, signed terms, completed delivery or payment. Human takeover and suppression apply to both specialists.
+
+Outbound Email SDR books meetings from a customer-supplied list. DAVID writes the three-step sequence from confirmed company facts. Instantly (DAVID-managed, invisible) warms inboxes, sends, handles replies, and books via Calendly. There is no per-email approval. SuperSearch / lead finder stay off. Live send uses one Instantly sub-workspace per DAVID workspace (`x-as-workspace`); the admin Instantly workspace is not a send target. Fixture mode records `FIXTURE_ONLY_instantly_*` campaigns and must not claim a live mailbox send. Deal Follow-up stays on Gmail and is a different path.
 
 The fixture's reviewed standing-mandate test uses the fixed `factual-followup.v1` template, exact approved scope, enrolled contact IDs, recipient domains, policy version, expiry, action/count limits and spending limit. Arbitrary model content cannot opt itself into that mandate. Production SQL017 binds a retained immutable standing mandate only to that exact factual template and current sender/cohort/contact/policy/scope/count/cost authority. It checks the grant again before reserve/submission; a new commitment or booking retains separate review. Mandate creation/administration requires a separately reviewed authorization path; no public client can grant itself a mandate. The SQL mandate suite is authored but has not run on hosted PostgreSQL.
 
