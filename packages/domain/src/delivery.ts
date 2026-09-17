@@ -106,6 +106,14 @@ export function teamActivitySeries(state:AppSnapshot):TeamActivityPoint[] {
  });
 }
 
+/** New live workspaces have a team but no recap yet — send the operator to specialist setup. */
+export function teamNeedsSetup(state:AppSnapshot){
+ if(isWalkthroughFloor(state))return false;
+ const team=state.onboarding?.revision?state.onboarding.answers.team:state.activation.selectedTeam;
+ const points=workbenchAgentIds(team).map(agentId=>specialistWorkSnapshot(state,agentId));
+ return points.length>0&&points.every(point=>point.artifacts+point.actions+point.findings===0);
+}
+
 export function teamActivityNarrative(state:AppSnapshot){
  const points=teamActivitySeries(state);
  const active=points.filter(point=>point.total>0);

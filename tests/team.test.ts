@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {createFixtureState,executeCommand,snapshot,ALWAYS_ON_AGENT_ID,EXTRA_AGENT_PRICE_MINOR,nextAgentIds,slotAgentIds,teamSwapReadyAt} from '../packages/domain/src/index';
+import {createFixtureState,executeCommand,snapshot,ALWAYS_ON_AGENT_ID,EXTRA_AGENT_PRICE_MINOR,firstSetupAgentId,nextAgentIds,slotAgentIds,teamSwapReadyAt} from '../packages/domain/src/index';
 
 describe('included website specialist, extra seats and team settle',()=>{
  it('keeps Website Sales Concierge installed outside the paid slots',async()=>{
@@ -20,6 +20,9 @@ describe('included website specialist, extra seats and team settle',()=>{
   expect(EXTRA_AGENT_PRICE_MINOR).toBe(100_000);
   expect(nextAgentIds('Recover proposals','b2b_services',['deal-follow-up','appointment-coordinator','account-intelligence','search-growth','technical-seo-monitor'],3)).toHaveLength(3);
   expect(nextAgentIds('Recover proposals','b2b_services',['deal-follow-up','appointment-coordinator','account-intelligence','search-growth','technical-seo-monitor'],3)).not.toContain(ALWAYS_ON_AGENT_ID);
+  expect(firstSetupAgentId(['account-intelligence','outbound-email-sdr','search-growth'])).toBe('outbound-email-sdr');
+  expect(firstSetupAgentId(['deal-follow-up','appointment-coordinator'])).toBe('deal-follow-up');
+  expect(firstSetupAgentId([ALWAYS_ON_AGENT_ID])).toBeUndefined();
  });
  it('settles live removals for 12 hours unless an operator applies the change',async()=>{
   const state=createFixtureState();

@@ -114,13 +114,17 @@ test("a newer saved lineup preserves the draft but requires explicit reload befo
   await expect(page.getByRole("button", { name: "Save team", exact: true })).toBeDisabled();
 });
 
-test("a successful local save clears the draft without presenting a stale-team conflict", async ({ page }) => {
+test('a successful local save opens the first specialist’s setup', async ({ page }) => {
   const api = await teamFixture(page);
   await chooseReplacement(page, api.incoming, api.outgoing);
   await page.getByRole("button", { name: "Save team", exact: true }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Team saved." })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Save team", exact: true })).toBeDisabled();
+  await expect(page.getByRole("dialog").getByRole("heading", { name: api.incoming.name, exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/view=team/);
+  await expect(page).toHaveURL(new RegExp(`agent=${api.incoming.id}`));
   await expect(page.getByRole("button", { name: "Reload saved team", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Close details" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.getByRole("button", { name: "Build your team", exact: true }).click();
   await page.getByRole("button", { name: "Manage company sources", exact: true }).click();
   await expect(page).toHaveURL(/view=connections/);
   expect(api.commands.map(command => command.type)).toEqual(["save_onboarding"]);

@@ -24,9 +24,9 @@ test("hosted workspace works without an operational API and survives refresh", a
   await page.getByRole("button", { name: "All specialists" }).click();
   await page.getByRole("button", { name: /New leads/ }).click();
   await expect(page.getByRole("heading", { name: "Pipeline", exact: true })).toBeVisible();
-  await page.goto(`${origin}/?view=team`);
-  await page.getByRole("button", { name: "Workspace limits" }).click();
+  await page.goto(`${origin}/?view=team&agent=technical-seo-monitor`);
   const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("heading", { name: "Technical SEO Monitor", exact: true })).toBeVisible();
   await dialog.getByRole("button", { name: "Run bounded preparation" }).click();
   await expect(dialog.locator(".prose").first()).toContainText("ILLUSTRATIVE FIXTURE");
   await dialog.getByRole("button", { name: "Rules & limits" }).click();
@@ -34,7 +34,7 @@ test("hosted workspace works without an operational API and survives refresh", a
   await expect(dialog.getByRole("button", { name: "Workspace paused", exact: true })).toBeDisabled();
   await page.reload();
   await expect(page.getByRole("main").getByRole("heading", { level: 1 })).toBeVisible();
-  await page.getByRole("button", { name: "Workspace limits" }).click();
+  await expect(dialog.getByRole("heading", { name: "Technical SEO Monitor", exact: true })).toBeVisible();
   await dialog.getByRole("button", { name: "Rules & limits" }).click();
   await expect(dialog.getByRole("button", { name: "Workspace paused", exact: true })).toBeDisabled();
   await page.keyboard.press("Escape");

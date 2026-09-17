@@ -15,10 +15,11 @@ import {
   specialistRunLog,
   teamActivityNarrative,
   teamActivitySeries,
+  teamNeedsSetup,
   type FloorStatus,
 } from "@david/domain/delivery";
 import { onboardingFor } from "@david/domain/onboarding";
-import { workbenchAgentIds } from "@david/domain/team";
+import { firstSetupAgentId, workbenchAgentIds } from "@david/domain/team";
 import { PageHeading, type ScreenProps } from "./app-shell";
 import { DashboardActivityChart } from "./dashboard-activity-chart";
 import { Button, dateTime, QuietWalkthroughContext } from "./ui";
@@ -36,6 +37,9 @@ export function Today(props: ScreenProps & { showBrief: () => Promise<void> }) {
   const story = teamActivityNarrative(state);
   const results = customerResults(state);
   const current = team.find((agent) => agent.id === agentId) ?? null;
+  const needsSetup = teamNeedsSetup(state);
+  const setupAgentId = firstSetupAgentId(saved.revision ? saved.answers.team : state.activation.selectedTeam);
+  const setupAgent = team.find((agent) => agent.id === setupAgentId) ?? team.find((agent) => agent.id !== "website-sales-concierge") ?? team[0];
 
   function selectAgent(next: string | null) {
     setAgentId(next);
@@ -135,7 +139,9 @@ export function Today(props: ScreenProps & { showBrief: () => Promise<void> }) {
         description={
           floor
             ? "Overnight recap, then the leads, then volume. Open a specialist for that recap."
-            : "What the team already did, then the leads, then volume. Open a specialist for that recap."
+            : needsSetup
+              ? "Your team is saved. Set up each specialist next — this dashboard fills in after they work."
+              : "What the team already did, then the leads, then volume. Open a specialist for that recap."
         }
         action={
           <Button onClick={() => void props.showBrief()} disabled={props.busy}>
@@ -147,16 +153,21 @@ export function Today(props: ScreenProps & { showBrief: () => Promise<void> }) {
 
       <section className="dashboard-story" aria-labelledby="overview-heading">
         <div>
-          <span className="today-kicker">{floor ? "THE TEAM RAN OVERNIGHT" : "WHAT THE TEAM ALREADY DID"}</span>
-          <h2 id="overview-heading">{story.headline}</h2>
-          <p>{story.body || "Choose specialists to populate this recap."}</p>
+          <span className="today-kicker">{floor ? "THE TEAM RAN OVERNIGHT" : needsSetup ? "NEXT STEP" : "WHAT THE TEAM ALREADY DID"}</span>
+          <h2 id="overview-heading">{needsSetup ? "Your team is saved. Set up each specialist." : story.headline}</h2>
+          <p>{needsSetup ? "Open a specialist to finish its own setup. Instantly, lists, and booking live there — not on this recap." : story.body || "Choose specialists to populate this recap."}</p>
+          {needsSetup && setupAgent && (
+            <Button variant="primary" onClick={() => navigate("team", { agent: setupAgent.id })}>
+              Set up {setupAgent.name} <ArrowUpRight size={14} />
+            </Button>
+          )}
         </div>
       </section>
 
       <section className="dashboard-specialists" aria-labelledby="specialists-heading">
         <div className="section-heading">
-          <h2 id="specialists-heading">Overnight recap</h2>
-          <p className="section-caption">Open a specialist for that recap.</p>
+          <h2 id="specialists-heading">{needsSetup ? "Set up your specialists" : "Overnight recap"}</h2>
+          <p className="section-caption">{needsSetup ? "Each role has its own setup. Start with the one that still needs it." : "Open a specialist for that recap."}</p>
         </div>
         <div className="today-team-grid">
           {team.map((agent) => {
@@ -167,14 +178,14 @@ export function Today(props: ScreenProps & { showBrief: () => Promise<void> }) {
                 key={agent.id}
                 type="button"
                 className="today-specialist"
-                onClick={() => selectAgent(agent.id)}
-                aria-label={`Open ${agent.name} recap`}
+                onClick={() => (needsSetup ? navigate("team", { agent: agent.id }) : selectAgent(agent.id))}
+                aria-label={needsSetup ? `Set up ${agent.name}` : `Open ${agent.name} recap`}
               >
                 <span className="today-specialist-top">
-                  <span className="today-kicker">{floor ? floorStatusLabel(status) : "RECAP"}</span>
+                  <span className="today-kicker">{needsSetup ? "SET UP" : floor ? floorStatusLabel(status) : "RECAP"}</span>
                 </span>
                 <strong>{agent.name}</strong>
-                <span className="today-specialist-detail">{recap.headline}</span>
+                <span className="today-specialist-detail">{needsSetup ? "Finish this specialist’s setup." : recap.headline}</span>
               </button>
             );
           })}
@@ -207,7 +218,7 @@ export function Today(props: ScreenProps & { showBrief: () => Promise<void> }) {
       <section className="dashboard-chart-card" aria-labelledby="chart-heading">
         <div className="section-heading">
           <h2 id="chart-heading">Volume</h2>
-          <p className="section-caption">Results by specialist, last overnight.</p>
+          <p className="section-caption">{needsSetup ? "Volume appears after specialists start work." : "Results by specialist, last overnight."}</p>
         </div>
         {series.length ? (
           <DashboardActivityChart points={series} onSelect={selectAgent} />

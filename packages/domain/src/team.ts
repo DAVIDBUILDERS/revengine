@@ -24,6 +24,13 @@ export function isIncludedAgent(agentId:string):boolean {
  return canonicalAgentId(agentId)===ALWAYS_ON_AGENT_ID;
 }
 
+/** First paid specialist to set up after the lineup is saved. Instantly-backed outbound goes first. */
+export function firstSetupAgentId(ids:string[]):string|undefined {
+ const paid=slotAgentIds(ids);
+ if(paid.includes('outbound-email-sdr'))return 'outbound-email-sdr';
+ return paid[0];
+}
+
 /** Live removals settle for 12 hours. Draft on/off stays available; operators can apply sooner. */
 export function teamSwapReadyAt(state:Pick<AppSnapshot,'activation'|'asOf'|'context'>):string|null {
  if(state.context.role==='david_operator')return null;

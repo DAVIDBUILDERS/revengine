@@ -171,6 +171,7 @@
   margin: 10px 0 12px;
 }
 .dashboard-story p { color: #c4ccbe; font-size: 14px; line-height: 1.7; margin: 0; max-width: 720px; }
+.dashboard-story .btn { margin-top: 18px; }
 .dashboard-story-count { display: flex; align-items: center; gap: 14px; flex-shrink: 0; margin: 0; }
 .dashboard-story-count > strong { font: 400 56px/1 Georgia, serif; color: #dde5cd; letter-spacing: -2px; }
 .dashboard-story-count span { font-size: 12px; line-height: 1.7; color: #c5cdbb; }
