@@ -3,7 +3,7 @@ import {randomUUID,randomBytes,createHash} from 'node:crypto';
 import {z} from 'zod';
 import * as C from '../../../packages/contracts/src/index';
 import {catalog,recommendationFor,ALWAYS_ON_AGENT_ID} from '../../../packages/agents/src/index';
-import {parseCsvImport,forecastCases,parseLeadCsv,mappedLeadRow,generateOutboundSequence,companyFromSnapshot,emptyOutboundSdr} from '../../../packages/domain/src/index';
+import {parseCsvImport,forecastCases,parseLeadCsv,mappedLeadRow,generateOutboundSequence,companyFromSnapshot,emptyOutboundSdr,slotAgentIds} from '../../../packages/domain/src/index';
 import {launchManagedInstantlyCampaign,pauseManagedInstantlyCampaign} from '../../../packages/orchestration/src/action-service';
 import {authClient,authorize} from './auth';
 import {HttpError} from './http';
@@ -122,7 +122,13 @@ export async function operationalCommand(command:C.Command,requested:string|null
   case 'accept_setup':{const answers=validateSetupAcceptance(current,command.generation,command.expectedRevision,command.answers);await rpc('accept_prepared_setup',{p_workspace:workspaceId,p_generation:command.generation,p_revision:command.expectedRevision,p_answers:answers});message='Reviewed setup saved. Confirm captured sources and apply reviewed settings before first work.';break;}
   case 'confirm_sample_company':case 'sample_onboarding_capture':throw new HttpError(403,'FIXTURE_ONLY','Synthetic captures are unavailable in operational workspaces.');
   case 'assign_operator':await rpc('assign_onboarding_operator',{p_workspace:workspaceId,p_email:command.email});message='Registered DAVID operator assigned to this workspace. MFA remains required for operator access.';break;
-  case 'save_onboarding':await rpc('save_onboarding',{p_workspace:workspaceId,p_expected_revision:command.expectedRevision,p_answers:command.answers});message='Saved. The workspace stays paused until you finish specialist setup.';break;
+  case 'save_onboarding':{
+    await rpc('save_onboarding',{p_workspace:workspaceId,p_expected_revision:command.expectedRevision,p_answers:command.answers});
+    const team=slotAgentIds(command.answers.team);
+    if(team.length) await rpc('select_team',{p_workspace:workspaceId,p_agents:team});
+    message='Saved. The workspace stays paused until you finish specialist setup.';
+    break;
+  }
   case 'save_agent_onboarding':await rpc('save_agent_onboarding',{p_workspace:workspaceId,p_agent:command.agentId,p_expected_revision:command.expectedRevision,p_answers:command.answers});message='Agent onboarding saved for this client. Company connections were not copied or replaced.';break;
   case 'onboarding_task':await rpc('update_onboarding_task',{p_workspace:workspaceId,p_revision:command.expectedRevision,p_id:command.taskId,p_title:command.title,p_owner:command.owner,p_status:command.status,p_note:command.note});message='Setup request saved. Task status does not grant capability verification.';break;
   case 'review_artifact':await rpc('review_prepared_artifact',{p_workspace:workspaceId,p_artifact:command.artifactId,p_decision:command.decision});message='Artifact review saved.';break;
