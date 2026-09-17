@@ -175,4 +175,15 @@ describe('Outbound Email SDR — Instantly, autonomous, no lead gen', () => {
     await executeCommand(state, { type: 'start_outbound_sdr' });
     expect(state.outboundSdr?.instantlyWorkspaceId).toBe('fixture');
   });
+
+  it('lets the operator bind Instantly and save a meeting link while the workspace is paused', async () => {
+    const state = await outboundReady();
+    state.workspace.paused = true;
+    const bound = await executeCommand(state, { type: 'bind_instantly_workspace', instantlyWorkspaceId: '019FDEC8-4890-7870-A6BD-416BF4DB2784' });
+    expect(bound.message).toMatch(/x-as-workspace/);
+    expect(state.outboundSdr?.instantlyWorkspaceId).toBe('019fdec8-4890-7870-a6bd-416bf4db2784');
+    const meeting = await executeCommand(state, { type: 'set_booking_url', url: 'https://calendly.com/david-ai/30min' });
+    expect(meeting.message).toMatch(/Calendly/);
+    await expect(executeCommand(state, { type: 'start_outbound_sdr' })).rejects.toThrow(/paused/i);
+  });
 });

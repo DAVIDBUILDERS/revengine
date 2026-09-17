@@ -1,10 +1,11 @@
 "use client";
 
-import { useContext, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { ArrowRight, Calendar, FileText, Pause, Play, ShieldCheck, Upload } from "lucide-react";
 import type { AgentDefinition, CommandResult } from "@david/contracts";
 import { words } from "@david/ui";
 import { agentDelivery } from "@david/domain/delivery";
+import { onboardingFor, slotAgentIds } from "@david/domain";
 import { bookingUrlInfo } from "@david/domain/outbound-sdr";
 import type { ScreenProps } from "./app-shell";
 import { ArtifactCopyOut } from "./artifact-copy-out";
@@ -107,6 +108,13 @@ function AgentRecord({
   const installation = state.installations.find(
     (item) => item.agentId === agent.id,
   );
+  const installRequested = useRef(false);
+  const savedTeam = slotAgentIds(onboardingFor(state).answers.team);
+  useEffect(() => {
+    if (installRequested.current || installation || !savedTeam.includes(agent.id)) return;
+    installRequested.current = true;
+    void act({ type: "select_team", agentIds: savedTeam });
+  }, [act, agent.id, installation, savedTeam]);
   const artifacts = state.artifacts
     .filter((item) => item.agentId === agent.id)
     .slice()
@@ -147,6 +155,11 @@ function AgentRecord({
           Definition {installation?.definitionVersion ?? agent.version}
         </span>
       </div>
+      {state.workspace.paused && (
+        <p className="help">
+          Sending is paused. You can still finish this specialist’s setup.
+        </p>
+      )}
       {state.workspace.mode === "fixture" && !quiet && (
         <p className="agent-disclosure">
           Synthetic workspace. Preparation uses fixtures; action records do not
@@ -564,7 +577,8 @@ function OutboundEmailSdrPanel({
   );
   const booked = (sdr?.leads ?? []).filter((lead) => lead.status === "booked").length;
   const fixture = state.workspace.mode === "fixture";
-  const blocked = busy || state.workspace.paused || !installation;
+  const setupBlocked = busy || !installation;
+  const sendBlocked = setupBlocked || state.workspace.paused;
   return (
     <div className="stack">
       <p className="help">
@@ -589,7 +603,7 @@ function OutboundEmailSdrPanel({
       </label>
       <p className="help">{booking.message}</p>
       <Button
-        disabled={blocked || !bookingUrl.trim()}
+        disabled={setupBlocked || !bookingUrl.trim()}
         onClick={() => void act({ type: "set_booking_url", url: bookingUrl.trim() })}
       >
         <Calendar size={14} />
@@ -610,7 +624,7 @@ function OutboundEmailSdrPanel({
           : "Operator binds the Instantly sub-workspace UUID. Do not use the DAVID Ops admin workspace for customer send."}
       </p>
       <Button
-        disabled={blocked || !instantlyWorkspaceId.trim()}
+        disabled={setupBlocked || !instantlyWorkspaceId.trim()}
         onClick={() => void act({ type: "bind_instantly_workspace", instantlyWorkspaceId: instantlyWorkspaceId.trim() })}
       >
         Bind Instantly workspace
@@ -652,7 +666,7 @@ function OutboundEmailSdrPanel({
         />
       </label>
       <Button
-        disabled={blocked || !csv.trim()}
+        disabled={setupBlocked || !csv.trim()}
         onClick={async () => {
           const result = await act({
             type: "import_lead_csv",
@@ -698,7 +712,7 @@ function OutboundEmailSdrPanel({
           ))}
           <Button
             variant="primary"
-            disabled={blocked || preview.errors.length > 0 || !preview.valid}
+            disabled={setupBlocked || preview.errors.length > 0 || !preview.valid}
             onClick={async () => {
               const result = await act({
                 type: "import_lead_csv",
@@ -717,7 +731,7 @@ function OutboundEmailSdrPanel({
         {`${sdr?.leads.length ?? 0} imported ${sdr?.leads.length === 1 ? "lead" : "leads"}. Email is the only required column.`}
       </p>
       <Button
-        disabled={blocked || !state.activation.confirmedFacts}
+        disabled={setupBlocked || !state.activation.confirmedFacts}
         onClick={() => void act({ type: "generate_outbound_sequence" })}
       >
         Write 3-step sequence
@@ -735,14 +749,14 @@ function OutboundEmailSdrPanel({
       <div className="flex wrap">
         <Button
           variant="primary"
-          disabled={blocked || (sdr?.status !== "ready" && sdr?.status !== "paused")}
+          disabled={sendBlocked || (sdr?.status !== "ready" && sdr?.status !== "paused")}
           onClick={() => void act({ type: "start_outbound_sdr" })}
         >
           <Play size={14} />
           Start sending
         </Button>
         <Button
-          disabled={blocked || (sdr?.status !== "sending" && sdr?.status !== "paused")}
+          disabled={setupBlocked || (sdr?.status !== "sending" && sdr?.status !== "paused")}
           onClick={() => void act({ type: "pause_outbound_sdr" })}
         >
           <Pause size={14} />
@@ -759,7 +773,7 @@ function OutboundEmailSdrPanel({
         . {booked} meeting{booked === 1 ? "" : "s"} booked.
       </p>
       <Button
-        disabled={blocked}
+        disabled={setupBlocked}
         onClick={() =>
           void act({
             type: "set_outbound_crm",
