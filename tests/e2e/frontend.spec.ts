@@ -67,8 +67,8 @@ test("agent workspace exposes recorded outputs, sources, limits and working paus
   page,
 }) => {
   await page.goto("/?view=team&agent=account-intelligence");
-  await page.getByRole("button", { name: "Workspace limits" }).click();
   const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("heading", { name: "Account Intelligence", exact: true })).toBeVisible();
   await expect(
     dialog.getByText("None verified", { exact: true }),
   ).toBeVisible();

@@ -1,7 +1,7 @@
 import {describe,expect,it} from 'vitest';
 import {createFixtureState,snapshot} from '@david/domain';
 import {saveOnboarding} from '../packages/domain/src/onboarding';
-import {agentConversationLabel,agentDelivery,agentDestinations,agentFloorStatus,agentOvernightRecap,artifactCopyText,conversationProposalForAgent,conversationThread,customerResults,pipelineLeads,specialistWorkSnapshot,teamActivityFeed,teamActivityNarrative,teamActivitySeries} from '../packages/domain/src/delivery';
+import {agentConversationLabel,agentDelivery,agentDestinations,agentFloorStatus,agentOvernightRecap,artifactCopyText,conversationProposalForAgent,conversationThread,customerResults,pipelineLeads,specialistWorkSnapshot,teamActivityFeed,teamActivityNarrative,teamActivitySeries,teamNeedsSetup} from '../packages/domain/src/delivery';
 import {onboardingFor} from '@david/domain';
 
 describe('agent delivery modes',()=>{
@@ -115,5 +115,16 @@ describe('agent delivery modes',()=>{
   expect(agentConversationLabel('website-sales-concierge')).toBe('Watch this conversation');
   const website=conversationProposalForAgent(wallaroo,'website-sales-concierge');
   expect(wallaroo.proposals.find(item=>item.id===website)?.reference).toBe('P-2005');
+ });
+ it('sends a live team with no recorded work into specialist setup instead of an empty recap',()=>{
+  const engine=createFixtureState();
+  engine.workspace.name='Acme';
+  const state=snapshot(engine);
+  state.artifacts=[];
+  state.actions=[];
+  state.findings=[];
+  expect(teamNeedsSetup(state)).toBe(true);
+  expect(teamNeedsSetup(snapshot(createFixtureState('wallaroo')))).toBe(false);
+  expect(teamNeedsSetup(snapshot(createFixtureState()))).toBe(false);
  });
 });
