@@ -48,6 +48,11 @@ test('Set up Outbound Email SDR is one question at a time, then offers the next 
   });
   await expect(page.getByText('picked.csv', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(heading).toHaveText('What should these emails be about?');
+  await page.getByLabel('Email topic').fill('paid search audits');
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(heading).toHaveText('Here is the three-step sequence DAVID will send.');
+  await expect(page.getByText(/paid search audits/).first()).toBeVisible();
   await expect(page.getByRole('article').filter({ hasText: 'Step 1' })).toBeVisible();
   await page.keyboard.press('Enter');
   await page.getByRole('button', { name: 'Finish setup' }).click();

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createFixtureState, executeCommand, agentSetupPath, generateVoiceOpening, catalog, nextSetupAgentId } from '@david/domain';
+import { createFixtureState, executeCommand, agentSetupPath, generateVoiceOpening, catalog, nextSetupAgentId, sequencePreviewFromSnapshot } from '@david/domain';
 
 const team = ['outbound-email-sdr', 'account-intelligence', 'search-growth', 'technical-seo-monitor', 'creative-performance'] as const;
 
@@ -9,8 +9,16 @@ describe('agent setup path', () => {
     await executeCommand(state, { type: 'select_team', agentIds: [...team] });
     const ids = () => agentSetupPath(state, 'outbound-email-sdr').map(step => step.id);
     expect(ids().indexOf('booking')).toBeLessThan(ids().indexOf('leads'));
-    expect(ids().indexOf('leads')).toBeLessThan(ids().indexOf('sequence'));
+    expect(ids().indexOf('leads')).toBeLessThan(ids().indexOf('topic'));
+    expect(ids().indexOf('topic')).toBeLessThan(ids().indexOf('sequence'));
+    expect(ids()).toEqual(expect.arrayContaining(['intro', 'booking', 'leads', 'topic', 'sequence', 'ready']));
     expect(agentSetupPath(state, 'outbound-email-sdr').find(step => step.id === 'leads')?.description).toMatch(/Name the email column email/);
+    expect(agentSetupPath(state, 'outbound-email-sdr').find(step => step.id === 'topic')?.canContinue).toBe(false);
+    await executeCommand(state, { type: 'save_agent_onboarding', agentId: 'outbound-email-sdr', expectedRevision: 0, answers: { sequenceTopic: 'paid search audits' } });
+    expect(agentSetupPath(state, 'outbound-email-sdr').find(step => step.id === 'topic')?.canContinue).toBe(true);
+    const preview = sequencePreviewFromSnapshot(state, 'https://meet.example.com/demo', 'paid search audits');
+    expect(preview[0]?.subject).toMatch(/paid search audits/);
+    expect(preview.map(step => step.subject).join(' ')).not.toMatch(/your offer/);
     expect(ids()).toContain('ready');
     expect(ids()).not.toContain('bind');
 

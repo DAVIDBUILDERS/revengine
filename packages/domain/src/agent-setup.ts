@@ -4,7 +4,7 @@ import { catalog, preparationIds, type WebsiteContext } from '../../agents/src/i
 import { companyConnectionCoverage } from './company-connections';
 import { specialistWorkSnapshot } from './delivery';
 import { EMAIL_COLUMN_HELP } from './lead-csv';
-import { bookingUrlInfo, companyFromSnapshot, generateOutboundSequence } from './outbound-sdr';
+import { bookingUrlInfo, generateOutboundSequence, outboundSequenceCompany, sequenceTopicFromState } from './outbound-sdr';
 import { firstSetupAgentId, slotAgentIds, workbenchAgentIds } from './team';
 import { companyWebsite, technicalSeoAnswers } from './technical-seo';
 
@@ -75,7 +75,8 @@ function emailPath(state: AppSnapshot): AgentSetupStep[] {
     step('intro', 'Outbound Email SDR books meetings from your list.', 'DAVID writes the sequence. Instantly sends, warms inboxes, and handles replies. This agent does not find leads. Start send stays a gate after setup — not a question here.', 'confirm', tools, true),
     step('booking', 'Where should people book a meeting?', 'Any https link works. Calendly is optional; Instantly auto-book is strongest when Calendly is present.', 'url', tools, booking.ok),
     step('leads', 'Upload the people to email.', `${EMAIL_COLUMN_HELP} This agent does not find leads.`, 'file', tools, leads),
-    step('sequence', 'Here is the three-step sequence DAVID will send.', 'Written from confirmed company facts and your meeting link. Confirm it to save.', 'preview', tools, sequence),
+    step('topic', 'What should these emails be about?', 'One sentence: the offer, angle, or outcome. DAVID writes the three emails from this.', 'text', tools, sequenceTopicFromState(state).length >= 2),
+    step('sequence', 'Here is the three-step sequence DAVID will send.', 'Written from what you said these emails are about, plus your meeting link. Confirm it to save.', 'preview', tools, sequence),
   ];
   if (operator(state) && !instantlyBound(state)) {
     steps.push(step('bind', 'Bind the Instantly sub-workspace.', 'Operator only. Paste the Instantly workspace UUID. Customers never paste an Instantly key.', 'text', tools, instantlyBound(state)));
@@ -222,30 +223,10 @@ export function generateVoiceOpening(company: { companyName: string; offers: str
   return `Hi {{firstName}}, this is a call from ${company.companyName} for ${audience}. We help with ${offer}. If now is a bad time, say so and I will stop. Otherwise, grab a time here: ${link}.`;
 }
 
-export function sequencePreviewFromSnapshot(state: AppSnapshot, bookingUrl: string) {
+export function sequencePreviewFromSnapshot(state: AppSnapshot, bookingUrl: string, topic?: string) {
   if (!bookingUrlInfo(bookingUrl).ok) return state.outboundSdr?.sequence ?? [];
-  const company = engineCompany(state);
-  if (company) {
-    try { return generateOutboundSequence(company, bookingUrl); } catch { /* fall through */ }
-  }
-  try { return generateOutboundSequence(companyFromSnapshot(state), bookingUrl); } catch { /* fall through */ }
-  const answers = state.onboarding?.answers.company;
-  const name = answers?.name || state.workspace.name;
-  const offers = answers?.offers.length ? answers.offers : ['your offer'];
-  const customers = answers?.customers.length ? answers.customers : ['your customers'];
-  const pages = setupPages(state);
   try {
-    return generateOutboundSequence({
-      companyName: name,
-      confirmed: true,
-      offers,
-      customerTypes: customers,
-      locations: [],
-      pages: pages.length ? pages : [{ url: answers?.website || 'https://example.invalid', title: name, description: '', text: offers.join(' '), capturedAt: state.asOf }],
-      evidence: [{ id: 'setup-preview', label: 'Setup preview', source: 'workspace', capturedAt: state.asOf, quality: 'fixture' }],
-      fixture: state.workspace.mode === 'fixture',
-      operatingGuidance: { brand: answers?.brandGuidance ?? '', forbiddenClaims: answers?.forbiddenClaims ?? '' },
-    }, bookingUrl);
+    return generateOutboundSequence(outboundSequenceCompany(state, topic), bookingUrl);
   } catch {
     return state.outboundSdr?.sequence ?? [];
   }

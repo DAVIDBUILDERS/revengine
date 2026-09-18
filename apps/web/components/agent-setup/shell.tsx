@@ -18,6 +18,7 @@ import {
   setupCompanyName,
   setupPages,
   slotAgentIds,
+  suggestedSequenceTopic,
   technicalSeoAnswers,
 } from '@david/domain';
 import {Answer,Question} from '../briefing/question';
@@ -41,6 +42,7 @@ export function AgentSetupShell({agent,onExit,...props}:ScreenProps & {agent:Age
   const seo=technicalSeoAnswers(state);
   const [draft,setDraft]=useState({
     bookingUrl:String(answers.bookingUrl ?? state.outboundSdr?.bookingUrl ?? ''),
+    topic:suggestedSequenceTopic(state),
     csv:'',
     keywords:seo.keywords.join('\n'),
     locationName:seo.locationName || SERP_LOCATIONS[0].name,
@@ -57,7 +59,7 @@ export function AgentSetupShell({agent,onExit,...props}:ScreenProps & {agent:Age
   const nextAgentId=nextSetupAgentId(state,agent.id);
   const nextAgent=state.catalog.find(item=>item.id===nextAgentId);
   const bookingUrl=draft.bookingUrl || state.outboundSdr?.bookingUrl || '';
-  const sequence=useMemo(()=>sequencePreviewFromSnapshot(state, bookingUrl),[state,bookingUrl]);
+  const sequence=useMemo(()=>sequencePreviewFromSnapshot(state, bookingUrl, draft.topic),[state,bookingUrl,draft.topic]);
   const companyAnswers=state.onboarding?.answers.company;
   const voiceScript=draft.script || generateVoiceOpening({
     companyName:setupCompanyName(state),
@@ -96,6 +98,7 @@ export function AgentSetupShell({agent,onExit,...props}:ScreenProps & {agent:Age
     switch (step.id) {
       case 'booking': return bookingUrlInfo(draft.bookingUrl).ok;
       case 'leads': return Boolean(draft.csv.trim()) || step.canContinue;
+      case 'topic': return draft.topic.trim().length>=2;
       case 'sequence': return sequence.length>=3 || bookingUrlInfo(bookingUrl).ok || step.canContinue;
       case 'keywords': { const keywords=parseSetupKeywords(draft.keywords); return keywords.length>=1 && keywords.length<=20; }
       case 'location': return SERP_LOCATIONS.some(item=>item.name===draft.locationName);
@@ -131,6 +134,7 @@ export function AgentSetupShell({agent,onExit,...props}:ScreenProps & {agent:Age
       }
       return Boolean(await act({type:'import_lead_csv',csv:draft.csv,preview:false,mapping:preview.mapping}));
     }
+    if (step.id==='topic') return Boolean(await saveAnswers({sequenceTopic:draft.topic.trim()}));
     if (step.id==='sequence') return Boolean(await act({type:'generate_outbound_sequence'}));
     if (step.id==='bind') {
       if (agent.id==='outbound-email-sdr') return Boolean(await act({type:'bind_instantly_workspace',instantlyWorkspaceId:draft.bindId.trim()}));
@@ -218,6 +222,7 @@ export function AgentSetupShell({agent,onExit,...props}:ScreenProps & {agent:Age
               {csvError && <p className="notice notice-warning" role="alert">{csvError}</p>}
               <p className="help">{EMAIL_COLUMN_HELP} This agent does not find leads.</p>
             </>}
+            {step.id==='topic' && <Answer label="Email topic" value={draft.topic} onChange={value=>update('topic',value)}/>}
             {step.id==='sequence' && <div className="agent-setup-sequence" aria-label="Three-step sequence preview">
               {sequence.map((item,position)=><article key={item.subject} className="agent-setup-card" style={{animationDelay:`${position*90}ms`}}>
                 <p className="eyebrow">Step {position+1}</p>
