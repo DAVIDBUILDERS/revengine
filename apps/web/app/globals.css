@@ -901,6 +901,9 @@
 .agent-setup-card pre,.agent-setup-sequence pre{font:inherit;font-size:16px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
 .agent-setup-sequence,.agent-setup-pages{display:grid;gap:12px}
 .agent-setup-voice{border-left:3px solid #bd282b}
+.csv-drop-target{display:flex;align-items:center;justify-content:center;min-height:128px;border:1px dashed #c8c6c0;border-radius:7px;background:#fff;padding:22px 20px;text-align:center;cursor:pointer;font-size:16px;line-height:1.45;color:#3d3f3c}
+.csv-drop.is-over .csv-drop-target,.csv-drop-target:focus-within{border-color:#bd282b;background:#fff7f5;color:#18191c}
+.csv-drop.has-file .csv-drop-target{border-style:solid}
 @media(prefers-reduced-motion:reduce){.agent-setup-shell .briefing-question,.agent-setup-card{animation:none}.agent-setup-progress>span{transition:none}}
 @media(max-width:600px){.briefing-header{padding:18px 5vw;align-items:flex-start}.briefing-header .brand-wordmark{width:105px;height:auto}.briefing-header>div{justify-content:flex-end;gap:6px;max-width:180px}.briefing-main{padding:30px 0;gap:16px}.briefing-description{font-size:17px}.briefing-choice{font-size:16px;padding:14px;gap:12px}.briefing-choice kbd{display:none}.briefing-footer{flex-wrap:wrap;padding:16px 5vw;gap:10px}.briefing-footer>.help{order:3;flex-basis:100%}.briefing-summary{font-size:18px;padding-left:18px}.briefing-continue{align-items:flex-start;flex-direction:column;gap:8px}.briefing-continue .btn{width:100%}}
 

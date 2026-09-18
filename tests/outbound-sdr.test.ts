@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AgentDefinition } from '../packages/contracts/src/index';
-import { createFixtureState, executeCommand, catalog, parseCsvImport, CSV_FIELDS, parseLeadCsv, mappedLeadRow } from '../packages/domain/src/index';
+import { createFixtureState, executeCommand, catalog, parseCsvImport, CSV_FIELDS, parseLeadCsv, mappedLeadRow, isLeadCsvFile, leadCsvFileError } from '../packages/domain/src/index';
 import { agentDelivery } from '../packages/domain/src/delivery';
 import { denyInstantlyLeadFinder, normalizeInstantlyWebhook, parseInstantlyAccounts } from '../packages/connectors/src/instantly';
 import { launchManagedInstantlyCampaign } from '../packages/orchestration/src/action-service';
@@ -52,6 +52,9 @@ describe('Outbound Email SDR — Instantly, autonomous, no lead gen', () => {
     expect(CSV_FIELDS).toContain('proposal_id');
     expect(parseLeadCsv('email\nlead@example.invalid').rows[0].proposal_id).toBeUndefined();
     expect(parseCsvImport(leadCsv).errors.length).toBeGreaterThan(0);
+    expect(isLeadCsvFile({ name: 'Fake Leads - Sheet1.csv', type: '' })).toBe(true);
+    expect(isLeadCsvFile({ name: 'leads.xlsx', type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })).toBe(false);
+    expect(leadCsvFileError({ name: 'leads.csv', type: 'text/csv', size: 2_000_000 })).toMatch(/1 MB/);
   });
 
   it('asks for a meeting link, writes copy from company facts, and starts without per-email approval', async () => {
