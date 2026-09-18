@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AgentDefinition } from '../packages/contracts/src/index';
-import { createFixtureState, executeCommand, catalog, parseCsvImport, CSV_FIELDS, parseLeadCsv, mappedLeadRow, isLeadCsvFile, leadCsvFileError } from '../packages/domain/src/index';
+import { createFixtureState, executeCommand, catalog, parseCsvImport, CSV_FIELDS, parseLeadCsv, mappedLeadRow, isLeadCsvFile, leadCsvFileError, generateOutboundSequence, outboundSequenceCompany } from '../packages/domain/src/index';
 import { agentDelivery } from '../packages/domain/src/delivery';
 import { denyInstantlyLeadFinder, normalizeInstantlyWebhook, parseInstantlyAccounts } from '../packages/connectors/src/instantly';
 import { launchManagedInstantlyCampaign } from '../packages/orchestration/src/action-service';
@@ -71,10 +71,17 @@ describe('Outbound Email SDR — Instantly, autonomous, no lead gen', () => {
     const written = await executeCommand(state, { type: 'generate_outbound_sequence' });
     expect(written.message).toMatch(/Instantly will send/i);
     expect(state.outboundSdr?.sequence).toHaveLength(3);
-    expect(state.outboundSdr?.sequence[0]?.subject).toMatch(/paid search audits/);
+    expect(state.outboundSdr?.sequence[0]?.subject).toMatch(/paid search audits/i);
     expect(state.outboundSdr?.sequence[0]?.body).toContain('{{firstName}}');
     expect(state.outboundSdr?.sequence[0]?.body).toContain('https://calendly.com/example/30min');
-    expect(state.outboundSdr?.sequence[0]?.body).not.toMatch(/your offer/);
+    expect(state.outboundSdr?.sequence[0]?.body).toMatch(/dies in a deck/i);
+    expect(state.outboundSdr?.sequence[0]?.body).not.toMatch(/your offer|helps .+ with|Book a conversation|Quick question|Stay inside approved brand/i);
+    expect(state.outboundSdr?.sequence[1]?.body).toMatch(/who can say yes or no/i);
+    expect(state.outboundSdr?.sequence[2]?.body).toMatch(/will not follow up again/i);
+    expect(state.outboundSdr?.sequence.every(step => !step.subject.includes('{{firstName}}'))).toBe(true);
+    expect(state.outboundSdr?.sequence.every(step => step.body.trim().split(/\s+/).length <= 120)).toBe(true);
+    expect(generateOutboundSequence(outboundSequenceCompany(state, 'paid search audits'), 'https://calendly.com/example/30min').map(step => step.body).join('\n')).not.toMatch(/Stay inside approved brand|Do not claim/i);
+    expect(generateOutboundSequence(outboundSequenceCompany(state, 'AI Implementation'), 'https://calendly.com/example/30min')[0]?.body).toMatch(/stalls after the first pass/i);
     const beforeActions = state.actions.length;
     const started = await executeCommand(state, { type: 'start_outbound_sdr' });
     expect(started.message).toMatch(/No live mailbox send/);
