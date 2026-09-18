@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { Command } from "@david/contracts";
-import { createFixtureState, executeCommand, snapshot, DEFAULT_PREVIEW_WORKSPACE, FIXTURE_WORKSPACE_KEYS, isFixtureWorkspace, type EngineState } from "@david/domain";
+import { createFixtureState, executeCommand, snapshot, DEFAULT_PREVIEW_WORKSPACE, isFixtureWorkspace, type EngineState } from "@david/domain";
 import type { WorkspaceDataSource } from "../../web/components/app-shell";
 
 const Journal = z.object({ version: z.literal(1), commands: z.array(Command).max(300) }).strict();
@@ -17,9 +17,10 @@ export function createBrowserDemo(storage: () => Storage): WorkspaceDataSource {
     return result;
   }
   function keyFor(workspace: string | null) {
-    const key = workspace ?? DEFAULT_PREVIEW_WORKSPACE;
-    if (!isFixtureWorkspace(key)) throw new Error("Unknown workspace. Open the home page without a workspace parameter.");
-    return key;
+    if (workspace && workspace !== DEFAULT_PREVIEW_WORKSPACE && !isFixtureWorkspace(workspace)) {
+      throw new Error("Unknown workspace. Open the home page without a workspace parameter.");
+    }
+    return DEFAULT_PREVIEW_WORKSPACE;
   }
   async function session(key: string) {
     const existing = sessions.get(key);
@@ -37,7 +38,7 @@ export function createBrowserDemo(storage: () => Storage): WorkspaceDataSource {
   }
   return {
     async list() {
-      return { workspaces: [...FIXTURE_WORKSPACE_KEYS].map(id => ({ id, name: createFixtureState(id).workspace.name })) };
+      return { workspaces: [{ id: DEFAULT_PREVIEW_WORKSPACE, name: createFixtureState(DEFAULT_PREVIEW_WORKSPACE).workspace.name }] };
     },
     read(workspace) {
       return serialize(async () => structuredClone(snapshot((await session(keyFor(workspace))).state)));

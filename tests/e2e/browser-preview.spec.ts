@@ -13,6 +13,9 @@ test("hosted workspace works without an operational API and survives refresh", a
   await expect(page.getByText("Local demonstrator.")).toHaveCount(0);
   await expect(page.getByText("Fixture mode")).toHaveCount(0);
   await expect(page.locator(".workspace-chip")).toContainText("Wallaroo Media");
+  await expect(page.getByRole("combobox", { name: "Active workspace" })).toHaveCount(0);
+  await expect(page.getByRole("option", { name: "DAVID AI" })).toHaveCount(0);
+  await expect(page.getByRole("option", { name: "Northstar" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Overnight recap", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Open Website Sales Concierge recap" }).first()).toBeVisible();
   await expect(page.getByRole("button", { name: "Open Technical SEO recap" }).first()).toBeVisible();

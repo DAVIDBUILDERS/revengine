@@ -1,0 +1,5 @@
+.workspace-picker,
+.desktop-workspace-picker,
+.mobile-workspace-picker {
+  display: none !important;
+}

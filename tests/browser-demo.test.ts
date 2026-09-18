@@ -17,8 +17,10 @@ describe("hosted browser demo isolation", () => {
   it("opens Wallaroo Media when no workspace is requested", async () => {
     const demo = createBrowserDemo(storage);
     const listed = await demo.list();
-    expect(listed.workspaces.map(item => item.id)).toEqual(["david", "northstar", "wallaroo"]);
+    expect(listed.workspaces.map(item => item.id)).toEqual(["wallaroo"]);
     expect((await demo.read(null)).workspace.name).toMatch(/Wallaroo Media/);
+    expect((await demo.read("david")).workspace.name).toMatch(/Wallaroo Media/);
+    expect((await demo.read("northstar")).workspace.name).toMatch(/Wallaroo Media/);
     expect((await demo.read(null)).activation.selectedTeam).toEqual([
       "technical-seo-monitor",
       "linkedin-outreach-assistant",
@@ -33,12 +35,9 @@ describe("hosted browser demo isolation", () => {
     const demo = createBrowserDemo(() => tab);
     await demo.execute(null, { type: "pause", paused: true });
     expect((await createBrowserDemo(() => tab).read(null)).workspace.paused).toBe(true);
-    expect((await demo.read("northstar")).workspace.paused).toBe(false);
     expect((await createBrowserDemo(storage).read(null)).workspace.paused).toBe(false);
-    await demo.execute("northstar", { type: "pause", paused: true });
     await demo.execute(null, { type: "reset" });
     expect((await createBrowserDemo(() => tab).read(null)).workspace.paused).toBe(false);
-    expect((await demo.read("northstar")).workspace.paused).toBe(true);
   });
 
   it("rejects invalid history and unknown workspaces", async () => {
