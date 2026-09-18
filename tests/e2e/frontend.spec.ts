@@ -306,7 +306,7 @@ test("catalog selections, saved scenarios and evidence keyboard navigation", asy
 }) => {
   await page.goto("/?view=team");
   await page.getByRole("button",{name:"Build your team",exact:true}).click();
-  await expect(page.locator(".agent-card")).toHaveCount(32);
+  await expect(page.locator(".agent-card")).toHaveCount(33);
   await page.getByRole("button", { name: "Recommend my five" }).click();
   await expect(page.getByRole("status").filter({hasText:"Recommended team selected below"})).toBeVisible();
   await page.getByRole("link", { name: "Forecast", exact: true }).click();

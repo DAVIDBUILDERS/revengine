@@ -2,7 +2,7 @@
 
 **September 16, 2026.** Company setup stays shared. Agent onboarding does not.
 
-Each of the 32 specialists has its own onboarding process, required tools, and a per-client stored record. Completing the company briefing does not onboard a specialist. Selecting Account Intelligence must not reuse Outbound Email SDR’s Instantly, CSV, and Calendly flow. Swapping a specialist reuses company connections and shows **that** agent’s remaining setup.
+Each of the 33 specialists has its own onboarding process, required tools, and a per-client stored record. Completing the company briefing does not onboard a specialist. Selecting Account Intelligence must not reuse Outbound Email SDR’s Instantly, CSV, and Calendly flow. Swapping a specialist reuses company connections and shows **that** agent’s remaining setup.
 
 Executable sources of truth:
 
@@ -31,7 +31,7 @@ flowchart TD
 | Company | Once per client workspace | Identity, website/facts, people, operating rules, connected systems in `onboarding_documents`, `connections`, and `source_bindings` | Any specialist is ready to work |
 | Agent | Once per specialist, per client | That role’s checklist, required tools, unique inputs, and status in `agent_onboarding` | Company connections were copied or the questionnaire must restart |
 
-Tenant rule: **one database, isolated by `workspace_id`**. There is not a separate Postgres per client. `installations` is operational status (mode, capacity, pause), not onboarding. Agent-specific runtime tables stay: `outbound_*` remains Outbound Email SDR campaign state; `agent_onboarding` is the onboarding envelope for all 32.
+Tenant rule: **one database, isolated by `workspace_id`**. There is not a separate Postgres per client. `installations` is operational status (mode, capacity, pause), not onboarding. Agent-specific runtime tables stay: `outbound_*` remains Outbound Email SDR campaign state; `agent_onboarding` is the onboarding envelope for all 33.
 
 Connect-once Connections ([company connection setup](COMPANY_CONNECTION_SETUP.md)) still apply. Agent onboarding binds those shared sources to a specialist and collects anything that specialist alone needs.
 
@@ -49,7 +49,7 @@ Connect-once Connections ([company connection setup](COMPANY_CONNECTION_SETUP.md
 
 Creating a workspace or selecting a specialist ensures a row exists for every catalog agent. Swapping a specialist does not delete company connections or other agents’ onboarding rows. Seed data for `required_tools` lives in `private.agent_required_tools` and must stay aligned with the TypeScript catalog.
 
-Workspace members can read rows. Owners and assigned operators mutate through `save_agent_onboarding`. Distinct onboarding UIs ship agent-by-agent in the 1/32 review; later work fills `answers` instead of inventing another one-off store.
+Workspace members can read rows. Owners and assigned operators mutate through `save_agent_onboarding`. Distinct onboarding UIs ship agent-by-agent in the 1/33 review; later work fills `answers` instead of inventing another one-off store.
 
 ## Distinct examples
 

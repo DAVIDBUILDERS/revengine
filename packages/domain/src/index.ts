@@ -22,6 +22,7 @@ export * from './scenarios';
 export * from './delivery';
 export * from './company-connections';
 export * from './team';
+export * from './agent-setup';
 export { catalog, preparationIds, canonicalAgentId, recommendationFor, prepareFromContext } from '../../agents/src/index';
 
 function prerequisites(state:EngineState):ActivationPlan['prerequisites'] {

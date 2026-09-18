@@ -3,7 +3,7 @@ import { AgentDefinition, type BusinessModel, type TeamRecommendation, EvidenceR
 
 type Archetype = z.infer<typeof BusinessModel>;
 const groups = [
-  ['Find demand', ['Account Intelligence', 'Buying Signal Scout', 'Outbound Email SDR', 'LinkedIn Outreach Assistant', 'Partner Development', 'RFP Opportunity Scout', 'Competitor Intelligence']],
+  ['Find demand', ['Account Intelligence', 'Buying Signal Scout', 'Outbound Email SDR', 'Outbound Voice SDR', 'LinkedIn Outreach Assistant', 'Partner Development', 'RFP Opportunity Scout', 'Competitor Intelligence']],
   ['Create demand', ['Search Growth', 'Technical SEO', 'Local Search Manager', 'Creative Performance', 'Paid Campaign Operator', 'Landing Page Optimizer', 'Social Content Publisher', 'Video Script Producer', 'Product Merchandiser']],
   ['Convert demand', ['Speed-to-Lead Responder', 'AI Receptionist', 'Website Sales Concierge', 'Appointment Coordinator', 'Lead Qualification']],
   ['Close revenue', ['Proposal Operations', 'Deal Follow-up', 'Sales Call Coach', 'Estimate Recovery', 'Revenue Experiment Manager']],
@@ -37,6 +37,36 @@ export const catalog: AgentDefinition[] = groups.flatMap(([category, names]) => 
     metrics: ['human_replies', 'verified_bookings'],
     evaluationCases: ['csv_without_email', 'missing_calendly', 'warmup_blocks_send', 'no_supersearch', 'fixture_does_not_send'],
     aliases: [],
+  });
+  if (id === 'outbound-voice-sdr') return AgentDefinition.parse({
+    id, name, version: '1.0.0', category,
+    responsibility: 'Call a customer-supplied list. DAVID writes the opening script; ElevenLabs dials. This agent does not find leads. Live dial is not enabled in this pass.',
+    supportedArchetypes: archetypes, modes: ['bounded_autonomous_execution'], releaseStatus: 'pilot',
+    requiredCapabilities: ['company.confirmed', 'calendar.booking_link'],
+    triggers: ['ready_gates_pass'], allowedTasks: ['import_leads', 'save_script', 'bind_agent'],
+    toolNames: ['elevenlabs.call', 'elevenlabs.agent', 'elevenlabs.webhooks'], outputSchema: 'VoiceSdrSetup.v1',
+    prerequisites: ['confirmed_company_facts', 'customer_lead_list', 'booking_url', 'managed_elevenlabs_agent'],
+    stopConditions: ['workspace_paused', 'capacity_exhausted', 'missing_calendar_link', 'suppression', 'human_takeover'],
+    capacityUnit: 'calls/day', dependencies: ['managed_elevenlabs_agent', 'customer_lead_list'],
+    failureModes: ['missing_booking_url', 'invalid_lead_csv', 'elevenlabs_unbound'],
+    fallback: 'Stop on the ready-gate blocker. No live dial until an operator binds ElevenLabs. This agent does not find leads.',
+    metrics: ['verified_bookings'],
+    evaluationCases: ['csv_without_phone_or_email', 'same_list_as_email', 'no_live_dial', 'fixture_does_not_call'],
+    aliases: [],
+  });
+  if (id === 'ai-receptionist') return AgentDefinition.parse({
+    id, name, version: '1.0.0', category,
+    responsibility: 'Answer inbound calls with a greeting, hours, and a booking link. ElevenLabs Conversational AI is the inbound layer. Live telephony is not enabled in this pass.',
+    supportedArchetypes: archetypes, modes: ['monitored_execution'], releaseStatus: 'planned',
+    requiredCapabilities: ['engineering.implementation'],
+    triggers: ['reviewed_manual_run'], allowedTasks: [],
+    toolNames: ['elevenlabs.agent', 'calendar.availability', 'calendar.book'], outputSchema: 'Unavailable',
+    prerequisites: ['missing_engineering_integration'],
+    stopConditions: ['workspace_paused', 'capacity_exhausted', 'required_source_unavailable'],
+    capacityUnit: 'calls/day', dependencies: ['managed_elevenlabs_agent', 'calendar'],
+    failureModes: ['elevenlabs_unbound', 'missing_calendar_link'],
+    fallback: 'Record the greeting and hours. An operator binds the ElevenLabs inbound agent. No live answer in this pass.',
+    metrics: [], evaluationCases: ['unavailable_mode', 'no_live_telephony'], aliases: [],
   });
   if (id === 'linkedin-outreach-assistant') return AgentDefinition.parse({
     id, name, version: '1.0.0', category,

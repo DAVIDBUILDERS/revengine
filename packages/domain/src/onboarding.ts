@@ -21,7 +21,7 @@ export function onboardingReport(state:AppSnapshot) {
   if(agent.releaseStatus==='implemented'?(!preparationFacts||!preparationPermission):(!complete[0]||!complete[3]||!complete[4]))add('information_required',agent.releaseStatus==='implemented'?'Review company facts, an approver and operating limits for this preparation.':'Complete company, operating rules, approver and measurement details.');
   // Preparation capabilities currently read approved website snapshots. Other systems are future dependencies,
   // not a claim that these preparations read Drive, ads, social platforms or search analytics today.
-  const needed:SystemKind[]=agent.releaseStatus==='implemented'?['website']:agent.id==='outbound-email-sdr'?[]:agent.id==='technical-seo-monitor'?['website']:requiredSystems;
+  const needed:SystemKind[]=agent.releaseStatus==='implemented'?['website']:agent.id==='outbound-email-sdr'||agent.id==='outbound-voice-sdr'?[]:agent.id==='technical-seo-monitor'?['website']:requiredSystems;
   for(const kind of needed){
    if(hasConfiguredCompanySource(state,kind))continue;
    const system=a.systems.find(s=>s.kind===kind);

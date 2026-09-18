@@ -157,7 +157,7 @@ export function Today(props: ScreenProps & { showBrief: () => Promise<void> }) {
           <h2 id="overview-heading">{needsSetup ? "Your team is saved. Set up each specialist." : story.headline}</h2>
           <p>{needsSetup ? "Open a specialist to finish its own setup. Instantly, lists, and booking live there — not on this recap." : story.body || "Choose specialists to populate this recap."}</p>
           {needsSetup && setupAgent && (
-            <Button variant="primary" onClick={() => navigate("team", { agent: setupAgent.id })}>
+            <Button variant="primary" onClick={() => navigate("team", { agent: setupAgent.id, setup: true })}>
               Set up {setupAgent.name} <ArrowUpRight size={14} />
             </Button>
           )}
@@ -178,7 +178,7 @@ export function Today(props: ScreenProps & { showBrief: () => Promise<void> }) {
                 key={agent.id}
                 type="button"
                 className="today-specialist"
-                onClick={() => (needsSetup ? navigate("team", { agent: agent.id }) : selectAgent(agent.id))}
+                onClick={() => (needsSetup ? navigate("team", { agent: agent.id, setup: true }) : selectAgent(agent.id))}
                 aria-label={needsSetup ? `Set up ${agent.name}` : `Open ${agent.name} recap`}
               >
                 <span className="today-specialist-top">

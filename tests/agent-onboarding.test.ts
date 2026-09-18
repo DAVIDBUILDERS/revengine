@@ -22,8 +22,8 @@ describe('per-agent onboarding', () => {
   it('stores an onboarding envelope per specialist per client without copying company setup', async () => {
     const state = createFixtureState();
     const records = snapshot(state).agentOnboarding ?? [];
-    expect(records).toHaveLength(32);
-    expect(new Set(records.map(record => record.agentId)).size).toBe(32);
+    expect(records).toHaveLength(33);
+    expect(new Set(records.map(record => record.agentId)).size).toBe(33);
     expect(records.every(record => record.workspaceId === state.workspace.id && record.status === 'not_started')).toBe(true);
     expect(AgentOnboardingRecord.parse(records.find(record => record.agentId === 'outbound-email-sdr')!).requiredTools.prerequisites).toContain('customer_lead_list');
     const other = snapshot(createFixtureState('northstar')).agentOnboarding ?? [];

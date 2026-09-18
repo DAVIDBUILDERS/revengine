@@ -21,7 +21,7 @@ describe('repeatable onboarding',()=>{
  });
  it('does not turn information or fixture activity into verified live readiness',async()=>{
   const {state,answers}=configured();await executeCommand(state,{type:'save_onboarding',expectedRevision:0,answers});
-  const report=onboardingReport(state);expect(report.agents).toHaveLength(32);expect(report.complete.slice(0,5)).toEqual([true,true,true,true,true]);expect(report.complete[5]).toBe(false);
+  const report=onboardingReport(state);expect(report.agents).toHaveLength(33);expect(report.complete.slice(0,5)).toEqual([true,true,true,true,true]);expect(report.complete[5]).toBe(false);
   expect(report.agents.find(a=>a.id==='account-intelligence')?.status).toBe('demo_only');
   expect(report.agents.find(a=>a.id==='paid-campaign-operator')?.status).toBe('engineering_required');
  });
@@ -36,7 +36,7 @@ describe('repeatable onboarding',()=>{
   await expect(executeCommand(state,{type:'set_allowance',allowance:32})).rejects.toThrow('operator');
   state.context.role='david_operator';await executeCommand(state,{type:'set_allowance',allowance:32});
   answers.team=state.catalog.map(a=>a.id);await executeCommand(state,{type:'save_onboarding',expectedRevision:0,answers});
-  expect(onboardingFor(state).answers.team).toHaveLength(32);
+  expect(onboardingFor(state).answers.team).toHaveLength(33);
   expect(onboardingReport(state).agents.find(a=>a.id==='abandoned-cart-recovery')?.status).toBe('not_applicable');
  });
  it('denies viewer/member and cross-workspace configuration',async()=>{

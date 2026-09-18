@@ -20,8 +20,8 @@ async function outboundReady() {
 }
 
 describe('Outbound Email SDR — Instantly, autonomous, no lead gen', () => {
-  it('keeps a 32-agent catalog with Instantly-backed Email SDR and no voice dialer', () => {
-    expect(catalog).toHaveLength(32);
+  it('keeps Instantly-backed Email SDR in a 33-agent catalog with a separate voice specialist', () => {
+    expect(catalog).toHaveLength(33);
     const sdr = catalog.find(agent => agent.id === 'outbound-email-sdr');
     expect(AgentDefinition.parse(sdr)).toMatchObject({
       releaseStatus: 'pilot',
@@ -30,7 +30,7 @@ describe('Outbound Email SDR — Instantly, autonomous, no lead gen', () => {
     expect(sdr?.responsibility).toMatch(/does not find leads/i);
     expect(sdr?.fallback).toMatch(/SuperSearch/i);
     expect(catalog.find(agent => agent.id === 'deal-follow-up')?.requiredCapabilities).toEqual(expect.arrayContaining(['gmail.send', 'gmail.reply_read']));
-    expect(catalog.some(agent => /voice|bland|dialer/i.test(`${agent.id} ${agent.name}`))).toBe(false);
+    expect(catalog.find(agent => agent.id === 'outbound-voice-sdr')?.toolNames).toEqual(expect.arrayContaining(['elevenlabs.call', 'elevenlabs.agent']));
     expect(agentDelivery(createFixtureState(), 'outbound-email-sdr').detail).toMatch(/does not find leads/i);
   });
 

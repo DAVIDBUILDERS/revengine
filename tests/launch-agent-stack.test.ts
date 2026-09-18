@@ -32,10 +32,19 @@ describe('Launch agent stack decisions', () => {
     expect(agentDelivery(state, 'technical-seo-monitor').detail).toMatch(/does not change your website|Copy titles/i);
   });
 
-  it('names Bland as the outbound voice dialer and does not add a catalog agent for it', () => {
-    expect(catalog).toHaveLength(32);
-    expect(catalog.some(agent => /voice|bland|dialer|phone sdr/i.test(`${agent.id} ${agent.name} ${agent.responsibility}`))).toBe(false);
-    expect(catalog.find(agent => agent.id === 'ai-receptionist')?.releaseStatus).toBe('planned');
+  it('names ElevenLabs as the outbound voice dialer and keeps receptionist inbound', () => {
+    expect(catalog).toHaveLength(33);
+    const voice = catalog.find(agent => agent.id === 'outbound-voice-sdr');
+    expect(voice?.name).toBe('Outbound Voice SDR');
+    expect(voice?.modes).toEqual(['bounded_autonomous_execution']);
+    expect(voice?.toolNames).toEqual(expect.arrayContaining(['elevenlabs.call', 'elevenlabs.agent', 'elevenlabs.webhooks']));
+    expect(voice?.responsibility).toMatch(/does not find leads/i);
+    expect(voice?.responsibility).toMatch(/ElevenLabs/);
+    expect(catalog.some(agent => /bland/i.test(`${agent.id} ${agent.name} ${agent.responsibility}`))).toBe(false);
+    const receptionist = catalog.find(agent => agent.id === 'ai-receptionist');
+    expect(receptionist?.releaseStatus).toBe('planned');
+    expect(receptionist?.toolNames).toEqual(expect.arrayContaining(['elevenlabs.agent']));
+    expect(receptionist?.responsibility).toMatch(/inbound/i);
   });
 
   it('keeps Search Growth as the extra easy-to-launch agent and Concierge as an undeployed DAVID-hosted embed', () => {

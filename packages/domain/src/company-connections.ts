@@ -4,7 +4,7 @@ import {bookingUrlInfo} from './outbound-sdr';
 export type SystemKind = OnboardingAnswers['systems'][number]['kind'];
 /** Full responsibilities, including capabilities that have not been implemented. */
 export const agentSystemRequirements: Record<string, SystemKind[]> = {
- 'account-intelligence':['website','drive'],'buying-signal-scout':['analytics','proposals'],'outbound-email-sdr':['mail'],'linkedin-outreach-assistant':['social','proposals'],'partner-development':['proposals','mail'],'rfp-opportunity-scout':['rfp','drive'],'competitor-intelligence':['website'],
+ 'account-intelligence':['website','drive'],'buying-signal-scout':['analytics','proposals'],'outbound-email-sdr':['mail'],'outbound-voice-sdr':['calls','calendar'],'linkedin-outreach-assistant':['social','proposals'],'partner-development':['proposals','mail'],'rfp-opportunity-scout':['rfp','drive'],'competitor-intelligence':['website'],
  'search-growth':['website','analytics'],'technical-seo-monitor':['website'],'local-search-manager':['local','website'],'creative-performance':['advertising','drive'],'paid-campaign-operator':['advertising','analytics'],'landing-page-optimizer':['website','analytics'],'social-content-publisher':['social','drive'],'video-script-producer':['drive'],'product-merchandiser':['commerce'],
  'speed-to-lead-responder':['proposals','mail'],'ai-receptionist':['calls','calendar'],'website-sales-concierge':['website','drive'],'appointment-coordinator':['calendar','mail'],'lead-qualification':['proposals'],
  'proposal-operations':['proposals','drive'],'deal-follow-up':['proposals','mail'],'sales-call-coach':['calls','drive'],'estimate-recovery':['proposals','mail'],'revenue-experiment-manager':['analytics','payments'],
