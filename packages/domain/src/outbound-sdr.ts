@@ -29,6 +29,39 @@ export function companyFromSnapshot(state: AppSnapshot): WebsiteContext {
   };
 }
 
+export function sequenceTopicFromState(state: Pick<AppSnapshot, 'agentOnboarding'>) {
+  return String(state.agentOnboarding?.find(record => record.agentId === 'outbound-email-sdr')?.answers.sequenceTopic ?? '').trim();
+}
+
+export function suggestedSequenceTopic(state: AppSnapshot) {
+  const saved = sequenceTopicFromState(state);
+  if (saved) return saved;
+  const engine = (state as AppSnapshot & { company?: WebsiteContext }).company;
+  return String(engine?.offers[0] ?? state.onboarding?.answers.company.offers[0] ?? '').trim();
+}
+
+export function outboundSequenceCompany(state: AppSnapshot, topicOverride?: string): WebsiteContext {
+  const topic = (topicOverride ?? suggestedSequenceTopic(state)).trim();
+  if (!topic) throw new DomainError('SEQUENCE_TOPIC_REQUIRED', 'Say what these emails should be about.');
+  const engine = (state as AppSnapshot & { company?: WebsiteContext }).company;
+  const onboarding = state.onboarding?.answers.company;
+  const name = engine?.companyName || onboarding?.name || state.workspace.name;
+  const customers = engine?.customerTypes.length ? engine.customerTypes : onboarding?.customers.length ? onboarding.customers : ['your team'];
+  const pages = engine?.pages.length ? engine.pages : state.onboardingCapture?.pages ?? [];
+  const capturedAt = state.asOf;
+  return {
+    companyName: name,
+    confirmed: true,
+    offers: [topic],
+    customerTypes: customers,
+    locations: engine?.locations ?? [],
+    pages: pages.length ? pages : [{ url: onboarding?.website || 'https://example.invalid', title: name, description: '', text: topic, capturedAt }],
+    evidence: engine?.evidence.length ? engine.evidence : [{ id: 'sequence-topic', label: 'Outbound sequence topic', source: 'workspace', capturedAt, quality: 'fixture' }],
+    fixture: state.workspace.mode === 'fixture',
+    operatingGuidance: engine?.operatingGuidance ?? { brand: onboarding?.brandGuidance ?? '', forbiddenClaims: onboarding?.forbiddenClaims ?? '' },
+  };
+}
+
 export function emptyOutboundSdr(workspaceId: string): OutboundSdrState {
   return OutboundSdrState.parse({
     workspaceId,
@@ -164,17 +197,18 @@ export function saveOutboundSequence(state: EngineState) {
   const sdr = ensureOutboundSdr(state);
   const booking = bookingUrlInfo(sdr.bookingUrl);
   if (!booking.ok) throw new DomainError('BOOKING_URL_REQUIRED', booking.message);
-  sdr.sequence = generateOutboundSequence(state.company, sdr.bookingUrl!);
+  const company = outboundSequenceCompany(state);
+  sdr.sequence = generateOutboundSequence(company, sdr.bookingUrl!);
   const id = nextId(state, 'artifact');
   state.artifacts.push({
     id,
     workspaceId: state.workspace.id,
     agentId: 'outbound-email-sdr',
     type: 'EmailSequence',
-    sourceSnapshot: state.company.evidence,
+    sourceSnapshot: company.evidence,
     factualInputs: [
-      `Company: ${state.company.companyName}`,
-      ...state.company.offers.map(value => `Approved offer: ${value}`),
+      `Company: ${company.companyName}`,
+      `Email topic: ${company.offers[0]}`,
       `Booking URL: ${sdr.bookingUrl}`,
     ],
     title: 'Outbound sequence',
@@ -191,7 +225,7 @@ export function saveOutboundSequence(state: EngineState) {
   if (installation) installation.lastPreparationAt = state.asOf;
   refreshOutboundStatus(state);
   audit(state, 'outbound.sequence', id);
-  return 'Three-step sequence written from confirmed company facts. Instantly will send it; no copy-out to another mail tool.';
+  return 'Three-step sequence written from what these emails are about. Instantly will send it; no copy-out to another mail tool.';
 }
 
 export function importOutboundLeads(state: EngineState, csv: string, preview: boolean, mapping?: Record<string, string>) {

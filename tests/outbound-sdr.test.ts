@@ -67,11 +67,14 @@ describe('Outbound Email SDR — Instantly, autonomous, no lead gen', () => {
     await executeCommand(state, { type: 'import_lead_csv', csv: leadCsv, preview: false });
     expect(state.outboundSdr?.leads[0]?.email).toBe('lead@example.invalid');
     expect(state.contacts.find(contact => contact.email === 'lead@example.invalid')?.enrolled).toBe(false);
+    await executeCommand(state, { type: 'save_agent_onboarding', agentId: 'outbound-email-sdr', expectedRevision: 0, answers: { sequenceTopic: 'paid search audits' } });
     const written = await executeCommand(state, { type: 'generate_outbound_sequence' });
     expect(written.message).toMatch(/Instantly will send/i);
     expect(state.outboundSdr?.sequence).toHaveLength(3);
+    expect(state.outboundSdr?.sequence[0]?.subject).toMatch(/paid search audits/);
     expect(state.outboundSdr?.sequence[0]?.body).toContain('{{firstName}}');
     expect(state.outboundSdr?.sequence[0]?.body).toContain('https://calendly.com/example/30min');
+    expect(state.outboundSdr?.sequence[0]?.body).not.toMatch(/your offer/);
     const beforeActions = state.actions.length;
     const started = await executeCommand(state, { type: 'start_outbound_sdr' });
     expect(started.message).toMatch(/No live mailbox send/);
