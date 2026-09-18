@@ -28,6 +28,7 @@ export const connectorOperationsForCapability: Readonly<Record<string,readonly s
  'proposals.current':['sheets.read','proposals.read'], 'gmail.reply_read':['gmail.read'],
  'gmail.send':['gmail.send'], 'calendar.availability':['calendar.freebusy'], 'calendar.book':['calendar.book'],
  'instantly.send':['instantly.send'], 'instantly.warmup':['instantly.warmup'], 'instantly.replies':['instantly.replies'],
+ 'dataforseo.onpage':['dataforseo.onpage'], 'dataforseo.serp':['dataforseo.serp'],
 };
 const resourceTypes: Partial<Record<SystemKind,ConnectionResource['type'][]>> = {proposals:['sheet','csv'],mail:['mailbox'],calendar:['calendar']};
 const relatedOperations: Partial<Record<SystemKind,string[]>> = {proposals:['sheets.read','proposals.read'],mail:['gmail.read','gmail.send'],calendar:['calendar.freebusy','calendar.book']};
@@ -75,6 +76,9 @@ export function hasCurrentCapabilitySource(state:AppSnapshot,capability:string){
  if(capability==='calendar.booking_link')return bookingUrlInfo(state.outboundSdr?.bookingUrl).ok;
  if(capability.startsWith('instantly.')){
   return state.connections.some(c=>c.workspaceId===state.workspace.id&&c.provider==='instantly'&&c.health==='healthy'&&c.operations.includes(capability)&&!!c.verifiedAt&&Date.parse(c.verifiedAt)>=Date.parse(configurationBoundary(state).updatedAt)&&isCurrent(c.lastSyncAt,state.asOf,c.freshnessSeconds));
+ }
+ if(capability.startsWith('dataforseo.')){
+  return state.connections.some(c=>c.workspaceId===state.workspace.id&&c.provider==='dataforseo'&&c.health==='healthy'&&c.operations.includes(capability)&&!!c.verifiedAt&&Date.parse(c.verifiedAt)>=Date.parse(configurationBoundary(state).updatedAt)&&isCurrent(c.lastSyncAt,state.asOf,c.freshnessSeconds));
  }
  const operations=connectorOperationsForCapability[capability];if(!operations)return false;
  const kind:SystemKind=capability.startsWith('gmail.')?'mail':capability.startsWith('calendar.')?'calendar':'proposals';

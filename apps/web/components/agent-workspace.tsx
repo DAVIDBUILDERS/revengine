@@ -3,9 +3,10 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import { ArrowRight, Calendar, FileText, Pause, Play, ShieldCheck, Upload } from "lucide-react";
 import type { AgentDefinition, CommandResult } from "@david/contracts";
+import { SERP_LOCATIONS } from "@david/contracts";
 import { words } from "@david/ui";
 import { agentDelivery } from "@david/domain/delivery";
-import { onboardingFor, slotAgentIds } from "@david/domain";
+import { onboardingFor, slotAgentIds, technicalSeoAnswers, technicalSeoReadyReasons } from "@david/domain";
 import { bookingUrlInfo } from "@david/domain/outbound-sdr";
 import type { ScreenProps } from "./app-shell";
 import { ArtifactCopyOut } from "./artifact-copy-out";
@@ -235,6 +236,13 @@ function AgentRecord({
                 busy={busy}
                 installation={!!installation}
                 onOpenPipeline={() => go("opportunities")}
+              />
+            ) : agent.id === "technical-seo-monitor" ? (
+              <TechnicalSeoPanel
+                state={state}
+                act={act}
+                busy={busy}
+                installation={!!installation}
               />
             ) : agent.releaseStatus !== "planned" &&
               agent.modes.includes("preparation") ? (
@@ -800,6 +808,115 @@ function OutboundEmailSdrPanel({
             <Badge status={lead.status} />
           </div>
           <p className="small">{lead.lastReply ?? words(lead.status)}</p>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function TechnicalSeoPanel({
+  state,
+  act,
+  busy,
+  installation,
+}: Pick<AgentProps, "state" | "act" | "busy"> & { installation: boolean }) {
+  const quiet = useContext(QuietWalkthroughContext);
+  const seo = state.technicalSeo;
+  const saved = technicalSeoAnswers(state);
+  const record = state.agentOnboarding?.find((item) => item.agentId === "technical-seo-monitor");
+  const [keywords, setKeywords] = useState(saved.keywords.join("\n"));
+  const [locationName, setLocationName] = useState(saved.locationName || seo?.locationName || "United States");
+  const fixture = state.workspace.mode === "fixture";
+  const location = SERP_LOCATIONS.find((item) => item.name === locationName) ?? SERP_LOCATIONS[0];
+  const setupBlocked = busy || !installation;
+  const reasons = technicalSeoReadyReasons(state);
+  return (
+    <div className="stack">
+      <p className="help">
+        DataForSEO crawls the confirmed company origin (max 50 pages) and reads Google organic ranks plus Labs inventory. Copy titles, descriptions and fixes into the CMS. DAVID does not write the live site. Search Console stays off.
+      </p>
+      {fixture && !quiet && (
+        <p className="agent-disclosure">
+          ILLUSTRATIVE FIXTURE — DataForSEO did not crawl or read Google. Start records labeled fixture pages and ranks only.
+        </p>
+      )}
+      {seo?.lastError && <p className="notice notice-warning">{seo.lastError}</p>}
+      <label className="field">
+        Keywords (one per line, max 20)
+        <textarea
+          className="input"
+          style={{ minHeight: 120 }}
+          value={keywords}
+          onChange={(event) => setKeywords(event.target.value)}
+          placeholder={"ai seo agency\nshopify seo"}
+        />
+      </label>
+      <label className="field">
+        SERP location
+        <select className="input" value={locationName} onChange={(event) => setLocationName(event.target.value)}>
+          {SERP_LOCATIONS.map((item) => (
+            <option key={item.name} value={item.name}>
+              {item.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <p className="help">Language {location.languageCode}. Company website comes from Connections — it is not copied into this agent.</p>
+      <Button
+        disabled={setupBlocked || !keywords.trim()}
+        onClick={() =>
+          void act({
+            type: "save_technical_seo_setup",
+            expectedRevision: record?.revision ?? 0,
+            keywords: keywords.split(/\n|,/).map((value) => value.trim()).filter(Boolean),
+            locationName,
+            languageCode: location.languageCode,
+          })
+        }
+      >
+        Save keywords and location
+      </Button>
+      {reasons.length > 0 && (
+        <p className="help">{reasons[0]}</p>
+      )}
+      <div className="flex wrap">
+        <Button
+          variant="primary"
+          disabled={setupBlocked || state.workspace.paused || reasons.length > 0}
+          onClick={() => void act({ type: "start_technical_seo" })}
+        >
+          <Play size={14} />
+          {seo?.status === "paused" ? "Resume DataForSEO crawl" : "Start DataForSEO crawl"}
+        </Button>
+        <Button disabled={setupBlocked || seo?.status === "paused"} onClick={() => void act({ type: "pause_technical_seo" })}>
+          <Pause size={14} />
+          Pause Technical SEO
+        </Button>
+      </div>
+      <p className="help">
+        {seo?.status === "crawling" || seo?.status === "queued"
+          ? "Crawl in progress. Rankings appear after DataForSEO finishes."
+          : seo?.crawlTaskId
+            ? `${seo.pages.length} pages · ${seo.rankings.length} rank rows · ${seo.fixture ? "fixture task" : "DataForSEO task"} ${seo.crawlTaskId}`
+            : "No crawl recorded yet."}
+      </p>
+      {(seo?.pages ?? []).slice(0, 8).map((page) => (
+        <article className="agent-output" key={page.url}>
+          <div className="between">
+            <strong>{page.title || page.url}</strong>
+            <Badge tone={page.failedChecks.length ? "warning" : "positive"}>{page.statusCode || "—"}</Badge>
+          </div>
+          <p className="small">{page.url}</p>
+          {page.failedChecks.length > 0 && <p className="small">{page.failedChecks.join(", ")}</p>}
+        </article>
+      ))}
+      {(seo?.rankings ?? []).slice(0, 12).map((row) => (
+        <article className="agent-output" key={`${row.source}:${row.keyword}`}>
+          <div className="between">
+            <strong>{row.keyword}</strong>
+            <Badge>{row.rank ? `#${row.rank}` : "not in top 10"}</Badge>
+          </div>
+          <p className="small">{row.source} · {row.locationName}{row.resultUrl ? ` · ${row.resultUrl}` : ""}</p>
         </article>
       ))}
     </div>

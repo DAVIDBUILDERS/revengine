@@ -53,7 +53,9 @@ Workspace members can read rows. Owners and assigned operators mutate through `s
 
 ## Distinct examples
 
-**Preparation specialists** (Account Intelligence, Search Growth, Technical SEO Monitor, Creative Performance, Landing Page Optimizer, Social Content Publisher, Video Script Producer, Local Search Manager, Website Sales Concierge). Confirm the captured website snapshot and company facts. Tools: `read_approved_snapshot`, `save_artifact`. No extra provider onboarding beyond Connections. First work is a reviewed artifact. Copy-out is complete delivery when a destination CMS or social account is missing.
+**Preparation specialists** (Account Intelligence, Search Growth, Creative Performance, Landing Page Optimizer, Social Content Publisher, Video Script Producer, Local Search Manager, Website Sales Concierge). Confirm the captured website snapshot and company facts. Tools: `read_approved_snapshot`, `save_artifact`. No extra provider onboarding beyond Connections. First work is a reviewed artifact. Copy-out is complete delivery when a destination CMS or social account is missing.
+
+**Technical SEO.** Keywords (1–20) and SERP location are unique to this agent. Website origin is reused from Connections. Tools: `dataforseo.crawl`, `dataforseo.serp`, `dataforseo.ranked_keywords`, `save_artifact`. Runtime stays in `technical_seo_runs` / `technical_seo_pages` / `technical_seo_rankings`. Copy-out is complete delivery; no CMS write and no Search Console.
 
 **Deal Follow-up.** Bind a current proposals sheet, Gmail send and reply-read, and an enrolled cohort. Tools: `read_bound_source`, `propose_checked_action`. Company website capture is not this agent’s onboarding.
 
@@ -75,7 +77,7 @@ Workspace members can read rows. Owners and assigned operators mutate through `s
 | rfp-opportunity-scout | Record RFP sources and file access; engineering still required | none (planned) | rfp, drive | `agent_onboarding` only |
 | competitor-intelligence | Confirm competitor pages in the approved snapshot; engineering still required | none (planned) | website | `agent_onboarding` only |
 | search-growth | Confirm website facts; review a ContentBrief | `read_approved_snapshot`, `save_artifact` | website, analytics | `prepared_artifacts` |
-| technical-seo-monitor | Confirm captured pages only; no GSC or CMS write-back | `read_approved_snapshot`, `save_artifact` | website | `prepared_artifacts` |
+| technical-seo-monitor | Keywords, SERP location; website origin from Connections; no GSC or CMS write-back | `dataforseo.crawl`, `dataforseo.serp`, `dataforseo.ranked_keywords`, `save_artifact` | website | `technical_seo_*`, `prepared_artifacts` |
 | local-search-manager | Confirm locations; review a LocationChecklist | `read_approved_snapshot`, `save_artifact` | local, website | `prepared_artifacts` |
 | creative-performance | Confirm offer/audience facts; review AdCopyConcepts | `read_approved_snapshot`, `save_artifact` | advertising, drive | `prepared_artifacts` |
 | paid-campaign-operator | Record ad accounts and analytics; engineering still required | none (planned) | advertising, analytics | `agent_onboarding` only |

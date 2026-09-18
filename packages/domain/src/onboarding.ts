@@ -21,7 +21,7 @@ export function onboardingReport(state:AppSnapshot) {
   if(agent.releaseStatus==='implemented'?(!preparationFacts||!preparationPermission):(!complete[0]||!complete[3]||!complete[4]))add('information_required',agent.releaseStatus==='implemented'?'Review company facts, an approver and operating limits for this preparation.':'Complete company, operating rules, approver and measurement details.');
   // Preparation capabilities currently read approved website snapshots. Other systems are future dependencies,
   // not a claim that these preparations read Drive, ads, social platforms or search analytics today.
-  const needed:SystemKind[]=agent.releaseStatus==='implemented'?['website']:agent.id==='outbound-email-sdr'?[]:requiredSystems;
+  const needed:SystemKind[]=agent.releaseStatus==='implemented'?['website']:agent.id==='outbound-email-sdr'?[]:agent.id==='technical-seo-monitor'?['website']:requiredSystems;
   for(const kind of needed){
    if(hasConfiguredCompanySource(state,kind))continue;
    const system=a.systems.find(s=>s.kind===kind);
@@ -39,6 +39,8 @@ export function onboardingReport(state:AppSnapshot) {
     if(!state.artifacts.some(o=>o.workspaceId===state.workspace.id&&o.agentId===agent.id&&o.reviewState==='reviewed'&&record.reviews.some(r=>r.artifactId===o.id&&(r.configurationRevision??r.revision)===boundary.revision)&&o.sourceSnapshot.length>0&&o.sourceSnapshot.every(e=>state.workspace.mode==='fixture'?e.quality==='fixture':e.quality!=='fixture'&&e.quality!=='unknown')))add('verification_required','Generate and review a current source-backed preparation.');
    }else if(agent.id==='outbound-email-sdr'){
     if(!state.outboundSdr?.campaignId)add('verification_required','Instantly send starts after ready gates. Upload a list, save a meeting link, and generate the sequence. This agent does not find leads.');
+   }else if(agent.id==='technical-seo-monitor'){
+    if(!state.technicalSeo?.pages.length)add('verification_required','Save keywords and a SERP location, then start the bounded DataForSEO crawl. Copy-out is complete delivery; DAVID does not write the CMS.');
    }else {
     const type=agent.id==='deal-follow-up'?'send_follow_up':'book_appointment';
     if(!state.actions.some(action=>action.workspaceId===state.workspace.id&&action.type===type&&state.receipts.some(r=>r.actionId===action.id&&r.provider==='google'&&['provider_accepted','confirmed'].includes(r.status)&&Date.parse(r.observedAt)>=Date.parse(boundary.updatedAt))))add('verification_required','Verify the first approved real action and retain its provider receipt.');

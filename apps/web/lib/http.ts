@@ -3,6 +3,7 @@ import { ZodError } from 'zod';
 import { environment } from '../../../packages/orchestration/src/environment';
 import { DomainError } from '../../../packages/domain/src/action-service';
 import { InstantlyError } from '../../../packages/connectors/src/instantly';
+import { DataForSeoError } from '../../../packages/connectors/src/dataforseo';
 
 export class HttpError extends Error { constructor(public status: number, public code: string, message: string) { super(message); } }
 export function checkOrigin(request: Request) {
@@ -42,6 +43,7 @@ export function apiError(error: unknown) {
   if (error instanceof ZodError) return json({ error: 'VALIDATION_FAILED', message: error.issues.map(issue => `${issue.path.join('.')}: ${issue.message}`).join('; '), correlationId }, 400);
   // Domain errors are intentionally concise. Unknown provider errors never expose response bodies or credentials.
   if (error instanceof InstantlyError) return json({ error: error.code.toUpperCase(), message: error.message, correlationId }, 409);
+  if (error instanceof DataForSeoError) return json({ error: error.code.toUpperCase(), message: error.message, correlationId }, error.code === 'webhook_unauthorized' ? 401 : error.code === 'unmatched' ? 404 : error.code === 'webhook_unconfigured' ? 503 : 409);
   if (error instanceof Error && /^(BLOCKED|FORBIDDEN|INVALID|STALE|PAUSED|DENIED|NOT_FOUND|CONFLICT|APPROVAL|BUDGET|CAPACITY|UNKNOWN|FIXTURE|LIVE|SUPABASE|VERCEL|GOOGLE|MIGRATION|AUTH|MODEL|ENTITLEMENT|INSTANTLY)/.test(error.message)) return json({ error: 'ACTION_BLOCKED', message: error.message.slice(0, 600), correlationId }, 409);
   return json({ error: 'REQUEST_FAILED', message: 'The operation could not be completed. Review the current blockers or contact the assigned operator.', correlationId }, 500);
 }

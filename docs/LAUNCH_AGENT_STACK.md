@@ -39,9 +39,21 @@ Each Instantly workspace bills its own Email Outreach plan. Workspace groups can
 
 LinkedIn Outreach Assistant stays **preparation / planned**. There is no live LinkedIn OAuth send. Copy approved notes into HeyReach; DAVID does not send LinkedIn today.
 
-## 3. Technical SEO — captured pages only
+## 3. Technical SEO — DataForSEO crawl and SERP (pilot)
 
-Technical SEO stays on **captured-page audits**. It reads approved website snapshots (title, description, readable text). It does **not** add site crawl, Google Search Console, sitemap claims, indexing/ranking, or CMS write-back.
+DAVID is the customer-facing specialist. DataForSEO is the invisible crawl and Google organic/Labs reader.
+
+| DAVID owns | DataForSEO owns (invisible) |
+| --- | --- |
+| Keywords (1–20), SERP location, copy-out report, pause | On-Page crawl of the confirmed origin (max 50 pages, JS on, depth via page cap), Google organic live/regular (desktop, depth 10), Labs ranked keywords (25) |
+
+Copy-out is complete delivery. DAVID does **not** write the CMS. Search Console, Lighthouse/CWV, Instant Pages, backlinks, Bing, and keyword ideation stay off. Fixture crawls use `FIXTURE_ONLY_dataforseo_*` and must not claim a live fetch.
+
+Operational prerequisites: DataForSEO v3 login/password (Basic auth), `DATAFORSEO_WEBHOOK_SECRET` (32+ characters) on the live web runtime only. Customers never see or paste a DataForSEO key.
+
+Pingback: `{APP_ORIGIN}/api/webhooks/dataforseo?id=$id&tag={workspaceId}&token={hmac}`. HMAC is `HMAC-SHA256(DATAFORSEO_WEBHOOK_SECRET, workspaceId)`.
+
+Do not put a real DataForSEO password in git, chat, demo, preview, or fixture `.env`. Keep credentials in Vercel production env (or a gitignored operational file that fixture mode never loads).
 
 ## 4. Outbound voice SDR — Bland, not in catalog
 
