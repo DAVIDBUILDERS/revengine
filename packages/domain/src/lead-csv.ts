@@ -8,6 +8,19 @@ export type LeadCsvPreview = {
 
 export const EMAIL_HEADERS = ['email','email address','work email','e-mail','e-mail address','mail','work_email','emailaddress'];
 export const EMAIL_COLUMN_HELP = `Name the email column email. These also work: ${EMAIL_HEADERS.filter(name => name !== 'email').join(', ')}. A name column is fine. First name and company are optional.`;
+export const CSV_MAX_BYTES = 1_000_000;
+
+export function isLeadCsvFile(file: { name: string; type?: string }) {
+  const name = file.name.replace(/^\uFEFF/, '').trim().toLowerCase();
+  if (name.endsWith('.csv')) return true;
+  return /^(text\/csv|application\/csv|text\/plain)$/i.test(file.type ?? '');
+}
+
+export function leadCsvFileError(file: { name: string; type?: string; size: number }, maxBytes = CSV_MAX_BYTES) {
+  if (!isLeadCsvFile(file)) return 'Drop a .csv file.';
+  if (file.size > maxBytes) return 'Choose a CSV smaller than 1 MB.';
+  return '';
+}
 const FIRST_HEADERS = ['first name','firstname','first_name','given name','given_name','first'];
 const NAME_HEADERS = ['name','full name','fullname','full_name','contact name','contact_name'];
 const LAST_HEADERS = ['last name','lastname','last_name','surname','family name','last'];

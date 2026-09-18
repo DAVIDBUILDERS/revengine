@@ -21,6 +21,7 @@ import {
   technicalSeoAnswers,
 } from '@david/domain';
 import {Answer,Question} from '../briefing/question';
+import {CsvDropInput} from '../csv-drop';
 import type {ScreenProps} from '../app-shell';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -212,13 +213,7 @@ export function AgentSetupShell({agent,onExit,...props}:ScreenProps & {agent:Age
             {step.id==='booking' && <Answer label="Meeting link" value={draft.bookingUrl} onChange={value=>update('bookingUrl',value)}/>}
             {step.id==='booking' && <p className="help">{bookingUrlInfo(draft.bookingUrl).message}</p>}
             {step.id==='leads' && <>
-              <label className="field">Lead CSV
-                <input aria-label="Lead CSV" className="input" type="file" accept=".csv,text/csv" onChange={async event=>{
-                  const file=event.target.files?.[0]; if (!file) return;
-                  if (file.size>1_000_000) { setCsvError('Choose a CSV smaller than 1 MB.'); return; }
-                  update('csv',await file.text()); setCsvError('');
-                }}/>
-              </label>
+              <CsvDropInput label="Lead CSV" onText={text=>{update('csv',text); setCsvError('');}} onError={setCsvError}/>
               {draft.csv && <p role="status">{parseLeadCsv(draft.csv).valid} valid lead row(s) ready.</p>}
               {csvError && <p className="notice notice-warning" role="alert">{csvError}</p>}
               <p className="help">{EMAIL_COLUMN_HELP} This agent does not find leads.</p>
@@ -255,12 +250,7 @@ export function AgentSetupShell({agent,onExit,...props}:ScreenProps & {agent:Age
               <label className={`briefing-choice ${draft.listMode==='csv'?'selected':''}`}><input type="radio" name="voice-list" checked={draft.listMode==='csv'} onChange={()=>update('listMode','csv')}/><span>Upload a CSV</span></label>
             </div>}
             {step.id==='list' && draft.listMode==='csv' && <>
-              <label className="field">Call list CSV
-                <input aria-label="Call list CSV" className="input" type="file" accept=".csv,text/csv" onChange={async event=>{
-                  const file=event.target.files?.[0]; if (!file) return;
-                  update('csv',await file.text()); setCsvError('');
-                }}/>
-              </label>
+              <CsvDropInput label="Call list CSV" onText={text=>{update('csv',text); setCsvError('');}} onError={setCsvError}/>
               <p className="help">{EMAIL_COLUMN_HELP}</p>
             </>}
             {step.id==='bind' && <Answer label={agent.id==='outbound-email-sdr'?'Instantly workspace UUID':'ElevenLabs agent id'} value={draft.bindId} onChange={value=>update('bindId',value)}/>}

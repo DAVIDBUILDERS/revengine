@@ -2,6 +2,7 @@
 import {WorkspaceOverview} from "./workspace-overview";
 import {TeamStudio} from "./team-studio";
 import { AgentWorkspace } from "./agent-workspace";
+import { CsvDropInput } from "./csv-drop";
 import { activeApprovals } from "./approval-state";
 import { useEffect, useState } from "react";
 import { filterPipelineLeads, isWalkthroughFloor, pipelineLeads, type PipelineLeadFilter } from "@david/domain/delivery";
@@ -628,25 +629,15 @@ function CsvImport({
           enroll a real contact.
         </p>
       </div>
-      <label className="field">
-        Choose a CSV file
-        <input
-          className="input"
-          type="file"
-          accept=".csv,text/csv"
-          onChange={async (event) => {
-            const file = event.target.files?.[0];
-            if (!file) return;
-            if (file.size > 1000000) {
-              setFileError("Choose a CSV smaller than 1 MB.");
-              return;
-            }
-            setFileError("");
-            setCsv(await file.text());
-            setPreview(undefined);
-          }}
-        />
-      </label>
+      <CsvDropInput
+        label="Choose a CSV file"
+        onText={(text) => {
+          setFileError("");
+          setCsv(text);
+          setPreview(undefined);
+        }}
+        onError={setFileError}
+      />
       {fileError && (
         <p role="alert" className="notice notice-danger">
           {fileError}

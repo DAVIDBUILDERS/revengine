@@ -10,6 +10,7 @@ import { EMAIL_COLUMN_HELP, onboardingFor, slotAgentIds, technicalSeoAnswers, te
 import { bookingUrlInfo } from "@david/domain/outbound-sdr";
 import type { ScreenProps } from "./app-shell";
 import { ArtifactCopyOut } from "./artifact-copy-out";
+import { CsvDropInput } from "./csv-drop";
 import { Badge, Button, dateTime, Drawer, Evidence, QuietWalkthroughContext } from "./ui";
 
 type AgentProps = Pick<ScreenProps, "state" | "act" | "busy" | "navigate">;
@@ -636,24 +637,15 @@ function OutboundEmailSdrPanel({
       >
         Bind Instantly workspace
       </Button>
-      <label className="field">
-        Lead CSV
-        <input
-          type="file"
-          accept=".csv,text/csv"
-          onChange={async (event) => {
-            const file = event.target.files?.[0];
-            if (!file) return;
-            if (file.size > 1000000) {
-              setFileError("Choose a CSV smaller than 1 MB.");
-              return;
-            }
-            setFileError("");
-            setCsv(await file.text());
-            setPreview(undefined);
-          }}
-        />
-      </label>
+      <CsvDropInput
+        label="Lead CSV"
+        onText={(text) => {
+          setFileError("");
+          setCsv(text);
+          setPreview(undefined);
+        }}
+        onError={setFileError}
+      />
       <p className="help">{EMAIL_COLUMN_HELP} This agent does not find leads.</p>
       {fileError && (
         <p role="alert" className="notice notice-danger">

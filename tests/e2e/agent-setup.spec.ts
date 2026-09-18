@@ -29,13 +29,24 @@ test('Set up Outbound Email SDR is one question at a time, then offers the next 
   await page.getByLabel('Meeting link').fill('https://meet.example.com/demo');
   await page.getByRole('button', { name: 'Continue' }).click();
   await expect(heading).toHaveText('Upload the people to email.');
-  await expect(page.getByText(/Name the email column email/)).toBeVisible();
-  await page.setInputFiles('input[type="file"]', {
-    name: 'leads.csv',
-    mimeType: 'text/csv',
-    buffer: Buffer.from('email,first name\nlead@example.invalid,Riley\n'),
+  await expect(page.getByText(/Name the email column email/).first()).toBeVisible();
+  await expect(page.getByRole('group', { name: 'Lead CSV drop zone' })).toBeVisible();
+  await page.getByRole('group', { name: 'Lead CSV drop zone' }).evaluate((zone) => {
+    const file = new File(['email,first name\nlead@example.invalid,Riley\n'], 'leads.csv', { type: 'text/csv' });
+    const data = new DataTransfer();
+    data.items.add(file);
+    const dropped = new Event('drop', { bubbles: true, cancelable: true });
+    Object.defineProperty(dropped, 'dataTransfer', { value: data });
+    zone.dispatchEvent(dropped);
   });
+  await expect(page.getByText('leads.csv', { exact: true })).toBeVisible();
   await expect(page.getByRole('status').filter({ hasText: 'valid lead row' })).toBeVisible();
+  await page.setInputFiles('input[type="file"]', {
+    name: 'picked.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from('email,first name\nsecond@example.invalid,Sam\n'),
+  });
+  await expect(page.getByText('picked.csv', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Continue' }).click();
   await expect(page.getByRole('article').filter({ hasText: 'Step 1' })).toBeVisible();
   await page.keyboard.press('Enter');
