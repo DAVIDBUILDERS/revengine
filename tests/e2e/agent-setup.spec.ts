@@ -28,6 +28,8 @@ test('Set up Outbound Email SDR is one question at a time, then offers the next 
   await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
   await page.getByLabel('Meeting link').fill('https://meet.example.com/demo');
   await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(heading).toHaveText('Upload the people to email.');
+  await expect(page.getByText(/Name the email column email/)).toBeVisible();
   await page.setInputFiles('input[type="file"]', {
     name: 'leads.csv',
     mimeType: 'text/csv',

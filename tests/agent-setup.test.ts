@@ -10,6 +10,7 @@ describe('agent setup path', () => {
     const ids = () => agentSetupPath(state, 'outbound-email-sdr').map(step => step.id);
     expect(ids().indexOf('booking')).toBeLessThan(ids().indexOf('leads'));
     expect(ids().indexOf('leads')).toBeLessThan(ids().indexOf('sequence'));
+    expect(agentSetupPath(state, 'outbound-email-sdr').find(step => step.id === 'leads')?.description).toMatch(/Name the email column email/);
     expect(ids()).toContain('ready');
     expect(ids()).not.toContain('bind');
 

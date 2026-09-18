@@ -3,6 +3,7 @@ import {useEffect,useMemo,useRef,useState} from 'react';
 import type {AgentDefinition} from '@david/contracts';
 import {SERP_LOCATIONS} from '@david/contracts';
 import {
+  EMAIL_COLUMN_HELP,
   agentSetupPath,
   bookingUrlInfo,
   companyFromSnapshot,
@@ -212,7 +213,7 @@ export function AgentSetupShell({agent,onExit,...props}:ScreenProps & {agent:Age
               </label>
               {draft.csv && <p role="status">{parseLeadCsv(draft.csv).valid} valid lead row(s) ready.</p>}
               {csvError && <p className="notice notice-warning" role="alert">{csvError}</p>}
-              <p className="help">Email is required. This agent does not find leads.</p>
+              <p className="help">{EMAIL_COLUMN_HELP} This agent does not find leads.</p>
             </>}
             {step.id==='sequence' && <div className="agent-setup-sequence" aria-label="Three-step sequence preview">
               {sequence.map((item,position)=><article key={item.subject} className="agent-setup-card" style={{animationDelay:`${position*90}ms`}}>
@@ -245,12 +246,15 @@ export function AgentSetupShell({agent,onExit,...props}:ScreenProps & {agent:Age
               <label className={`briefing-choice ${draft.listMode==='email'?'selected':''}`}><input type="radio" name="voice-list" checked={draft.listMode==='email'} onChange={()=>update('listMode','email')}/><span>Same list as Outbound Email SDR</span></label>
               <label className={`briefing-choice ${draft.listMode==='csv'?'selected':''}`}><input type="radio" name="voice-list" checked={draft.listMode==='csv'} onChange={()=>update('listMode','csv')}/><span>Upload a CSV</span></label>
             </div>}
-            {step.id==='list' && draft.listMode==='csv' && <label className="field">Call list CSV
-              <input aria-label="Call list CSV" className="input" type="file" accept=".csv,text/csv" onChange={async event=>{
-                const file=event.target.files?.[0]; if (!file) return;
-                update('csv',await file.text()); setCsvError('');
-              }}/>
-            </label>}
+            {step.id==='list' && draft.listMode==='csv' && <>
+              <label className="field">Call list CSV
+                <input aria-label="Call list CSV" className="input" type="file" accept=".csv,text/csv" onChange={async event=>{
+                  const file=event.target.files?.[0]; if (!file) return;
+                  update('csv',await file.text()); setCsvError('');
+                }}/>
+              </label>
+              <p className="help">{EMAIL_COLUMN_HELP}</p>
+            </>}
             {step.id==='bind' && <Answer label={agent.id==='outbound-email-sdr'?'Instantly workspace UUID':'ElevenLabs agent id'} value={draft.bindId} onChange={value=>update('bindId',value)}/>}
             {csvError && step.id!=='leads' && <p className="notice notice-warning" role="alert">{csvError}</p>}
           </Question>}

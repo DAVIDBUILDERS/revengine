@@ -3,6 +3,7 @@ import { SERP_LOCATIONS } from '../../contracts/src/technical-seo';
 import { catalog, preparationIds, type WebsiteContext } from '../../agents/src/index';
 import { companyConnectionCoverage } from './company-connections';
 import { specialistWorkSnapshot } from './delivery';
+import { EMAIL_COLUMN_HELP } from './lead-csv';
 import { bookingUrlInfo, companyFromSnapshot, generateOutboundSequence } from './outbound-sdr';
 import { firstSetupAgentId, slotAgentIds, workbenchAgentIds } from './team';
 import { companyWebsite, technicalSeoAnswers } from './technical-seo';
@@ -73,7 +74,7 @@ function emailPath(state: AppSnapshot): AgentSetupStep[] {
   const steps = [
     step('intro', 'Outbound Email SDR books meetings from your list.', 'DAVID writes the sequence. Instantly sends, warms inboxes, and handles replies. This agent does not find leads. Start send stays a gate after setup — not a question here.', 'confirm', tools, true),
     step('booking', 'Where should people book a meeting?', 'Any https link works. Calendly is optional; Instantly auto-book is strongest when Calendly is present.', 'url', tools, booking.ok),
-    step('leads', 'Upload the people to email.', 'CSV with an email column. This agent does not find leads.', 'file', tools, leads),
+    step('leads', 'Upload the people to email.', `${EMAIL_COLUMN_HELP} This agent does not find leads.`, 'file', tools, leads),
     step('sequence', 'Here is the three-step sequence DAVID will send.', 'Written from confirmed company facts and your meeting link. Confirm it to save.', 'preview', tools, sequence),
   ];
   if (operator(state) && !instantlyBound(state)) {
@@ -166,7 +167,7 @@ function voicePath(state: AppSnapshot): AgentSetupStep[] {
   const listOk = listMode === 'email' || (listMode === 'csv' && (Boolean(answers.leadsImported) || emailLeads));
   const steps = [
     step('intro', 'Outbound Voice SDR calls your list.', 'DAVID writes the opening. ElevenLabs is the intended dialer. This agent does not find leads. No live dial in this pass.', 'confirm', tools, true),
-    step('list', 'Who should DAVID call?', emailLeads ? 'Reuse the Outbound Email SDR list, or upload a CSV.' : 'Upload a CSV, or reuse the email list once it exists.', 'choice', tools, listOk),
+    step('list', 'Who should DAVID call?', emailLeads ? `Reuse the Outbound Email SDR list, or upload a CSV. ${EMAIL_COLUMN_HELP}` : `Upload a CSV, or reuse the email list once it exists. ${EMAIL_COLUMN_HELP}`, 'choice', tools, listOk),
     step('script', 'DAVID will speak this.', 'Opening script from confirmed company facts. Confirm or edit it.', 'preview', tools, script.length >= 12),
     step('booking', 'Where should the call send people to book?', 'Any https meeting link. Calendly is optional.', 'url', tools, booking.ok),
   ];

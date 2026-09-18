@@ -6,7 +6,7 @@ import type { AgentDefinition, CommandResult } from "@david/contracts";
 import { SERP_LOCATIONS } from "@david/contracts";
 import { words } from "@david/ui";
 import { agentDelivery } from "@david/domain/delivery";
-import { onboardingFor, slotAgentIds, technicalSeoAnswers, technicalSeoReadyReasons } from "@david/domain";
+import { EMAIL_COLUMN_HELP, onboardingFor, slotAgentIds, technicalSeoAnswers, technicalSeoReadyReasons } from "@david/domain";
 import { bookingUrlInfo } from "@david/domain/outbound-sdr";
 import type { ScreenProps } from "./app-shell";
 import { ArtifactCopyOut } from "./artifact-copy-out";
@@ -655,6 +655,7 @@ function OutboundEmailSdrPanel({
           }}
         />
       </label>
+      <p className="help">{EMAIL_COLUMN_HELP} This agent does not find leads.</p>
       {fileError && (
         <p role="alert" className="notice notice-danger">
           {fileError}
