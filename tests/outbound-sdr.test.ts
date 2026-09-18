@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AgentDefinition } from '../packages/contracts/src/index';
-import { createFixtureState, executeCommand, catalog, parseCsvImport, CSV_FIELDS, parseLeadCsv } from '../packages/domain/src/index';
+import { createFixtureState, executeCommand, catalog, parseCsvImport, CSV_FIELDS, parseLeadCsv, mappedLeadRow } from '../packages/domain/src/index';
 import { agentDelivery } from '../packages/domain/src/delivery';
 import { denyInstantlyLeadFinder, normalizeInstantlyWebhook, parseInstantlyAccounts } from '../packages/connectors/src/instantly';
 import { launchManagedInstantlyCampaign } from '../packages/orchestration/src/action-service';
@@ -40,6 +40,14 @@ describe('Outbound Email SDR — Instantly, autonomous, no lead gen', () => {
     expect(preview.valid).toBe(1);
     expect(preview.errors).toEqual([]);
     expect(parseLeadCsv('name,company\nRiley,Acme').errors[0].message).toMatch(/Name the email column email/);
+    const named = parseLeadCsv('name,email\nRiley Thompson,lead@example.invalid\n,');
+    expect(named.mapping.email).toBe('email');
+    expect(named.mapping.name).toBe('name');
+    expect(named.valid).toBe(1);
+    expect(named.errors).toEqual([]);
+    expect(mappedLeadRow(named.rows[0], named.mapping)).toMatchObject({ email: 'lead@example.invalid', firstName: 'Riley', lastName: 'Thompson' });
+    expect(parseLeadCsv('name;email\nRiley;lead@example.invalid').valid).toBe(1);
+    expect(parseLeadCsv('E-mail Address,Name\nlead@example.invalid,Riley').mapping.email).toBe('E-mail Address');
     expect(parseLeadCsv('email\nnot-an-email').errors[0].message).toMatch(/invalid/i);
     expect(CSV_FIELDS).toContain('proposal_id');
     expect(parseLeadCsv('email\nlead@example.invalid').rows[0].proposal_id).toBeUndefined();

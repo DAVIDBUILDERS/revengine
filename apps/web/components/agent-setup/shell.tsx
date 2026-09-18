@@ -123,7 +123,11 @@ export function AgentSetupShell({agent,onExit,...props}:ScreenProps & {agent:Age
     if (step.id==='leads') {
       if (step.canContinue && !draft.csv.trim()) return true;
       const preview=parseLeadCsv(draft.csv);
-      if (!preview.valid) { setCsvError(preview.errors[0]?.message || 'Email is required.'); return false; }
+      if (!preview.valid || preview.errors.length) {
+        const issue=preview.errors[0];
+        setCsvError(issue ? (issue.row>1 ? `Row ${issue.row}: ${issue.message}` : issue.message) : 'Email is required.');
+        return false;
+      }
       return Boolean(await act({type:'import_lead_csv',csv:draft.csv,preview:false,mapping:preview.mapping}));
     }
     if (step.id==='sequence') return Boolean(await act({type:'generate_outbound_sequence'}));
@@ -155,7 +159,11 @@ export function AgentSetupShell({agent,onExit,...props}:ScreenProps & {agent:Age
     if (step.id==='list') {
       if (draft.listMode==='csv' && draft.csv.trim()) {
         const preview=parseLeadCsv(draft.csv);
-        if (!preview.valid) { setCsvError(preview.errors[0]?.message || 'Email is required.'); return false; }
+        if (!preview.valid || preview.errors.length) {
+          const issue=preview.errors[0];
+          setCsvError(issue ? (issue.row>1 ? `Row ${issue.row}: ${issue.message}` : issue.message) : 'Email is required.');
+          return false;
+        }
       }
       return Boolean(await saveAnswers({listMode:draft.listMode,leadsImported:draft.listMode==='csv' && Boolean(draft.csv.trim())}));
     }
