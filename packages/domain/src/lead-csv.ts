@@ -6,26 +6,46 @@ export type LeadCsvPreview = {
   mapping: Record<string, string>;
 };
 
-export const EMAIL_HEADERS = ['email','email address','work email','e-mail','mail','work_email','emailaddress'];
-export const EMAIL_COLUMN_HELP = `Name the email column email. These also work: ${EMAIL_HEADERS.filter(name => name !== 'email').join(', ')}. First name and company are optional.`;
+export const EMAIL_HEADERS = ['email','email address','work email','e-mail','e-mail address','mail','work_email','emailaddress'];
+export const EMAIL_COLUMN_HELP = `Name the email column email. These also work: ${EMAIL_HEADERS.filter(name => name !== 'email').join(', ')}. A name column is fine. First name and company are optional.`;
 const FIRST_HEADERS = ['first name','firstname','first_name','given name','given_name','first'];
+const NAME_HEADERS = ['name','full name','fullname','full_name','contact name','contact_name'];
 const LAST_HEADERS = ['last name','lastname','last_name','surname','family name','last'];
 const COMPANY_HEADERS = ['company','company name','company_name','account','organization','organisation','business'];
 const TITLE_HEADERS = ['title','job title','job_title','role','position'];
 const WEBSITE_HEADERS = ['website','domain','company website','company_website','url','site'];
 
 function normalizeHeader(value: string) {
-  return value.replace(/^\uFEFF/, '').trim().toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ');
+  return value.replace(/^\uFEFF/, '').replace(/\u00a0/g, ' ').trim().toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ');
 }
 
 function pickHeader(headers: string[], aliases: string[]) {
-  return headers.find(header => aliases.includes(normalizeHeader(header))) ?? '';
+  const normalized = aliases.map(normalizeHeader);
+  return headers.find(header => normalized.includes(normalizeHeader(header))) ?? '';
+}
+
+function detectDelimiter(csv: string) {
+  const line = csv.replace(/^\uFEFF/, '').split(/\r?\n/, 1)[0] ?? '';
+  const counts = { ',': 0, ';': 0, '\t': 0 };
+  let quoted = false;
+  for (const char of line) {
+    if (char === '"') { quoted = !quoted; continue; }
+    if (!quoted && char in counts) counts[char as ',' | ';' | '\t'] += 1;
+  }
+  if (counts[';'] > counts[','] && counts[';'] >= counts['\t']) return ';';
+  if (counts['\t'] > counts[','] && counts['\t'] >= counts[';']) return '\t';
+  return ',';
+}
+
+function isBlankRecord(cells: string[]) {
+  return cells.every(value => !value.trim());
 }
 
 /** RFC-4180 records; shared with proposal CSV so messy files keep original cells. */
 export function parseCsvRecords(csv: string): { headers: string[]; records: string[][]; errors: LeadCsvPreview['errors'] } {
   const errors: LeadCsvPreview['errors'] = [];
   const records: string[][] = [];
+  const delimiter = detectDelimiter(csv);
   let record: string[] = [];
   let cell = '';
   let quoted = false;
@@ -40,16 +60,16 @@ export function parseCsvRecords(csv: string): { headers: string[]; records: stri
       continue;
     }
     if (char === '"') { if (cell || afterQuote) errors.push({ row: records.length + 1, message: 'Unexpected quote in unquoted field.' }); quoted = true; continue; }
-    if (char === ',' || char === '\n' || char === '\r') {
+    if (char === delimiter || char === '\n' || char === '\r') {
       record.push(cell); cell = ''; afterQuote = false;
-      if (char !== ',') { if (record.some(value => value !== '')) records.push(record); record = []; if (char === '\r' && csv[i + 1] === '\n') i++; }
+      if (char !== delimiter) { if (!isBlankRecord(record)) records.push(record); record = []; if (char === '\r' && csv[i + 1] === '\n') i++; }
     } else {
       if (afterQuote) errors.push({ row: records.length + 1, message: 'Unexpected text after closing quote.' });
       cell += char;
     }
   }
   if (quoted) errors.push({ row: records.length + 1, message: 'Unterminated quoted field.' });
-  if (cell || record.length) { record.push(cell); records.push(record); }
+  if (cell || record.length) { record.push(cell); if (!isBlankRecord(record)) records.push(record); }
   const headers = records.shift()?.map((value, index) => (index === 0 ? value.replace(/^\uFEFF/, '') : value).trim()) ?? [];
   if (new Set(headers).size !== headers.length) errors.push({ row: 1, message: 'Duplicate column names are not allowed.' });
   if (records.length > 2000) errors.push({ row: 0, message: 'Maximum 2,000 rows per batch.' });
@@ -57,9 +77,11 @@ export function parseCsvRecords(csv: string): { headers: string[]; records: stri
 }
 
 export function mapLeadHeaders(headers: string[]): Record<string, string> {
+  const firstName = pickHeader(headers, FIRST_HEADERS);
   return {
     email: pickHeader(headers, EMAIL_HEADERS),
-    firstName: pickHeader(headers, FIRST_HEADERS),
+    firstName,
+    name: firstName ? '' : pickHeader(headers, NAME_HEADERS),
     lastName: pickHeader(headers, LAST_HEADERS),
     company: pickHeader(headers, COMPANY_HEADERS),
     title: pickHeader(headers, TITLE_HEADERS),
@@ -75,10 +97,12 @@ export function parseLeadCsv(csv: string, mappingOverride?: Partial<Record<strin
   };
   const errors = [...parsed.errors];
   if (!mapping.email) errors.push({ row: 1, message: `${EMAIL_COLUMN_HELP} Instantly cannot send without an address.` });
-  const rows: Record<string, string>[] = parsed.records.map((cells, index) => {
+  const rows: Record<string, string>[] = [];
+  for (const [index, cells] of parsed.records.entries()) {
     if (cells.length !== parsed.headers.length) errors.push({ row: index + 2, message: `Expected ${parsed.headers.length} fields; received ${cells.length}.` });
-    return Object.fromEntries(parsed.headers.map((header, cellIndex) => [header, cells[cellIndex] ?? ''])) as Record<string, string>;
-  });
+    if (isBlankRecord(cells)) continue;
+    rows.push(Object.fromEntries(parsed.headers.map((header, cellIndex) => [header, cells[cellIndex] ?? ''])) as Record<string, string>);
+  }
   const seen = new Set<string>();
   for (const [index, row] of rows.entries()) {
     const email = (row[mapping.email ?? ''] ?? '').trim().toLowerCase();
@@ -94,11 +118,21 @@ export function parseLeadCsv(csv: string, mappingOverride?: Partial<Record<strin
 }
 
 export function mappedLeadRow(row: Record<string, string>, mapping: Record<string, string>) {
+  const mappedFirst = (row[mapping.firstName ?? ''] ?? '').trim();
+  const mappedLast = (row[mapping.lastName ?? ''] ?? '').trim();
+  const full = (row[mapping.name ?? ''] ?? '').trim();
+  let firstName = mappedFirst;
+  let lastName = mappedLast;
+  if (!firstName && !lastName && full) {
+    const parts = full.split(/\s+/).filter(Boolean);
+    firstName = parts[0] ?? '';
+    lastName = parts.slice(1).join(' ');
+  }
   const custom = Object.fromEntries(Object.entries(row).filter(([header, value]) => value.trim() && !Object.values(mapping).includes(header)));
   return {
     email: (row[mapping.email ?? ''] ?? '').trim().toLowerCase(),
-    firstName: (row[mapping.firstName ?? ''] ?? '').trim(),
-    lastName: (row[mapping.lastName ?? ''] ?? '').trim(),
+    firstName,
+    lastName,
     company: (row[mapping.company ?? ''] ?? '').trim(),
     title: (row[mapping.title ?? ''] ?? '').trim(),
     website: (row[mapping.website ?? ''] ?? '').trim(),
