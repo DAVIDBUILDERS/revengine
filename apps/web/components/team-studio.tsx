@@ -7,6 +7,7 @@ import {onboardingFor} from '@david/domain/onboarding';
 import {agentOvernightRecap,conversationProposalForAgent,isWalkthroughFloor,specialistWorkSnapshot} from '@david/domain/delivery';
 import {ALWAYS_ON_AGENT_ID, firstSetupAgentId, isIncludedAgent, nextAgentIds, workbenchAgentIds} from '@david/domain/team';
 import {AgentWorkspace} from './agent-workspace';
+import {AgentSetupShell} from './agent-setup/shell';
 import {Button,QuietWalkthroughContext} from './ui';
 
 export function TeamStudio(props:ScreenProps & {configuration:(onSaved:(agentId:string)=>void)=>ReactNode}){
@@ -31,8 +32,8 @@ export function TeamStudio(props:ScreenProps & {configuration:(onSaved:(agentId:
  function openSetup(agentId:string){
   setSettings(false);
   setChosen(agentId);
-  setWorkspaceOpen(true);
-  navigate('team',{agent:agentId});
+  setWorkspaceOpen(false);
+  navigate('team',{agent:agentId,setup:true});
  }
  function openAgent(item:{id:string;name:string}){
   const work=specialistWorkSnapshot(state,item.id);
@@ -45,18 +46,29 @@ export function TeamStudio(props:ScreenProps & {configuration:(onSaved:(agentId:
  useEffect(()=>{
   const params=new URLSearchParams(window.location.search);
   const agentParam=params.get('agent')??'';
-  setChosen(agentParam);
   const build=params.get('team')==='build';
+  const setup=params.get('setup')==='1' && params.get('mode')!=='profile';
+  setChosen(agentParam);
   setSettings(build);setBuilderOpened(build);
-  if(agentParam&&!build)setWorkspaceOpen(true);
+  if(agentParam&&!build&&!setup)setWorkspaceOpen(true);
   const sync=()=>{
    const next=new URLSearchParams(window.location.search);
-   setChosen(next.get('agent')??'');
-   if(next.get('team')==='build'){setSettings(true);setBuilderOpened(true);setWorkspaceOpen(false);}
+   const nextAgent=next.get('agent')??'';
+   const nextBuild=next.get('team')==='build';
+   setChosen(nextAgent);
+   if(nextBuild){setSettings(true);setBuilderOpened(true);setWorkspaceOpen(false);}
   };
   window.addEventListener('popstate',sync);
   return ()=>window.removeEventListener('popstate',sync);
  },[]);
+ const setupAgentDef=state.catalog.find(item=>item.id===chosen)??catalog.find(item=>item.id===chosen)??null;
+ const liveQuery=typeof window!=='undefined'?new URLSearchParams(window.location.search):null;
+ const liveAgent=liveQuery?.get('agent')||chosen;
+ const liveSetup=liveQuery?.get('setup')==='1'&&liveQuery.get('mode')!=='profile'&&liveQuery.get('team')!=='build';
+ const liveAgentDef=state.catalog.find(item=>item.id===liveAgent)??catalog.find(item=>item.id===liveAgent)??setupAgentDef;
+ if(liveSetup&&liveAgentDef){
+  return <AgentSetupShell key={liveAgentDef.id} {...props} agent={liveAgentDef} onExit={()=>navigate('team')}/>;
+ }
  return <div className="team-studio">
   <header className="studio-heading"><div><span className="studio-kicker">DAVID / WORKSPACE</span><h1>AI agents<span aria-hidden="true">.</span></h1><p>{state.workspace.name} · Five paid agents plus the included website concierge. Browse the rest below.</p></div><div className="studio-heading-actions"><button className="studio-text-action" onClick={()=>setInspect(true)}>Workspace limits</button><Button onClick={()=>(setWorkspaceOpen(false),setBuilderOpened(true),setSettings(!settings))}><Settings2 size={15}/>{settings?'Back to workspace':'Build your team'}</Button></div></header>
   {builderOpened&&<section hidden={!settings} aria-label="Team configuration">{configuration(openSetup)}</section>}

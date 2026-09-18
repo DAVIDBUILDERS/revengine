@@ -46,11 +46,12 @@ export function saveAgentOnboarding(state: AppSnapshot, agentId: string, expecte
   const current = records.find(record => record.agentId === agentId)!;
   if (current.revision !== expectedRevision) throw new Error('Agent setup changed in another session. Reload before saving; your changes were not applied.');
   const started = Object.keys(answers).length > 0;
+  const completed = answers.completed === true;
   const next = AgentOnboardingRecord.parse({
     ...current,
     answers,
     revision: current.revision + 1,
-    status: current.status === 'ready' ? 'ready' : started ? 'in_progress' : 'not_started',
+    status: completed ? 'ready' : current.status === 'ready' ? 'ready' : started ? 'in_progress' : 'not_started',
     updatedAt: state.asOf,
     updatedBy: state.context.actorId,
   });

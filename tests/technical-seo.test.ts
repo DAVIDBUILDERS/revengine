@@ -11,8 +11,8 @@ async function seoReady() {
 }
 
 describe('Technical SEO — DataForSEO crawl and SERP, copy-out only', () => {
-  it('stays in the 32-agent catalog as preparation with DataForSEO tools', () => {
-    expect(catalog).toHaveLength(32);
+  it('stays in the 33-agent catalog as preparation with DataForSEO tools', () => {
+    expect(catalog).toHaveLength(33);
     const seo = catalog.find(agent => agent.id === 'technical-seo-monitor');
     expect(seo?.modes).toEqual(['preparation']);
     expect(seo?.releaseStatus).toBe('pilot');

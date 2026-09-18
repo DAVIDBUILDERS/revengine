@@ -11,7 +11,7 @@ export const Environment = z.object({
   WORKER_DATABASE_URL: optional, DISPATCHER_DATABASE_URL: optional, DATABASE_CA_CERT: optional,
   DAVID_OAUTH_DATABASE_URL: optional,
   GOOGLE_CLIENT_ID: optional, GOOGLE_CLIENT_SECRET: optional, GOOGLE_REDIRECT_URI: z.url().optional(),
-  INSTANTLY_API_KEY: optional, INSTANTLY_WEBHOOK_SECRET: optional,
+  INSTANTLY_API_KEY: optional, INSTANTLY_WEBHOOK_SECRET: optional, ELEVENLABS_API_KEY: optional,
   DATAFORSEO_LOGIN: optional, DATAFORSEO_PASSWORD: optional, DATAFORSEO_WEBHOOK_SECRET: optional,
   AI_GATEWAY_API_KEY: optional, AI_MODEL_ID: optional, AI_ALLOWED_PROVIDER: optional,
   APP_ORIGIN: z.url().default('http://localhost:3000'), CRON_SECRET: optional,
@@ -23,7 +23,7 @@ export function environment(input: Record<string, string | undefined> = process.
   const cloud = Boolean(env.VERCEL || env.VERCEL_ENV);
   if (env.DAVID_MODE === 'fixture') {
     if (cloud || env.DAVID_DEPLOYMENT !== 'local') throw new Error('FIXTURE_CLOUD_DENIED: Operational fixture authentication is local only. Use the separate demo app for public synthetic sessions.');
-    const disallowed = ['GOOGLE_CLIENT_SECRET', 'GOOGLE_REFRESH_TOKEN', 'WORKER_DATABASE_URL', 'DISPATCHER_DATABASE_URL', 'DAVID_OAUTH_DATABASE_URL', 'AI_GATEWAY_API_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SECRET_KEY', 'MIGRATION_DATABASE_URL', 'TEST_DATABASE_URL', 'PRIVACY_DATABASE_URL', 'PRIVACY_STORAGE_SERVICE_KEY', 'INSTANTLY_API_KEY', 'INSTANTLY_WEBHOOK_SECRET', 'DATAFORSEO_LOGIN', 'DATAFORSEO_PASSWORD', 'DATAFORSEO_WEBHOOK_SECRET'];
+    const disallowed = ['GOOGLE_CLIENT_SECRET', 'GOOGLE_REFRESH_TOKEN', 'WORKER_DATABASE_URL', 'DISPATCHER_DATABASE_URL', 'DAVID_OAUTH_DATABASE_URL', 'AI_GATEWAY_API_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SECRET_KEY', 'MIGRATION_DATABASE_URL', 'TEST_DATABASE_URL', 'PRIVACY_DATABASE_URL', 'PRIVACY_STORAGE_SERVICE_KEY', 'INSTANTLY_API_KEY', 'INSTANTLY_WEBHOOK_SECRET', 'DATAFORSEO_LOGIN', 'DATAFORSEO_PASSWORD', 'DATAFORSEO_WEBHOOK_SECRET', 'ELEVENLABS_API_KEY'];
     if (disallowed.some(key => Boolean(input[key]))) throw new Error('FIXTURE_CREDENTIALS_DENIED: Remove real sender, database, admin and model credentials from fixture mode.');
   }
   if (env.DAVID_MODE !== 'fixture') {

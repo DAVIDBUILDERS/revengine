@@ -14,7 +14,7 @@ test('studio focuses on one agent, keeps configuration optional, and fits mobile
  await page.getByRole('button',{name:'Build your team',exact:true}).click();
  await expect(page.getByText('Included with every workspace · does not use a slot')).toBeVisible();
  await expect(page.getByRole('heading',{name:'Add beyond the included five.'})).toBeVisible();
- await expect(page.locator('.agent-card')).toHaveCount(32);
+ await expect(page.locator('.agent-card')).toHaveCount(33);
  await page.screenshot({path:'artifacts/team-builder-desktop.png'});
  await page.getByRole('button',{name:'Recommend my five',exact:true}).click();
  await expect(page.getByRole('status').filter({hasText:'Recommended team selected below'})).toBeVisible();

@@ -1,6 +1,6 @@
 # Launch agent stack
 
-Product decisions for the remaining launch agents. Catalog size stays **32**. Outbound voice is a named vendor, not a 33rd agent.
+Product decisions for the remaining launch agents. Catalog size is **33**. Outbound Voice SDR is ElevenLabs-backed. AI Receptionist stays the inbound slot.
 
 ## 1. Outbound Email SDR — Instantly (pilot)
 
@@ -55,9 +55,13 @@ Pingback: `{APP_ORIGIN}/api/webhooks/dataforseo?id=$id&tag={workspaceId}&token={
 
 Do not put a real DataForSEO password in git, chat, demo, preview, or fixture `.env`. Keep credentials in Vercel production env (or a gitignored operational file that fixture mode never loads).
 
-## 4. Outbound voice SDR — Bland, not in catalog
+## 4. Outbound Voice SDR — ElevenLabs (pilot)
 
-The intended dialer for a later outbound voice SDR is **Bland**. It does **not** enter the 32-agent catalog. AI Receptionist remains the planned inbound/reception slot and is not this outbound voice job.
+Outbound Voice SDR is the **33rd catalog agent**. ElevenLabs is the intended outbound dialer. DAVID writes the opening script from confirmed company facts. The customer supplies the list (CSV or the same list as Outbound Email SDR). This agent **does not find leads**. Live dial is **not** enabled in this pass.
+
+Operator binds the ElevenLabs agent later with `ELEVENLABS_API_KEY` on the live web runtime only — denied in fixture, demo, and preview. Customers never paste an ElevenLabs key.
+
+AI Receptionist remains the planned **inbound** slot (ElevenLabs Conversational AI + calendar). It is not a duplicate outbound voice job and is not a 34th catalog agent.
 
 ## 5. Extra easy-to-launch agent — Search Growth
 

@@ -25,10 +25,10 @@ function account(state:ReturnType<typeof company>):ConnectionCapability{
 const system=(state:ReturnType<typeof company>,kind:string)=>companyConnectionCoverage(state).systems.find(s=>s.kind===kind)!;
 
 describe('shared company connections',()=>{
- it('covers all 32 responsibilities before a team is selected and distinguishes planned inputs',()=>{
+ it('covers all 33 responsibilities before a team is selected and distinguishes planned inputs',()=>{
   const state=company(),coverage=companyConnectionCoverage(state);
   expect(Object.keys(agentSystemRequirements).sort()).toEqual(state.catalog.map(a=>a.id).sort());
-  expect(coverage.systems).toHaveLength(14);expect(coverage.agents).toHaveLength(32);expect(coverage.agents.every(a=>!a.selected)).toBe(true);
+  expect(coverage.systems).toHaveLength(14);expect(coverage.agents).toHaveLength(33);expect(coverage.agents.every(a=>!a.selected)).toBe(true);
   expect(coverage.agents.find(a=>a.id==='account-intelligence')).toMatchObject({currentSystems:['website'],fullRoleSystems:['website','drive'],engineeringRequired:false});
   expect(coverage.agents.find(a=>a.id==='paid-campaign-operator')).toMatchObject({currentSystems:[],engineeringRequired:true});
   expect(system(state,'advertising').status).toBe('engineering_required');

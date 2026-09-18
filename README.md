@@ -1,6 +1,6 @@
 # DAVID Engine
 
-DAVID Engine gives a company a team of five specialized AI agents, chosen from a catalog of 32. The company connects its systems once, and the selected agents reuse that context to perform work—with visible inputs, outputs, permissions, approvals and results.
+DAVID Engine gives a company a team of five specialized AI agents, chosen from a catalog of 33. The company connects its systems once, and the selected agents reuse that context to perform work—with visible inputs, outputs, permissions, approvals and results.
 
 **Connect your company → assemble your team → request work → review the results.**
 
@@ -15,13 +15,13 @@ The experience should work both independently and alongside a DAVID operator on 
 
 As of **September 14, 2026**, the operational application is deployed on **Vercel with hosted Supabase**. It uses Next.js, shared TypeScript services, PostgreSQL and versioned Vercel workflows. No Docker or AWS dependencies are required.
 
-The platform foundation is built; the 32 agents are at different stages of implementation.
+The platform foundation is built; the 33 agents are at different stages of implementation.
 
 | Area | Current implementation |
 | --- | --- |
 | Company workspaces | Authentication, workspace isolation, resumable saved setup, invitations, revision history and operator setup requests. |
 | Shared sources | Firecrawl website capture and reviewed company facts; Google OAuth and selected Sheets, Gmail and Calendar resources; validated proposal CSV imports. Access and source checks remain explicit. |
-| Team selection | All 32 catalog roles, standard five-specialist allowance, recommendations, manual selection and direct swaps. Configured internal allowances are supported. |
+| Team selection | All 33 catalog roles, standard five-specialist allowance, recommendations, manual selection and direct swaps. Configured internal allowances are supported. |
 | Nine preparation capabilities | Bounded, source-backed preparation implementations. These do not imply full execution of each role, such as publishing content or managing ad campaigns. |
 | Two execution pilots | Deal Follow-up and Appointment Coordinator have provider-adapter and approval/workflow implementations. Live operation requires their own verified sources, permissions and readiness checks. |
 | Remaining 21 agents | Planned capabilities with explicit requirements and engineering gaps. Selecting one does not make it operational. |

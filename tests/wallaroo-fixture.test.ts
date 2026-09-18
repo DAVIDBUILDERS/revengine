@@ -19,7 +19,7 @@ describe('Wallaroo Media walkthrough fixture', () => {
     expect(state.activation.selectedTeam).toEqual([...WALLAROO_SELECTED_TEAM]);
     expect(state.installations.map(item => item.agentId)).toEqual([...WALLAROO_SELECTED_TEAM, ALWAYS_ON_AGENT_ID]);
     expect(state.installations).toHaveLength(6);
-    expect(state.catalog).toHaveLength(32);
+    expect(state.catalog).toHaveLength(33);
     expect(state.installations.every(item => item.status === 'monitoring' && item.blockers.length === 0)).toBe(true);
     for (const id of [...WALLAROO_SELECTED_TEAM, ALWAYS_ON_AGENT_ID]) {
       expect(state.artifacts.some(item => item.agentId === id), id).toBe(true);
