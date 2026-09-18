@@ -97,31 +97,63 @@ export function bookingUrlInfo(url: string | null | undefined) {
   }
 }
 
+function clipSubject(value: string, max = 60) {
+  const text = value.replace(/\s+/g, ' ').trim();
+  if (!text) return 'quick thought';
+  return text.length <= max ? text : `${text.slice(0, max - 1).trimEnd()}…`;
+}
+
+function topicPhrase(company: WebsiteContext) {
+  return (company.offers[0] ?? '').replace(/\s+/g, ' ').trim().replace(/[.;]+$/, '');
+}
+
+function audiencePhrase(company: WebsiteContext) {
+  const joined = company.customerTypes.map(item => item.trim()).filter(item => item && !['your team', 'your customers', 'your offer'].includes(item.toLowerCase())).join(', ');
+  if (!joined) return 'teams like yours';
+  return joined.length > 40 ? 'teams like yours' : joined;
+}
+
+function wordCount(value: string) {
+  return value.trim().split(/\s+/).filter(Boolean).length;
+}
+
+function problemLine(topic: string, who: string) {
+  const text = topic.toLowerCase();
+  if (/\b(audit|review|assessment|seo|search)\b/.test(text)) {
+    return `${topic} for ${who} usually dies in a deck. The findings are fine. Nobody owns the next 30 days.`;
+  }
+  if (/\b(implement|implementation|onboard|rollout|adop|deploy)\b/.test(text)) {
+    return `${topic} for ${who} usually stalls after the first pass. Not from lack of interest. From split ownership and no next step.`;
+  }
+  if (/\b(recruit|hiring|hire|staff|talent)\b/.test(text)) {
+    return `${topic} for ${who} usually slips because the role is everyone's job and nobody owns the calendar.`;
+  }
+  return `${topic} for ${who} usually stalls after the first pass. Not from lack of interest. From split ownership and no next step.`;
+}
+
 export function generateOutboundSequence(company: WebsiteContext, bookingUrl: string): OutboundSequenceStep[] {
   if (!company.confirmed) throw new DomainError('COMPANY_UNCONFIRMED', 'Confirm company facts before writing outbound copy.');
   const booking = bookingUrlInfo(bookingUrl);
   if (!booking.ok) throw new DomainError('BOOKING_URL_REQUIRED', booking.message);
-  const offer = company.offers[0];
-  const audience = company.customerTypes.join(', ');
+  const topicFull = topicPhrase(company);
+  if (!topicFull) throw new DomainError('SEQUENCE_TOPIC_REQUIRED', 'Say what these emails should be about.');
+  const topic = topicFull.length > 80 ? `${topicFull.slice(0, 79).trimEnd()}…` : topicFull;
   const first = '{{firstName}}';
-  const brand = company.operatingGuidance?.brand?.trim();
-  const forbidden = company.operatingGuidance?.forbiddenClaims?.trim();
-  const cta = `Book a conversation: ${bookingUrl.trim()}`;
-  const guard = [brand ? `Stay inside approved brand guidance.` : '', forbidden ? `Do not claim: ${forbidden}` : ''].filter(Boolean).join(' ');
-  return [
-    {
-      subject: `${offer} for ${first}`.slice(0, 200),
-      body: `Hi ${first},\n\n${company.companyName} helps ${audience} with ${company.offers.join(', ')}.\n\n${cta}\n\nIf this is not useful, reply and we will stop.\n\n${guard}`.trim(),
-    },
-    {
-      subject: `Quick question for ${first}`.slice(0, 200),
-      body: `Hi ${first},\n\nChecking whether ${offer} is still relevant for ${audience.includes(',') ? 'your team' : audience}.\n\nOne question: who owns this today?\n\n${cta}\n\n${guard}`.trim(),
-    },
-    {
-      subject: `Close the loop with ${first}`.slice(0, 200),
-      body: `Hi ${first},\n\nLast note from me. If a conversation would help, grab a time here:\n${bookingUrl.trim()}\n\nOtherwise I will not follow up again.\n\n${guard}`.trim(),
-    },
+  const who = audiencePhrase(company);
+  const sender = company.companyName.trim();
+  const link = bookingUrl.trim();
+  const opener = `${first} —\n\n${problemLine(topic, who)}\n\nIf that is on your plate this quarter, here is 15 minutes: ${link}\n\nIf I have the wrong person or the wrong time, reply and I will close the thread.\n\n${sender}`;
+  const bump = `${first} —\n\nDifferent note than the last one.\n\nWhen ${topic} has three owners, nothing ships. Who can say yes or no to it this quarter?\n\nIf that is you: ${link}`;
+  const close = `${first} —\n\nLast note on ${topic}. I will not follow up again.\n\nIf a conversation would still help: ${link}\n\nIf the timing is wrong, no need to reply.`;
+  const sequence = [
+    { subject: clipSubject(topic), body: opener },
+    { subject: clipSubject(`who owns ${topic}?`), body: bump },
+    { subject: clipSubject('should I close this out?'), body: close },
   ];
+  for (const step of sequence) {
+    if (wordCount(step.body) > 120) throw new DomainError('SEQUENCE_TOO_LONG', 'Cold emails stay under 120 words.');
+  }
+  return sequence;
 }
 
 export function outboundReadyReasons(state: EngineState): string[] {
@@ -225,7 +257,7 @@ export function saveOutboundSequence(state: EngineState) {
   if (installation) installation.lastPreparationAt = state.asOf;
   refreshOutboundStatus(state);
   audit(state, 'outbound.sequence', id);
-  return 'Three-step sequence written from what these emails are about. Instantly will send it; no copy-out to another mail tool.';
+  return 'Three cold emails: a short opener, one ownership question, then a close. Instantly will send them; no copy-out to another mail tool.';
 }
 
 export function importOutboundLeads(state: EngineState, csv: string, preview: boolean, mapping?: Record<string, string>) {

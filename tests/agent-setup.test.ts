@@ -17,8 +17,10 @@ describe('agent setup path', () => {
     await executeCommand(state, { type: 'save_agent_onboarding', agentId: 'outbound-email-sdr', expectedRevision: 0, answers: { sequenceTopic: 'paid search audits' } });
     expect(agentSetupPath(state, 'outbound-email-sdr').find(step => step.id === 'topic')?.canContinue).toBe(true);
     const preview = sequencePreviewFromSnapshot(state, 'https://meet.example.com/demo', 'paid search audits');
-    expect(preview[0]?.subject).toMatch(/paid search audits/);
-    expect(preview.map(step => step.subject).join(' ')).not.toMatch(/your offer/);
+    expect(preview[0]?.subject).toMatch(/paid search audits/i);
+    expect(preview[1]?.body).toMatch(/who can say yes or no/i);
+    expect(preview[2]?.body).toMatch(/will not follow up again/i);
+    expect(preview.map(step => `${step.subject} ${step.body}`).join(' ')).not.toMatch(/your offer|helps .+ with|Quick question/i);
     expect(ids()).toContain('ready');
     expect(ids()).not.toContain('bind');
 
