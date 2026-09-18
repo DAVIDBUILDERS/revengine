@@ -320,8 +320,8 @@ export function initiativeImpact(state:AppSnapshot,initiative:AppSnapshot['initi
    {label:'Chat turns',value:String(pulse.websiteTurns)},
    {label:'Meetings booked',value:String(pulse.meetingsBooked)},
   ]:  agentId==='technical-seo-monitor'?[
-   {label:'Pages checked',value:'5'},
-   {label:'Fixes in the log',value:String(state.artifacts.filter(item=>item.agentId===agentId).length)},
+   {label:'Pages crawled',value:String(state.technicalSeo?.pages.length||state.artifacts.filter(item=>item.agentId===agentId).length)},
+   {label:'Rank rows',value:String(state.technicalSeo?.rankings.length??0)},
   ]:agentId==='partner-development'?[
    {label:'Intros in the log',value:String(state.artifacts.filter(item=>item.agentId===agentId).length)},
   ]:agentId==='rfp-opportunity-scout'?[
@@ -484,12 +484,13 @@ export function agentOvernightRecap(state:AppSnapshot,agentId:string):AgentOvern
   };
  }
  if(agentId==='technical-seo-monitor'){
+  const pages=state.technicalSeo?.pages.length??work.artifacts;
   return {
-   headline:'SEO checks are copied for the site.',
-   body:'This specialist does not create trackable leads. Titles, descriptions and fixes are ready to copy onto the website. It supports the rest of the team.',
+   headline:floor?'SEO crawl is copied for the site.':'SEO checks are copied for the site.',
+   body:'This specialist does not create trackable leads. Crawl issues and observed ranks are ready to copy onto the website. DAVID does not write the CMS.',
    createsTrackableLeads:false,
    primary,
-   facts:[{label:'Checks on the record',value:String(work.artifacts||work.findings)}],
+   facts:[{label:'Pages crawled',value:String(pages)},{label:'Rank rows',value:String(state.technicalSeo?.rankings.length??0)}],
   };
  }
  if(agentId==='partner-development'){

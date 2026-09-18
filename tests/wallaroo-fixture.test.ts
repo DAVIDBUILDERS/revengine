@@ -27,7 +27,10 @@ describe('Wallaroo Media walkthrough fixture', () => {
     const seo = state.artifacts.find(item => item.agentId === 'technical-seo-monitor' && item.title === 'Captured-page technical check');
     expect(seo?.content).toContain('https://wallaroomedia.com/');
     expect(seo?.content).toContain('https://wallaroomedia.com/ai-powered-seo/');
-    expect(seo?.limitation).toMatch(/Only captured pages/);
+    expect(seo?.limitation).toMatch(/not a CMS write|not Search Console|Fixture/i);
+    expect(engine.technicalSeo?.fixture).toBe(true);
+    expect(engine.technicalSeo?.crawlTaskId).toMatch(/^FIXTURE_ONLY_dataforseo_/);
+    expect(engine.technicalSeo?.pages.length).toBeGreaterThan(0);
     const concierge = state.artifacts.find(item => item.agentId === ALWAYS_ON_AGENT_ID && item.title === 'FAQ and qualification draft');
     expect(concierge?.content).toContain('AI-Powered Ads');
     expect(concierge?.limitation).toMatch(/no deployed chat/i);

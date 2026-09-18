@@ -3,8 +3,8 @@ import {randomUUID,randomBytes,createHash} from 'node:crypto';
 import {z} from 'zod';
 import * as C from '../../../packages/contracts/src/index';
 import {catalog,recommendationFor,ALWAYS_ON_AGENT_ID} from '../../../packages/agents/src/index';
-import {parseCsvImport,forecastCases,parseLeadCsv,mappedLeadRow,generateOutboundSequence,companyFromSnapshot,emptyOutboundSdr,slotAgentIds} from '../../../packages/domain/src/index';
-import {launchManagedInstantlyCampaign,pauseManagedInstantlyCampaign} from '../../../packages/orchestration/src/action-service';
+import {parseCsvImport,forecastCases,parseLeadCsv,mappedLeadRow,generateOutboundSequence,companyFromSnapshot,emptyOutboundSdr,slotAgentIds,technicalSeoAnswers,emptyTechnicalSeo} from '../../../packages/domain/src/index';
+import {launchManagedInstantlyCampaign,pauseManagedInstantlyCampaign,launchManagedDataForSeoCrawl} from '../../../packages/orchestration/src/action-service';
 import {authClient,authorize} from './auth';
 import {HttpError} from './http';
 import {environment} from '../../../packages/orchestration/src/environment';
@@ -17,7 +17,7 @@ const date=(r:Row,k:string)=>r[k]?new Date(String(r[k])).toISOString():null;
 async function selectedWorkspace(requested:string|null){if(requested)return C.Id.parse(requested);const client=await authClient();const {data,error}=await client.auth.getClaims();if(error||!data?.claims?.sub)throw new HttpError(401,'AUTH_REQUIRED','Sign in with your invited DAVID account.');const {data:members}=await client.from('memberships').select('workspace_id').eq('actor_id',data.claims.sub).eq('active',true).limit(1);if(!members?.[0])throw new HttpError(403,'WORKSPACE_UNASSIGNED','Your account has no active workspace assignment. Ask your workspace owner for an invitation.');return String(members[0].workspace_id);}
 export async function operationalSnapshot(requested:string|null):Promise<C.AppSnapshot>{
  const workspaceId=await selectedWorkspace(requested);const {client,context}=await authorize(workspaceId);const asOf=new Date().toISOString();
- const names=['workspaces','accounts','contacts','opportunities','proposals','evidence','installations','connections','source_bindings','actions','approvals','receipts','outcomes','prepared_artifacts','product_records','usage_records','audit_events','runs','policies','conversations','outbound_campaigns','outbound_leads','outbound_events'] as const;
+ const names=['workspaces','accounts','contacts','opportunities','proposals','evidence','installations','connections','source_bindings','actions','approvals','receipts','outcomes','prepared_artifacts','product_records','usage_records','audit_events','runs','policies','conversations','outbound_campaigns','outbound_leads','outbound_events','technical_seo_runs','technical_seo_pages','technical_seo_rankings'] as const;
  const pairs=await Promise.all(names.map(async name=>{let query=client.from(name).select('*');query=name==='workspaces'?query.eq('id',workspaceId):query.eq('workspace_id',workspaceId);const {data,error}=await query.limit(201);if(error)throw new HttpError(503,'SCHEMA_OR_ACCESS_UNAVAILABLE',`Unable to read ${name}. Verify migrations and membership policies in the intended Supabase project.`);return [name,(data??[]) as Row[]] as const;}));
  const rows=Object.fromEntries(pairs) as Record<(typeof names)[number],Row[]>;const w=rows.workspaces[0];if(!w)throw new HttpError(404,'WORKSPACE_NOT_FOUND','The workspace is unavailable.');
  const ev=rows.evidence.map(r=>C.EvidenceRef.parse({id:r.id,label:r.label,source:r.source,capturedAt:date(r,'captured_at'),quality:r.quality,...(r.url?{url:r.url}:{})}));
@@ -92,6 +92,32 @@ export async function operationalSnapshot(requested:string|null):Promise<C.AppSn
    lastError:campaign?.last_error==null?null:text(campaign,'last_error'),
   });
  }
+ const run=rows.technical_seo_runs[0];
+ if(run||installations.some(item=>item.agentId==='technical-seo-monitor')){
+  const empty=emptyTechnicalSeo(workspaceId,asOf);
+  const answers=technicalSeoAnswers(state);
+  state.technicalSeo=C.TechnicalSeoState.parse({
+   workspaceId,
+   status:run?text(run,'status'):empty.status,
+   target:run?.target?text(run,'target'):null,
+   crawlTaskId:run?.crawl_task_id?text(run,'crawl_task_id'):null,
+   maxPages:number(run??{},'max_pages')??empty.maxPages,
+   keywords:Array.isArray(run?.keywords)?run.keywords:answers.keywords,
+   locationName:run?text(run,'location_name'):answers.locationName,
+   languageCode:run?text(run,'language_code')||'en':answers.languageCode,
+   pages:rows.technical_seo_pages.map(page=>C.TechnicalSeoPage.parse({
+    url:text(page,'url'),statusCode:number(page,'status_code')??0,title:text(page,'title'),description:text(page,'description'),
+    score:page.score===null||page.score===undefined?null:Number(page.score),failedChecks:Array.isArray(page.failed_checks)?page.failed_checks:[],
+   })),
+   rankings:rows.technical_seo_rankings.map(row=>C.TechnicalSeoRanking.parse({
+    keyword:text(row,'keyword'),source:row.source,rank:row.rank===null||row.rank===undefined?null:Number(row.rank),resultUrl:text(row,'result_url'),
+    locationName:text(row,'location_name'),languageCode:text(row,'language_code'),
+   })),
+   fixture:Boolean(run?.fixture),
+   lastError:run?.last_error==null?null:text(run,'last_error'),
+   updatedAt:date(run??{},'updated_at')??asOf,
+  });
+ }
  const [{data:readiness,error:readinessError},{data:health,error:healthError}]=await Promise.all([client.rpc('read_workspace_readiness',{p_workspace:workspaceId}),client.rpc('read_workspace_health',{p_workspace:workspaceId})]);
  if(readinessError||healthError)throw new HttpError(503,'READINESS_UNAVAILABLE','Apply the current readiness/health migrations and review the actual runtime.');
  state.readiness=C.ReadinessResult.parse(readiness);
@@ -155,6 +181,9 @@ export async function operationalCommand(command:C.Command,requested:string|null
   case 'pause_outbound_sdr':{if(current.outboundSdr?.campaignId&&/^[0-9a-f-]{36}$/i.test(current.outboundSdr.instantlyWorkspaceId??'')){try{await pauseManagedInstantlyCampaign(current.outboundSdr.campaignId,current.outboundSdr.instantlyWorkspaceId!);}catch{/* Workspace pause still applies. */}}message=String(await rpc('pause_outbound_sdr',{p_workspace:workspaceId}));break;}
   case 'set_outbound_crm':message=String(await rpc('set_outbound_crm',{p_workspace:workspaceId,p_provider:command.provider}));break;
   case 'ingest_outbound_event':throw new HttpError(409,'SOURCE_EVENT_REQUIRED','Live Instantly replies must come from the authorized Instantly webhook.');
+  case 'save_technical_seo_setup':message=String(await rpc('save_technical_seo_setup',{p_workspace:workspaceId,p_expected_revision:command.expectedRevision,p_keywords:command.keywords,p_location:command.locationName,p_language:command.languageCode}));break;
+  case 'start_technical_seo':{if(!current.activation.confirmedFacts)throw new HttpError(409,'COMPANY_UNCONFIRMED','Confirm company facts before DataForSEO can crawl.');const prepared=z.object({target:z.string(),startUrl:z.string(),maxPages:z.number(),keywords:z.array(z.string()),locationName:z.string(),languageCode:z.string(),priorityUrls:z.array(z.string())}).parse(await rpc('prepare_technical_seo_launch',{p_workspace:workspaceId}));const launched=await launchManagedDataForSeoCrawl({workspaceId,...prepared});message=String(await rpc('record_technical_seo_task',{p_workspace:workspaceId,p_task:launched.crawlTaskId,p_target:launched.target}));break;}
+  case 'pause_technical_seo':message=String(await rpc('pause_technical_seo',{p_workspace:workspaceId}));break;
   case 'dispatch':case 'reconcile':await rpc('request_action_dispatch',{p_action:command.actionId,p_reconcile:command.type==='reconcile'});message='Action queued for checked processing. Refresh to inspect its retained receipt.';break;
   case 'approve_finding':await rpc('approve_work_finding',{p_workspace:workspaceId,p_finding:command.findingId});break;
   case 'review_initiative':await rpc('review_initiative',{p_workspace:workspaceId,p_initiative:command.initiativeId,p_result:command.result});break;

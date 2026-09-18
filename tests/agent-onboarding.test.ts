@@ -14,6 +14,7 @@ describe('per-agent onboarding', () => {
       expect(tools.prerequisites).toEqual(agent.prerequisites);
     }
     expect(requiredToolsFor('outbound-email-sdr').tools).toEqual(['instantly.campaign', 'instantly.leads', 'instantly.webhooks']);
+    expect(requiredToolsFor('technical-seo-monitor').tools).toEqual(['dataforseo.crawl', 'dataforseo.serp', 'dataforseo.ranked_keywords', 'save_artifact']);
     expect(requiredToolsFor('deal-follow-up').tools).toEqual(['read_bound_source', 'propose_checked_action']);
     expect(requiredToolsFor('account-intelligence').tools).toEqual(['read_approved_snapshot', 'save_artifact']);
   });

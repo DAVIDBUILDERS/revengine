@@ -1,8 +1,8 @@
 import {z} from 'zod';
-import {ActionProposal} from '../../contracts/src/index';
+import {ActionProposal, type TechnicalSeoRanking} from '../../contracts/src/index';
 import {actionHash,classifyReply} from '../../domain/src/index';
 import {createVaultSecretStore,type Database} from '../../db/src/index';
-import {createGoogleConnector,type GoogleConnector,GoogleError,createInstantlyClient,parseInstantlyAccounts,requireInstantlySubWorkspace,InstantlyError} from '../../connectors/src/index';
+import {createGoogleConnector,type GoogleConnector,GoogleError,createInstantlyClient,parseInstantlyAccounts,requireInstantlySubWorkspace,InstantlyError,createDataForSeoClient,parseCrawlTaskId,parseCrawlProgress,parseCrawlPages,parseOrganicRank,parseRankedKeywords,dataForSeoPingbackToken,DataForSeoError} from '../../connectors/src/index';
 import {executeGoogleWrite} from '../../connectors/src/internal/provider-writes';
 import {executeInstantlyWrite} from '../../connectors/src/internal/instantly-writes';
 import {environment} from './environment';
@@ -150,4 +150,53 @@ export async function pauseManagedInstantlyCampaign(campaignId:string,instantlyW
  if(env.DAVID_MODE==='fixture')throw new InstantlyError('fixture_denied','Instantly credentials are denied in fixture mode.');
  if(!env.INSTANTLY_API_KEY)throw new InstantlyError('unconfigured','INSTANTLY_API_KEY is required for DAVID-managed Instantly.');
  return executeInstantlyWrite(env.INSTANTLY_API_KEY,requireInstantlySubWorkspace(instantlyWorkspaceId),{type:'pause_campaign',campaignId},fetchImpl);
+}
+
+export type DataForSeoLaunchInput = {
+ workspaceId:string;
+ target:string;
+ startUrl:string;
+ maxPages:number;
+ keywords:string[];
+ locationName:string;
+ languageCode:string;
+ priorityUrls:string[];
+};
+
+export async function launchManagedDataForSeoCrawl(input:DataForSeoLaunchInput,fetchImpl?:typeof fetch){
+ const env=environment();
+ if(env.DAVID_MODE==='fixture')throw new DataForSeoError('fixture_denied','DataForSEO credentials are denied in fixture mode.');
+ if(env.DAVID_LIVE_EXECUTION!=='true'||env.DAVID_MODE!=='live')throw new DataForSeoError('live_disabled','Live DataForSEO crawl is disabled until production live execution is enabled.');
+ if(!env.DATAFORSEO_LOGIN||!env.DATAFORSEO_PASSWORD)throw new DataForSeoError('unconfigured','DATAFORSEO_LOGIN and DATAFORSEO_PASSWORD are required for live Technical SEO.');
+ if(!env.DATAFORSEO_WEBHOOK_SECRET||env.DATAFORSEO_WEBHOOK_SECRET.length<32)throw new DataForSeoError('webhook_unconfigured','Configure DATAFORSEO_WEBHOOK_SECRET of at least 32 characters.');
+ const client=createDataForSeoClient({login:env.DATAFORSEO_LOGIN,password:env.DATAFORSEO_PASSWORD,fetch:fetchImpl});
+ const token=dataForSeoPingbackToken(env.DATAFORSEO_WEBHOOK_SECRET,input.workspaceId);
+ const pingbackUrl=`${env.APP_ORIGIN}/api/webhooks/dataforseo?id=$id&tag=${encodeURIComponent(input.workspaceId)}&token=${token}`;
+ const posted=await client.postCrawl({
+  target:input.target,
+  startUrl:input.startUrl,
+  maxPages:input.maxPages,
+  priorityUrls:input.priorityUrls,
+  pingbackUrl,
+  tag:input.workspaceId,
+  acceptLanguage:input.languageCode,
+ });
+ return {crawlTaskId:parseCrawlTaskId(posted),target:input.target,status:'queued' as const};
+}
+
+export async function collectTechnicalSeoResults(input:{crawlTaskId:string;target:string;keywords:string[];locationName:string;languageCode:string},fetchImpl?:typeof fetch){
+ const env=environment();
+ if(env.DAVID_MODE==='fixture')throw new DataForSeoError('fixture_denied','DataForSEO credentials are denied in fixture mode.');
+ if(!env.DATAFORSEO_LOGIN||!env.DATAFORSEO_PASSWORD)throw new DataForSeoError('unconfigured','DATAFORSEO_LOGIN and DATAFORSEO_PASSWORD are required for live Technical SEO.');
+ const client=createDataForSeoClient({login:env.DATAFORSEO_LOGIN,password:env.DATAFORSEO_PASSWORD,fetch:fetchImpl});
+ const progress=parseCrawlProgress(await client.crawlSummary(input.crawlTaskId));
+ if(progress!=='finished')return {progress};
+ const pages=parseCrawlPages(await client.crawlPages(input.crawlTaskId),input.target);
+ const tracked:TechnicalSeoRanking[]=[];
+ for(const keyword of input.keywords){
+  const rank=parseOrganicRank(await client.organicSerp({keyword,locationName:input.locationName,languageCode:input.languageCode,target:input.target}),input.target);
+  tracked.push({keyword,source:'tracked',rank:rank.rank,resultUrl:rank.resultUrl,locationName:input.locationName,languageCode:input.languageCode});
+ }
+ const inventory=parseRankedKeywords(await client.rankedKeywords({target:input.target,locationName:input.locationName,languageCode:input.languageCode}),input.target,input.locationName,input.languageCode);
+ return {progress:'finished' as const,pages,rankings:[...tracked,...inventory]};
 }

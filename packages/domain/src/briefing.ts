@@ -25,7 +25,7 @@ export const firstTasks = [
  {id:'search-growth',requiresModel:true,title:'A content brief for your ideal customer',why:'Give the right customers a useful reason to discover your business.',output:'A source-grounded outline for one useful article. Search demand still needs validation.'},
  {id:'landing-page-optimizer',requiresModel:true,title:'A clearer offer and call to action',why:'Help visitors understand your offer and take the next step.',output:'Suggested landing-page copy and a test hypothesis. Nothing is published; conversion uplift is unknown.'},
  {id:'account-intelligence',requiresModel:true,title:'A company positioning brief',why:'Establish the offer and customer context before preparing outreach.',output:'A reviewed-source company profile. This does not read proposals, find prospects or send follow-ups.'},
- {id:'technical-seo-monitor',requiresModel:false,title:'A check of your public website pages',why:'Find missing titles, descriptions and limited readable content before improving the site.',output:'A captured-page checklist for review. This does not measure rankings, indexing or conversion.'},
+ {id:'technical-seo-monitor',requiresModel:false,title:'A check of your public website pages',why:'Find crawl issues and observed Google ranks before improving the site.',output:'A bounded crawl and rank snapshot for review. Copy-out is complete delivery; this does not write the CMS or use Search Console.'},
 ] as const;
 export function briefingFor(state:AppSnapshot):Briefing {
  return Briefing.parse(onboardingFor(state).answers.briefing??{version:1,step:'welcome',name:state.setupIdentity?.name??''});
@@ -55,7 +55,7 @@ export function normalizeWebsite(value:string){
 export function recommendedTask(state:AppSnapshot,b:Briefing){
  const primary=chosenGoals(b)[0];
  const preferred=primary==='demand'?'search-growth':primary==='conversion'?'landing-page-optimizer':'account-intelligence';
- const available=firstTasks.filter(t=>state.catalog.some(a=>a.id===t.id&&a.releaseStatus==='implemented'&&a.supportedArchetypes.includes(onboardingFor(state).answers.company.businessModel)));
+ const available=firstTasks.filter(t=>state.catalog.some(a=>a.id===t.id&&(a.releaseStatus==='implemented'||(a.releaseStatus==='pilot'&&a.modes.includes('preparation')))&&a.supportedArchetypes.includes(onboardingFor(state).answers.company.businessModel)));
  return available.find(t=>t.id===b.task)??(state.workspace.mode!=='fixture'&&state.preparationRuntime?.configured===false?available.find(t=>!t.requiresModel):undefined)??available.find(t=>t.id===preferred)??available[0];
 }
 /** Saved first-task screens stay parseable; the live briefing no longer visits them. */

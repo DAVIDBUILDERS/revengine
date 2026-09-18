@@ -4,3 +4,4 @@ export { captureWebsite, validatePublicUrl } from './website';
 export type { WebsiteSnapshot, CaptureOptions } from './website';
 export { createInstantlyClient, denyInstantlyLeadFinder, normalizeInstantlyWebhook, parseInstantlyAccounts, requireInstantlySubWorkspace, InstantlyError, InstantlyWebhookEvent } from './instantly';
 export type { InstantlyCampaignInput, InstantlyLeadInput } from './instantly';
+export { createDataForSeoClient, denyDataForSeoPath, parseCrawlTaskId, parseCrawlProgress, parseCrawlPages, parseOrganicRank, parseRankedKeywords, dataForSeoPingbackToken, verifyDataForSeoPingback, DataForSeoError } from './dataforseo';

@@ -16,14 +16,19 @@ describe('Launch agent stack decisions', () => {
     expect(agentDelivery(state, 'linkedin-outreach-assistant').headline).toMatch(/HeyReach/);
   });
 
-  it('keeps Technical SEO on captured pages only — no crawl, Search Console, or CMS write-back', () => {
+  it('keeps Technical SEO on a bounded DataForSEO crawl and SERP snapshot — no Search Console or CMS write-back', () => {
     const seo = catalog.find(agent => agent.id === 'technical-seo-monitor');
-    expect(seo?.releaseStatus).toBe('implemented');
-    expect(seo?.responsibility).toMatch(/Captured pages only — no crawl, Search Console, or CMS write-back/);
+    expect(seo?.releaseStatus).toBe('pilot');
+    expect(seo?.modes).toEqual(['preparation']);
+    expect(seo?.responsibility).toMatch(/DataForSEO/);
+    expect(seo?.responsibility).toMatch(/does not write the CMS/i);
+    expect(seo?.responsibility).toMatch(/Search Console stays off/i);
+    expect(seo?.toolNames).toEqual(expect.arrayContaining(['dataforseo.crawl', 'dataforseo.serp', 'dataforseo.ranked_keywords']));
     const state = createFixtureState();
     const artifact = prepareFromContext('technical-seo-monitor', state.company);
-    expect(artifact.type).toBe('CapturedPageAudit');
-    expect(artifact.limitation).toMatch(/Only captured pages were checked/);
+    expect(artifact.type).toBe('TechnicalSeoReport');
+    expect(artifact.limitation).toMatch(/not a CMS write/i);
+    expect(artifact.limitation).not.toMatch(/Search Console stays on/i);
     expect(agentDelivery(state, 'technical-seo-monitor').detail).toMatch(/does not change your website|Copy titles/i);
   });
 

@@ -39,6 +39,16 @@ export function createDatabase(options: DatabaseOptions) {
       const [row] = await dispatcher<{ingest_instantly_webhook:string}[]>`select private.ingest_instantly_webhook(${dispatcher.json(jsonPayload)}::jsonb) as ingest_instantly_webhook`;
       return row?.ingest_instantly_webhook ?? 'ignored';
     },
+    async applyTechnicalSeoCrawl(payload: unknown): Promise<string> {
+      const jsonPayload = JSON.parse(JSON.stringify(payload)) as postgres.JSONValue;
+      const [row] = await dispatcher<{apply_technical_seo_crawl:string}[]>`select private.apply_technical_seo_crawl(${dispatcher.json(jsonPayload)}::jsonb) as apply_technical_seo_crawl`;
+      return row?.apply_technical_seo_crawl ?? 'ignored';
+    },
+    async technicalSeoPingbackContext(workspaceId: string, crawlTaskId: string): Promise<unknown> {
+      Uuid.parse(workspaceId);
+      const [row] = await dispatcher<{context:unknown}[]>`select private.technical_seo_pingback_context(${workspaceId}::uuid,${crawlTaskId}) as context`;
+      return row?.context ?? null;
+    },
     async finishDispatch(outboxId: string, leaseToken: string, workflowId: string | null): Promise<boolean> {
       Uuid.parse(outboxId); Uuid.parse(leaseToken);
       const [row] = await dispatcher<{done:boolean}[]>`select private.finish_dispatch(${outboxId}::uuid,${leaseToken}::uuid,${workflowId}) as done`;

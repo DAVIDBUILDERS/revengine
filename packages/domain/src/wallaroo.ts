@@ -1,7 +1,9 @@
 import { catalog, recommendationFor, prepareFromContext, ALWAYS_ON_AGENT_ID, type WebsiteContext } from '../../agents/src/index';
 import { emptyOnboarding, type OnboardingRecord } from '../../contracts/src/index';
 import { OutboundLead, OutboundSdrState } from '../../contracts/src/outbound';
+import { TechnicalSeoState } from '../../contracts/src/technical-seo';
 import { generateOutboundSequence } from './outbound-sdr';
+import { saveAgentOnboarding } from './agent-onboarding';
 import { evidence, nextId, stableId, type EngineState } from './state';
 
 /** Brandon’s five from the call. Website Sales Concierge is included separately and does not use a slot. */
@@ -408,6 +410,7 @@ export function applyWallarooFixture(state: EngineState): void {
     { id: stableId(`${state.fixtureKey}:connection:google-ads`), workspaceId, provider: 'fixture', identity: 'Wallaroo Media · Google Ads', resource: 'Google Ads account', scopes: [], operations: ['ads.read'], health: 'fixture', lastSyncAt: now, verifiedAt: now, owner: 'Workspace owner', freshnessSeconds: 86400 },
     { id: stableId(`${state.fixtureKey}:connection:klaviyo`), workspaceId, provider: 'fixture', identity: 'Wallaroo Media · Klaviyo', resource: 'Klaviyo email account', scopes: [], operations: ['mail.read', 'mail.draft'], health: 'fixture', lastSyncAt: now, verifiedAt: now, owner: 'Workspace owner', freshnessSeconds: 86400 },
     { id: stableId(`${state.fixtureKey}:connection:instantly`), workspaceId, provider: 'fixture', identity: 'DAVID-managed Instantly (fixture)', resource: 'Instantly campaign', scopes: [], operations: ['instantly.send', 'instantly.warmup', 'instantly.replies'], health: 'fixture', lastSyncAt: now, verifiedAt: now, owner: 'DAVID operator', freshnessSeconds: 86400 },
+    { id: stableId(`${state.fixtureKey}:connection:dataforseo`), workspaceId, provider: 'fixture', identity: 'DAVID-managed DataForSEO (fixture)', resource: 'On-Page crawl and Google organic SERP', scopes: [], operations: ['dataforseo.onpage', 'dataforseo.serp'], health: 'fixture', lastSyncAt: now, verifiedAt: now, owner: 'DAVID operator', freshnessSeconds: 86400 },
     { id: stableId(`${state.fixtureKey}:connection:shopify`), workspaceId, provider: 'fixture', identity: 'Shopify Plus Partner', resource: 'Partner directory / client stores', scopes: [], operations: ['commerce.read'], health: 'fixture', lastSyncAt: now, verifiedAt: now, owner: 'Workspace owner', freshnessSeconds: 86400 },
     { id: stableId(`${state.fixtureKey}:connection:ga4`), workspaceId, provider: 'fixture', identity: 'Wallaroo Media · GA4', resource: 'Google Analytics 4', scopes: [], operations: ['analytics.read'], health: 'fixture', lastSyncAt: now, verifiedAt: now, owner: 'Workspace owner', freshnessSeconds: 86400 },
   ];
@@ -450,7 +453,7 @@ export function applyWallarooFixture(state: EngineState): void {
       createdAt: agentId === 'technical-seo-monitor' ? now : night.concierge,
     });
   }
-  addArtifact(state, 'technical-seo-monitor', 'Title and description fixes', 'CapturedPageAudit', 'Priority fixes from the captured Wallaroo pages:\n1. /ai-powered-email/ — keep the Klaviyo/Shopify offer in the first 160 characters of the description.\n2. /ai-powered-seo/ — title already names SEO and LLMO; keep both terms.\n3. Home — “AI-native agency for eCommerce” is the clearest offer line.\nCopy these into the CMS. DAVID does not write the live site.', 'Only captured pages were checked. No ranking or crawl claim.', night.seoFixes);
+  addArtifact(state, 'technical-seo-monitor', 'Title and description fixes', 'TechnicalSeoReport', 'Priority fixes from the captured Wallaroo pages:\n1. /ai-powered-email/ — keep the Klaviyo/Shopify offer in the first 160 characters of the description.\n2. /ai-powered-seo/ — title already names SEO and LLMO; keep both terms.\n3. Home — “AI-native agency for eCommerce” is the clearest offer line.\nCopy these into the CMS. DAVID does not write the live site.', 'ILLUSTRATIVE FIXTURE — DataForSEO did not crawl or read Google. Copy-out is complete delivery; not Search Console, not a CMS write.', night.seoFixes);
   addArtifact(state, 'linkedin-outreach-assistant', 'LinkedIn notes for Shopify operators', 'OutreachDraft', `Overnight LinkedIn pass for Shopify operators in the $1M–$30M range.\nConnection requests recorded: 4\nAccepted: 3 — Called to Surf, Kaja Beauty, Bullstrap\nStill open: Stately\nEach accepted thread includes the booking CTA.\n${BOOKING_CTA}`, 'Recorded in the workspace log. LinkedIn sending is not a live OAuth send.', night.linkedinNotes);
   addArtifact(state, 'linkedin-outreach-assistant', 'Follow-up angles after first reply', 'OutreachDraft', `After a connection accepts: one qualification question, then the booking CTA. Do not invent pricing.\n${BOOKING_CTA}`, 'Recorded follow-up pattern. No live LinkedIn send.', night.linkedinFollow);
   addArtifact(state, 'partner-development', 'Partner intro shortlist', 'PartnerBrief', 'Complementary partners Wallaroo can introduce or receive from:\n• Creative studios that already produce Meta/TikTok volume\n• Shopify Plus implementation partners\n• Email/SMS operators who need SEO/LLMO coverage\nFirst intro is already in the log with a Plus-partner studio that wants AI-native ads without building the SEO practice.', 'Internal shortlist plus one recorded intro. No live partner mailbox send.', night.partnerList);
@@ -647,5 +650,41 @@ export function applyWallarooFixture(state: EngineState): void {
     crmProvider: 'none',
     crmStatus: 'not_connected',
     lastError: null,
+  });
+  const seoInstallation = state.installations.find(item => item.agentId === 'technical-seo-monitor');
+  saveAgentOnboarding(state, 'technical-seo-monitor', 0, {
+    keywords: ['AI-Powered SEO', 'LLMO', 'Shopify SEO'],
+    locationName: 'United States',
+    languageCode: 'en',
+  });
+  state.technicalSeo = TechnicalSeoState.parse({
+    workspaceId,
+    status: 'ready',
+    target: 'wallaroomedia.com',
+    crawlTaskId: seoInstallation ? `FIXTURE_ONLY_dataforseo_${seoInstallation.id}` : 'FIXTURE_ONLY_dataforseo_wallaroo',
+    maxPages: 50,
+    keywords: ['AI-Powered SEO', 'LLMO', 'Shopify SEO'],
+    locationName: 'United States',
+    languageCode: 'en',
+    pages: state.company.pages.slice(0, 50).map(page => ({
+      url: page.url,
+      statusCode: 200,
+      title: page.title,
+      description: page.description,
+      score: page.title && page.description ? 82 : 54,
+      failedChecks: [
+        ...(!page.title ? ['title_too_short'] : []),
+        ...(!page.description ? ['no_description'] : []),
+        ...(page.text.trim().length < 100 ? ['low_character_count'] : []),
+      ],
+    })),
+    rankings: [
+      { keyword: 'AI-Powered SEO', source: 'tracked', rank: 7, resultUrl: state.company.pages[0]?.url ?? '', locationName: 'United States', languageCode: 'en' },
+      { keyword: 'LLMO', source: 'tracked', rank: null, resultUrl: '', locationName: 'United States', languageCode: 'en' },
+      { keyword: 'Shopify SEO', source: 'inventory', rank: 12, resultUrl: state.company.pages[0]?.url ?? '', locationName: 'United States', languageCode: 'en' },
+    ],
+    fixture: true,
+    lastError: null,
+    updatedAt: now,
   });
 }

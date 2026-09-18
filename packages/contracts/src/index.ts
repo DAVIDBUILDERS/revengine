@@ -3,7 +3,9 @@ export * from './onboarding';
 import {setupCommands,type SetupDocument,type PreparedSetup} from './setup';
 export * from './setup';
 export * from './outbound';
+export * from './technical-seo';
 import { type OutboundSdrState } from './outbound';
+import { type TechnicalSeoState } from './technical-seo';
 import { z } from 'zod';
 
 export const Id = z.uuid();
@@ -25,7 +27,7 @@ export const EvidenceRef = z.object({ id: Id, label: z.string(), source: z.strin
 export const WorkspaceContext = z.object({ schemaVersion: z.literal(1), actorId: Id, workspaceId: Id, membershipId: Id, role: Role, environment: Mode, permittedOperations: z.array(z.string()), assurance: z.enum(['aal1', 'aal2']) }).strict();
 export const ConnectionResource = z.object({id:Id,type:z.enum(['sheet','mailbox','calendar','csv','website','campaign']),resource:z.string(),owner:z.string(),verifiedAt:Utc.nullable(),range:z.string().nullable().optional()}).strict();
 export type ConnectionResource = z.infer<typeof ConnectionResource>;
-export const ConnectionCapability = z.object({ id: Id, workspaceId: Id, provider: z.enum(['google', 'csv', 'website', 'fixture', 'instantly', 'hubspot']), identity: z.string(), resource: z.string(), scopes: z.array(z.string()), operations: z.array(z.string()), health: z.enum(['unconfigured', 'healthy', 'expired', 'revoked', 'failed', 'fixture']), lastSyncAt: Utc.nullable(), verifiedAt: Utc.nullable(), owner: z.string(), freshnessSeconds: z.number().int().positive(), boundResources:z.array(ConnectionResource).optional() }).strict();
+export const ConnectionCapability = z.object({ id: Id, workspaceId: Id, provider: z.enum(['google', 'csv', 'website', 'fixture', 'instantly', 'hubspot', 'dataforseo']), identity: z.string(), resource: z.string(), scopes: z.array(z.string()), operations: z.array(z.string()), health: z.enum(['unconfigured', 'healthy', 'expired', 'revoked', 'failed', 'fixture']), lastSyncAt: Utc.nullable(), verifiedAt: Utc.nullable(), owner: z.string(), freshnessSeconds: z.number().int().positive(), boundResources:z.array(ConnectionResource).optional() }).strict();
 export const ContactRecord = z.object({ id: Id, workspaceId: Id, name: z.string(), email: z.email(), account: z.string(), suppressed: z.boolean(), enrolled: z.boolean(), humanTakeover: z.boolean(), owner: z.string(), lastContactAt: Utc.nullable() }).strict();
 export const OpportunityRecord = z.object({ schemaVersion: z.literal(1), id: Id, workspaceId: Id, contactId: Id, accountId: Id, businessModel: BusinessModel, owner: z.string(), stage: OpportunityStage, rawStage: z.string(), evidence: z.array(EvidenceRef) }).strict();
 export const ProposalRecord = z.object({ schemaVersion: z.literal(1), id: Id, workspaceId: Id, opportunityId: Id, contactId: Id, version: z.number().int().positive(), reference: z.string(), issuedAt: Utc, validUntil: Utc.nullable(), amountMinor: Money, currency: Currency, valueKind: z.enum(['one_time', 'monthly_recurring', 'total_contract', 'unknown']), scopeSummary: z.string().min(1).max(4000), sourceUrl: z.url().nullable(), status: ProposalStatus, rawStatus: z.string(), owner: z.string().min(1), sourceVerifiedAt: Utc, syncedAt: Utc, evidence: z.array(EvidenceRef), fixture: z.boolean() }).strict();
@@ -92,6 +94,7 @@ export interface AppSnapshot {
   outcomes: OutcomeObservation[]; metrics: Metric[]; timeline: TimelineEntry[]; artifacts: PreparedArtifact[]; findings: WorkOpportunity[];
   initiatives: Initiative[]; scenarios: ForecastScenario[]; health: RuntimeHealth[]; usage: UsageRecord[]; brief: BriefSnapshot | null;
   outboundSdr?: OutboundSdrState;
+  technicalSeo?: TechnicalSeoState;
 }
 export const Command = z.discriminatedUnion('type', [
   ...onboardingCommands,
@@ -124,6 +127,9 @@ export const Command = z.discriminatedUnion('type', [
   z.object({type: z.literal('pause_outbound_sdr')}).strict(),
   z.object({type: z.literal('set_outbound_crm'), provider: z.enum(['none', 'hubspot'])}).strict(),
   z.object({type: z.literal('ingest_outbound_event'), eventType: z.enum(['email_sent','reply_received','auto_reply_received','email_bounced','lead_unsubscribed','lead_meeting_booked']), email: z.email(), text: z.string().max(8000).optional(), providerEventId: z.string().min(1).max(200), campaignId: z.string().max(128).optional(), occurredAt: Utc.optional()}).strict(),
+  z.object({type: z.literal('save_technical_seo_setup'), expectedRevision: z.number().int().nonnegative(), keywords: z.array(z.string().min(1).max(200)).min(1).max(20), locationName: z.string().min(2).max(120), languageCode: z.string().min(2).max(8)}).strict(),
+  z.object({type: z.literal('start_technical_seo')}).strict(),
+  z.object({type: z.literal('pause_technical_seo')}).strict(),
   z.object({type: z.literal('brief')}).strict(),
   z.object({type: z.literal('reset')}).strict()
 ]);

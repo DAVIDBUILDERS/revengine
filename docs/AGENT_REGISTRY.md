@@ -14,7 +14,7 @@ The standard entitlement is five distinct specialists. Shared company context, s
 | Find demand | rfp-opportunity-scout | RFP Opportunity Scout | Planned |
 | Find demand | competitor-intelligence | Competitor Intelligence | Planned |
 | Create demand | search-growth | Search Growth | Preparation implemented |
-| Create demand | technical-seo-monitor | Technical SEO Monitor | Preparation implemented; captured pages only — no crawl, GSC, or CMS write-back |
+| Create demand | technical-seo-monitor | Technical SEO | Preparation pilot; bounded DataForSEO crawl + Google organic/Labs ranks; copy-out only — no GSC or CMS write-back |
 | Create demand | local-search-manager | Local Search Manager | Preparation implemented |
 | Create demand | creative-performance | Creative Performance | Preparation implemented |
 | Create demand | paid-campaign-operator | Paid Campaign Operator | Planned |
@@ -58,7 +58,7 @@ All nine use the same approved captured website snapshot and confirmed structure
 | Specialist | Declared artifact | Scope boundary |
 | --- | --- | --- |
 | Account Intelligence | WebsiteProfile | Approved company/offer/audience facts and explicit hypotheses; not a prospect list |
-| Technical SEO Monitor | CapturedPageAudit | Captured titles, descriptions and readable-text coverage; no complete crawl or indexing claim |
+| Technical SEO | TechnicalSeoReport | Bounded origin crawl (max 50 pages) and observed SERP/Labs ranks; copy-out only; no Search Console or CMS write |
 | Search Growth | ContentBrief | Outline and evidence needs; no invented search demand |
 | Creative Performance | AdCopyConcepts | Copy and proposed angles; no image/video or campaign launch |
 | Landing Page Optimizer | PageCopyHypothesis | Copy, hypothesis and missing baseline; no deployment or uplift claim |
