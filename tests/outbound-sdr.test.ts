@@ -39,7 +39,7 @@ describe('Outbound Email SDR — Instantly, autonomous, no lead gen', () => {
     expect(preview.mapping.email).toBe('Work Email');
     expect(preview.valid).toBe(1);
     expect(preview.errors).toEqual([]);
-    expect(parseLeadCsv('name,company\nRiley,Acme').errors[0].message).toMatch(/email column/i);
+    expect(parseLeadCsv('name,company\nRiley,Acme').errors[0].message).toMatch(/Name the email column email/);
     expect(parseLeadCsv('email\nnot-an-email').errors[0].message).toMatch(/invalid/i);
     expect(CSV_FIELDS).toContain('proposal_id');
     expect(parseLeadCsv('email\nlead@example.invalid').rows[0].proposal_id).toBeUndefined();

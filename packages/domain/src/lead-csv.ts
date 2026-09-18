@@ -6,7 +6,8 @@ export type LeadCsvPreview = {
   mapping: Record<string, string>;
 };
 
-const EMAIL_HEADERS = ['email','email address','work email','e-mail','mail','work_email','emailaddress'];
+export const EMAIL_HEADERS = ['email','email address','work email','e-mail','mail','work_email','emailaddress'];
+export const EMAIL_COLUMN_HELP = `Name the email column email. These also work: ${EMAIL_HEADERS.filter(name => name !== 'email').join(', ')}. First name and company are optional.`;
 const FIRST_HEADERS = ['first name','firstname','first_name','given name','given_name','first'];
 const LAST_HEADERS = ['last name','lastname','last_name','surname','family name','last'];
 const COMPANY_HEADERS = ['company','company name','company_name','account','organization','organisation','business'];
@@ -73,7 +74,7 @@ export function parseLeadCsv(csv: string, mappingOverride?: Partial<Record<strin
     ...Object.fromEntries(Object.entries(mappingOverride ?? {}).filter((entry): entry is [string, string] => typeof entry[1] === 'string')),
   };
   const errors = [...parsed.errors];
-  if (!mapping.email) errors.push({ row: 1, message: 'Map an email column. Instantly cannot send without an address.' });
+  if (!mapping.email) errors.push({ row: 1, message: `${EMAIL_COLUMN_HELP} Instantly cannot send without an address.` });
   const rows: Record<string, string>[] = parsed.records.map((cells, index) => {
     if (cells.length !== parsed.headers.length) errors.push({ row: index + 2, message: `Expected ${parsed.headers.length} fields; received ${cells.length}.` });
     return Object.fromEntries(parsed.headers.map((header, cellIndex) => [header, cells[cellIndex] ?? ''])) as Record<string, string>;
