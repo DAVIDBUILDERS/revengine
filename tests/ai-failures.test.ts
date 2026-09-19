@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 vi.mock('ai', () => ({ generateText: vi.fn(), Output: { object: (input: unknown) => input } }));
 import { generateText } from 'ai';
-import { COLD_OUTREACH_PROMPT, COLD_SEQUENCE_SYSTEM, COLD_SEQUENCE_DEFAULT_MODEL_ID, buildColdOutreachUserMessage, createColdOutreachAdapter, createModelAdapter, type UsageBudget } from '../packages/ai/src/index';
+import { COLD_OUTREACH_PROMPT, COLD_SEQUENCE_SYSTEM, COLD_SEQUENCE_DEFAULT_MODEL_ID, buildColdOutreachUserMessage, createColdOutreachAdapter, createModelAdapter, parseColdSequenceDraft, type UsageBudget } from '../packages/ai/src/index';
 
 function setup() {
   const budget: UsageBudget = { reserve: vi.fn(async () => 'synthetic-reservation'), settle: vi.fn(async () => {}), fail: vi.fn(async () => {}) };
@@ -43,11 +43,11 @@ describe('model failure/resource handling using mocked inference only', () => {
     const facts = { topic: 'paid search audits', audience: 'teams like yours', companyName: 'DAVID AI', bookingUrl: 'https://calendly.com/example/30min', brandGuidance: '', forbiddenClaims: '' };
     expect(buildColdOutreachUserMessage(facts)).toMatch(/Service they provide \(what the emails are about\): paid search audits/);
     const { budget, adapter } = setup();
-    vi.mocked(generateText).mockResolvedValueOnce({ output: { steps: [
+    vi.mocked(generateText).mockResolvedValueOnce({ text: JSON.stringify({ steps: [
       { subject: 'paid search audits', body: '{{firstName}} —\n\nMost audits die in a deck.\n\nhttps://calendly.com/example/30min' },
       { subject: 'who owns this?', body: '{{firstName}} —\n\nWho can say yes?\n\nhttps://calendly.com/example/30min' },
       { subject: 'closing this out', body: '{{firstName}} —\n\nLast note.\n\nhttps://calendly.com/example/30min' },
-    ] }, usage: { inputTokens: 20, outputTokens: 40 } } as unknown as Awaited<ReturnType<typeof generateText>>);
+    ] }), usage: { inputTokens: 20, outputTokens: 40 } } as unknown as Awaited<ReturnType<typeof generateText>>);
     const steps = await adapter.draftColdSequence({
       workspaceId: 'fixture-workspace',
       runId: 'fixture-run',
@@ -63,15 +63,29 @@ describe('model failure/resource handling using mocked inference only', () => {
     const budget: UsageBudget = { reserve: vi.fn(async () => 'synthetic-reservation'), settle: vi.fn(async () => {}), fail: vi.fn(async () => {}) };
     const adapter = createColdOutreachAdapter({ modelId: COLD_SEQUENCE_DEFAULT_MODEL_ID, maxCostMinor: 25, maxOutputTokens: 1200 }, budget);
     const facts = { topic: 'paid search audits', audience: 'growth teams', companyName: 'DAVID AI', bookingUrl: 'https://calendly.com/example/30min', brandGuidance: '', forbiddenClaims: '' };
-    vi.mocked(generateText).mockResolvedValueOnce({ output: { steps: [
+    vi.mocked(generateText).mockResolvedValueOnce({ text: JSON.stringify({ steps: [
       { subject: 'paid search audits', body: '{{firstName}} —\n\nMost audits die in a deck.\n\nhttps://calendly.com/example/30min' },
       { subject: 'who owns this?', body: '{{firstName}} —\n\nWho can say yes?\n\nhttps://calendly.com/example/30min' },
       { subject: 'closing this out', body: '{{firstName}} —\n\nLast note.\n\nhttps://calendly.com/example/30min' },
-    ] }, usage: { inputTokens: 20, outputTokens: 40 } } as unknown as Awaited<ReturnType<typeof generateText>>);
+    ] }), usage: { inputTokens: 20, outputTokens: 40 } } as unknown as Awaited<ReturnType<typeof generateText>>);
     await expect(adapter.draftColdSequence({ workspaceId: 'fixture-workspace', runId: 'fixture-run', facts })).resolves.toHaveLength(3);
     const request = vi.mocked(generateText).mock.calls.at(-1)?.[0];
     expect(request?.system).toBe(COLD_OUTREACH_PROMPT);
     expect(request?.prompt).toBe(buildColdOutreachUserMessage(facts));
     expect(request?.providerOptions).toBeUndefined();
+  });
+  it('reads a messy JSON or labeled draft into three emails', () => {
+    const steps = [
+      { subject: 'paid search audits', body: '{{firstName}} —\n\nMost audits die in a deck.\n\nhttps://calendly.com/example/30min' },
+      { subject: 'who owns this?', body: '{{firstName}} —\n\nWho can say yes?\n\nhttps://calendly.com/example/30min' },
+      { subject: 'closing this out', body: '{{firstName}} —\n\nLast note.\n\nhttps://calendly.com/example/30min' },
+    ];
+    expect(parseColdSequenceDraft({ steps })).toEqual(steps);
+    expect(parseColdSequenceDraft(`\`\`\`json\n${JSON.stringify({ emails: steps })}\n\`\`\``)).toEqual(steps);
+    expect(parseColdSequenceDraft([
+      'Email 1\nSubject: paid search audits\n{{firstName}} —\n\nMost audits die in a deck.',
+      'Email 2\nSubject: who owns this?\n{{firstName}} —\n\nWho can say yes?',
+      'Email 3\nSubject: closing this out\n{{firstName}} —\n\nLast note.',
+    ].join('\n\n')).map(step => step.subject)).toEqual(['paid search audits', 'who owns this?', 'closing this out']);
   });
 });

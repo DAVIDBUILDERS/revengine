@@ -37,7 +37,8 @@ Email 3 — breakup
 - Last note. You will not follow up again
 - Easy out. Meeting link on its own line
 
-Return only the structured 3-email result.`;
+Return JSON only, no markdown:
+{"steps":[{"subject":"","body":""},{"subject":"","body":""},{"subject":"","body":""}]}`;
 
 export function buildColdOutreachUserMessage(input: {
   topic: string;
