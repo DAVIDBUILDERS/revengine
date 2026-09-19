@@ -6,11 +6,43 @@ import { COLD_OUTREACH_PROMPT, buildColdOutreachUserMessage } from './cold-outre
 export { COLD_OUTREACH_PROMPT, COLD_OUTREACH_PROMPT_VERSION, buildColdOutreachUserMessage } from './cold-outreach-prompt';
 export const MODEL_PROMPT_VERSION='bounded-jobs.v1';
 export const COLD_SEQUENCE_SYSTEM=COLD_OUTREACH_PROMPT;
-export const ColdSequenceDraft=z.object({steps:z.tuple([
-  z.object({subject:z.string().min(2).max(60),body:z.string().min(20).max(1500)}).strict(),
-  z.object({subject:z.string().min(2).max(60),body:z.string().min(20).max(1500)}).strict(),
-  z.object({subject:z.string().min(2).max(60),body:z.string().min(20).max(1500)}).strict(),
-])}).strict();
+export const ColdSequenceDraft=z.object({steps:z.array(z.object({subject:z.string().min(1).max(80),body:z.string().min(1).max(4000)})).min(3).max(8)});
+export function parseColdSequenceDraft(value:unknown):{subject:string;body:string}[] {
+  if(value&&typeof value==='object'&&!Array.isArray(value)){
+    const record=value as Record<string,unknown>;
+    if('steps' in record)return normalizeColdSteps(record.steps);
+    if('emails' in record)return normalizeColdSteps(record.emails);
+  }
+  if(Array.isArray(value))return normalizeColdSteps(value);
+  if(typeof value==='string'){
+    const trimmed=value.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();
+    const block=trimmed.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+    if(block){try{return parseColdSequenceDraft(JSON.parse(block[0]));}catch{/* fall through to plain text */}}
+    return parseColdSequencePlainText(trimmed);
+  }
+  throw new Error('MODEL_JOB_BLOCKED: Cold-sequence draft was not 3 emails.');
+}
+function normalizeColdSteps(steps:unknown){
+  if(!Array.isArray(steps)||steps.length<3)throw new Error('MODEL_JOB_BLOCKED: Cold-sequence draft was not 3 emails.');
+  return steps.slice(0,3).map(step=>{
+    if(!step||typeof step!=='object')throw new Error('MODEL_JOB_BLOCKED: Cold-sequence draft was not 3 emails.');
+    const row=step as Record<string,unknown>;
+    const subject=String(row.subject??row.title??'').trim();
+    const body=String(row.body??row.text??'').trim();
+    if(!subject||!body)throw new Error('MODEL_JOB_BLOCKED: Cold-sequence draft was not 3 emails.');
+    return {subject,body};
+  });
+}
+function parseColdSequencePlainText(text:string){
+  const chunks=text.split(/email\s*[123]\b/i).map(chunk=>chunk.trim()).filter(Boolean);
+  const fromChunks=chunks.slice(0,3).map(chunk=>{
+    const subject=chunk.match(/subject\s*:\s*(.+)/i)?.[1]?.trim()||chunk.split('\n')[0]?.trim()||'';
+    const body=chunk.replace(/subject\s*:\s*.+/i,'').replace(/^["']|["']$/g,'').trim();
+    return {subject,body};
+  }).filter(step=>step.subject&&step.body);
+  if(fromChunks.length>=3)return fromChunks.slice(0,3);
+  throw new Error('MODEL_JOB_BLOCKED: Cold-sequence draft was not 3 emails.');
+}
 export interface UsageBudget {
   reserve(input:{workspaceId:string;runId:string;maxCostMinor:number;maxTokens:number}):Promise<string>;
   settle(reservationId:string,input:{inputTokens:number;outputTokens:number;model:string;costMinor:number|null}):Promise<void>;
@@ -41,8 +73,10 @@ export function createColdOutreachAdapter(config:{apiKey?:string;modelId:string;
     const prompt=buildColdOutreachUserMessage(input.facts);if(prompt.length>20000)throw new Error('MODEL_INPUT_LIMIT');
     const maxTokens=Math.min(Math.max(config.maxOutputTokens??600,900),1500);const reservation=await budget.reserve({workspaceId:input.workspaceId,runId:input.runId,maxCostMinor:config.maxCostMinor,maxTokens});
     try{
-      const result=await generateText({model:gateway(config.modelId),output:Output.object({schema:ColdSequenceDraft}),system:COLD_OUTREACH_PROMPT,prompt,maxOutputTokens:maxTokens,maxRetries:1,abortSignal:AbortSignal.timeout(Math.min(config.timeoutMs??20000,25000)),providerOptions:gatewayProviderOptions(config.provider)});
-      const output=ColdSequenceDraft.parse(result.output);await budget.settle(reservation,{inputTokens:result.usage.inputTokens??0,outputTokens:result.usage.outputTokens??0,model:config.modelId,costMinor:null});return output.steps;
+      const result=await generateText({model:gateway(config.modelId),system:COLD_OUTREACH_PROMPT,prompt,maxOutputTokens:maxTokens,maxRetries:1,abortSignal:AbortSignal.timeout(Math.min(config.timeoutMs??20000,20000)),providerOptions:gatewayProviderOptions(config.provider)});
+      const steps=parseColdSequenceDraft(result.output??result.text);
+      await budget.settle(reservation,{inputTokens:result.usage.inputTokens??0,outputTokens:result.usage.outputTokens??0,model:config.modelId,costMinor:null});
+      return steps;
     }catch(error){await budget.fail(reservation,'generation_or_validation_failed');throw new Error('MODEL_JOB_BLOCKED: Configured model failed or returned invalid data. Saved work remains recoverable.',{cause:error});}
   }};
 }

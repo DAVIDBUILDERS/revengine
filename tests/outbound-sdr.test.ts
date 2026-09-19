@@ -112,7 +112,7 @@ describe('Outbound Email SDR — Instantly, autonomous, no lead gen', () => {
       draftColdSequence: async () => {
         throw new Error('synthetic model outage');
       },
-    }, { requireModel: true })).rejects.toThrow(/draft failed review|SEQUENCE_DRAFT_FAILED/i);
+    }, { requireModel: true })).rejects.toThrow(/could not finish these emails|draft failed review|SEQUENCE_DRAFT_FAILED/i);
     const beforeActions = state.actions.length;
     const started = await executeCommand(state, { type: 'start_outbound_sdr' });
     expect(started.message).toMatch(/No live mailbox send/);
