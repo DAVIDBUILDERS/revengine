@@ -52,7 +52,7 @@ test('Set up Outbound Email SDR is one question at a time, then offers the next 
   await page.getByLabel('Email topic').fill('paid search audits');
   await page.getByRole('button', { name: 'Continue' }).click();
   await expect(heading).toHaveText('Here is the three-step sequence DAVID will send.');
-  await expect(page.getByText(/A short opener, one ownership question, then a close/)).toBeVisible();
+  await expect(page.getByText(/Drafted as a cold sequence/)).toBeVisible();
   await expect(page.getByText(/paid search audits/).first()).toBeVisible();
   await expect(page.getByText(/dies in a deck/i)).toBeVisible();
   await expect(page.getByText(/who owns paid search audits/i)).toBeVisible();

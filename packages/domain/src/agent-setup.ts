@@ -76,7 +76,7 @@ function emailPath(state: AppSnapshot): AgentSetupStep[] {
     step('booking', 'Where should people book a meeting?', 'Any https link works. Calendly is optional; Instantly auto-book is strongest when Calendly is present.', 'url', tools, booking.ok),
     step('leads', 'Upload the people to email.', `${EMAIL_COLUMN_HELP} This agent does not find leads.`, 'file', tools, leads),
     step('topic', 'What should these emails be about?', 'One sentence: the offer, angle, or outcome. DAVID writes the three emails from this.', 'text', tools, sequenceTopicFromState(state).length >= 2),
-    step('sequence', 'Here is the three-step sequence DAVID will send.', 'A short opener, one ownership question, then a close. Written from the topic you gave and your meeting link. Confirm it to save.', 'preview', tools, sequence),
+    step('sequence', 'Here is the three-step sequence DAVID will send.', 'Drafted as a cold sequence: a short opener, one new-angle question, then a breakup. Confirm it to save.', 'preview', tools, sequence),
   ];
   if (operator(state) && !instantlyBound(state)) {
     steps.push(step('bind', 'Bind the Instantly sub-workspace.', 'Operator only. Paste the Instantly workspace UUID. Customers never paste an Instantly key.', 'text', tools, instantlyBound(state)));

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 vi.mock('ai', () => ({ generateText: vi.fn(), Output: { object: (input: unknown) => input } }));
 import { generateText } from 'ai';
-import { createModelAdapter, type UsageBudget } from '../packages/ai/src/index';
+import { COLD_SEQUENCE_SYSTEM, createModelAdapter, type UsageBudget } from '../packages/ai/src/index';
 
 function setup() {
   const budget: UsageBudget = { reserve: vi.fn(async () => 'synthetic-reservation'), settle: vi.fn(async () => {}), fail: vi.fn(async () => {}) };
@@ -34,5 +34,23 @@ describe('model failure/resource handling using mocked inference only', () => {
     vi.mocked(generateText).mockResolvedValueOnce({ output: { opening: 'invent_discount', factIds: ['scope'], closing: 'questions' }, usage: { inputTokens: 10, outputTokens: 10 } } as unknown as Awaited<ReturnType<typeof generateText>>);
     await expect(adapter.draft({ workspaceId: 'fixture-workspace', runId: 'fixture-run', facts: [{ id: 'scope', text: 'Approved scope', sourceId: 'proposal-v1', confirmed: true }] })).rejects.toThrow('MODEL_JOB_BLOCKED');
     expect(budget.fail).toHaveBeenCalled(); expect(budget.settle).not.toHaveBeenCalled();
+  });
+  it('drafts a cold sequence from a dedicated prompt, not the brochure job', async () => {
+    expect(COLD_SEQUENCE_SYSTEM).toMatch(/cold sequence|outbound to strangers/i);
+    expect(COLD_SEQUENCE_SYSTEM).toMatch(/Do not invent metrics/i);
+    const { budget, adapter } = setup();
+    vi.mocked(generateText).mockResolvedValueOnce({ output: { steps: [
+      { subject: 'paid search audits', body: '{{firstName}} —\n\nMost audits die in a deck.\n\nhttps://calendly.com/example/30min' },
+      { subject: 'who owns this?', body: '{{firstName}} —\n\nWho can say yes?\n\nhttps://calendly.com/example/30min' },
+      { subject: 'closing this out', body: '{{firstName}} —\n\nLast note.\n\nhttps://calendly.com/example/30min' },
+    ] }, usage: { inputTokens: 20, outputTokens: 40 } } as unknown as Awaited<ReturnType<typeof generateText>>);
+    const steps = await adapter.draftColdSequence({
+      workspaceId: 'fixture-workspace',
+      runId: 'fixture-run',
+      facts: { topic: 'paid search audits', audience: 'teams like yours', companyName: 'DAVID AI', bookingUrl: 'https://calendly.com/example/30min', brandGuidance: '', forbiddenClaims: '' },
+    });
+    expect(steps).toHaveLength(3);
+    expect(vi.mocked(generateText).mock.calls.at(-1)?.[0]?.system).toBe(COLD_SEQUENCE_SYSTEM);
+    expect(budget.settle).toHaveBeenCalled();
   });
 });

@@ -3,6 +3,32 @@ import { generateText, Output } from 'ai';
 import { z } from 'zod';
 
 export const MODEL_PROMPT_VERSION='bounded-jobs.v1';
+export const COLD_SEQUENCE_PROMPT_VERSION='cold-outbound.v1';
+export const COLD_SEQUENCE_SYSTEM=`DAVID ${COLD_SEQUENCE_PROMPT_VERSION}. Write a 3-email Instantly cold sequence. This is outbound to strangers, not nurture, not a brochure.
+
+Return only the schema. Exactly 3 emails.
+
+Email 1 — opener: start in their world around the topic. One concrete observation. Soft 15-minute ask. Permission to stop. Sign off with companyName only.
+Email 2 — new angle: do not repeat email 1 or "check in". Ask who owns the decision, or name a second failure mode. Different subject.
+Email 3 — breakup: last note, easy out, no guilt. Different subject.
+
+Hard rules:
+- First line of every body is exactly {{firstName}} —
+- Subjects: no merge tags, no Re:, no "quick question", max 8 words
+- 40-90 words per body, plain text, no HTML
+- Paste bookingUrl verbatim, once per email
+- Use only topic, audience, companyName, and bookingUrl
+- brandGuidance is voice constraint only. Never paste it.
+- Never mention forbiddenClaims or restate them
+- Do not invent metrics, dollar amounts, percentages, customer names, case studies, timelines, or "we help X with Y"
+- Banned: just checking in, circling back, touching base, hope this finds you, following up, book a conversation, friendly reminder, quick question, bumping this
+- Instantly merge field allowed: {{firstName}} in the greeting only
+- Do not claim you have seen their company, stack, or results`;
+export const ColdSequenceDraft=z.object({steps:z.tuple([
+  z.object({subject:z.string().min(2).max(60),body:z.string().min(20).max(1500)}).strict(),
+  z.object({subject:z.string().min(2).max(60),body:z.string().min(20).max(1500)}).strict(),
+  z.object({subject:z.string().min(2).max(60),body:z.string().min(20).max(1500)}).strict(),
+])}).strict();
 export interface UsageBudget {
   reserve(input:{workspaceId:string;runId:string;maxCostMinor:number;maxTokens:number}):Promise<string>;
   settle(reservationId:string,input:{inputTokens:number;outputTokens:number;model:string;costMinor:number|null}):Promise<void>;
@@ -36,5 +62,12 @@ export function createModelAdapter(config:{apiKey:string;modelId:string;provider
     const facts=selected.factIds.map(id=>confirmed.find(f=>f.id===id));if(facts.some(f=>!f))throw new Error('MODEL_FACT_UNSUPPORTED');
     const headings={offer_clarity:'Clarify the approved offer',audience_fit:'Explain fit for the confirmed audience',evaluation_questions:'Use the approved facts to frame review questions'};
     return {wording:`${headings[selected.framing]}\n${facts.map(f=>f!.text).join('\n')}`,sourceIds:facts.map(f=>f!.sourceId)};
+  },async draftColdSequence(input:{workspaceId:string;runId:string;facts:{topic:string;audience:string;companyName:string;bookingUrl:string;brandGuidance:string;forbiddenClaims:string}}){
+    const serialized=JSON.stringify(input.facts);if(serialized.length>20000)throw new Error('MODEL_INPUT_LIMIT');
+    const maxTokens=Math.min(Math.max(config.maxOutputTokens??600,900),1500);const reservation=await budget.reserve({workspaceId:input.workspaceId,runId:input.runId,maxCostMinor:config.maxCostMinor,maxTokens});
+    try{
+      const result=await generateText({model:gateway(config.modelId),output:Output.object({schema:ColdSequenceDraft}),system:COLD_SEQUENCE_SYSTEM,prompt:serialized,maxOutputTokens:maxTokens,maxRetries:1,abortSignal:AbortSignal.timeout(Math.min(config.timeoutMs??20000,25000)),providerOptions:{gateway:{only:[config.provider],order:[config.provider]}}});
+      const output=ColdSequenceDraft.parse(result.output);await budget.settle(reservation,{inputTokens:result.usage.inputTokens??0,outputTokens:result.usage.outputTokens??0,model:config.modelId,costMinor:null});return output.steps;
+    }catch(error){await budget.fail(reservation,'generation_or_validation_failed');throw new Error('MODEL_JOB_BLOCKED: Configured model failed or returned invalid data. Saved work remains recoverable.',{cause:error});}
   }};
 }
