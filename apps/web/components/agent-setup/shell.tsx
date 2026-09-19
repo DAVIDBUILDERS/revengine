@@ -32,6 +32,15 @@ function Tools({tools}:{tools:string[]}) {
   return <div className="agent-setup-tools" aria-label="Required tools">{tools.map(tool=><span key={tool}>{tool}</span>)}</div>;
 }
 
+function SequenceMail({subject,body}:{subject:string;body:string}) {
+  return <>
+    <strong>{subject}</strong>
+    <div className="agent-setup-mail">
+      {body.split(/\n+/).map(line=>line.trim()).filter(Boolean).map((line,index)=><p key={`${index}-${line.slice(0,24)}`}>{line}</p>)}
+    </div>
+  </>;
+}
+
 export function AgentSetupShell({agent,onExit,...props}:ScreenProps & {agent:AgentDefinition;onExit:()=>void}) {
   const {state,act,busy,navigate}=props;
   const steps=agentSetupPath(state,agent.id);
@@ -59,7 +68,8 @@ export function AgentSetupShell({agent,onExit,...props}:ScreenProps & {agent:Age
   const nextAgentId=nextSetupAgentId(state,agent.id);
   const nextAgent=state.catalog.find(item=>item.id===nextAgentId);
   const bookingUrl=draft.bookingUrl || state.outboundSdr?.bookingUrl || '';
-  const sequence=useMemo(()=>sequencePreviewFromSnapshot(state, bookingUrl, draft.topic),[state,bookingUrl,draft.topic]);
+  const savedSequence=state.outboundSdr?.sequence ?? [];
+  const sequence=useMemo(()=>savedSequence.length>=3?savedSequence:sequencePreviewFromSnapshot(state, bookingUrl, draft.topic),[savedSequence,state,bookingUrl,draft.topic]);
   const companyAnswers=state.onboarding?.answers.company;
   const voiceScript=draft.script || generateVoiceOpening({
     companyName:setupCompanyName(state),
@@ -134,8 +144,14 @@ export function AgentSetupShell({agent,onExit,...props}:ScreenProps & {agent:Age
       }
       return Boolean(await act({type:'import_lead_csv',csv:draft.csv,preview:false,mapping:preview.mapping}));
     }
-    if (step.id==='topic') return Boolean(await saveAnswers({sequenceTopic:draft.topic.trim()}));
-    if (step.id==='sequence') return Boolean(await act({type:'generate_outbound_sequence'}));
+    if (step.id==='topic') {
+      if (!await saveAnswers({sequenceTopic:draft.topic.trim()})) return false;
+      return Boolean(await act({type:'generate_outbound_sequence'}));
+    }
+    if (step.id==='sequence') {
+      if (savedSequence.length>=3) return true;
+      return Boolean(await act({type:'generate_outbound_sequence'}));
+    }
     if (step.id==='bind') {
       if (agent.id==='outbound-email-sdr') return Boolean(await act({type:'bind_instantly_workspace',instantlyWorkspaceId:draft.bindId.trim()}));
       return Boolean(await saveAnswers({elevenlabsAgentId:draft.bindId.trim()}));
@@ -224,10 +240,9 @@ export function AgentSetupShell({agent,onExit,...props}:ScreenProps & {agent:Age
             </>}
             {step.id==='topic' && <Answer label="Email topic" value={draft.topic} onChange={value=>update('topic',value)}/>}
             {step.id==='sequence' && <div className="agent-setup-sequence" aria-label="Three-step sequence preview">
-              {sequence.map((item,position)=><article key={item.subject} className="agent-setup-card" style={{animationDelay:`${position*90}ms`}}>
+              {sequence.map((item,position)=><article key={`${item.subject}-${position}`} className="agent-setup-card" style={{animationDelay:`${position*90}ms`}}>
                 <p className="eyebrow">Step {position+1}</p>
-                <strong>{item.subject}</strong>
-                <pre>{item.body}</pre>
+                <SequenceMail subject={item.subject} body={item.body}/>
               </article>)}
               {!sequence.length && <p className="help">Save a meeting link first so the sequence can include it.</p>}
             </div>}

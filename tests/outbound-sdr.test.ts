@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AgentDefinition } from '../packages/contracts/src/index';
-import { createFixtureState, executeCommand, catalog, parseCsvImport, CSV_FIELDS, parseLeadCsv, mappedLeadRow, isLeadCsvFile, leadCsvFileError, generateOutboundSequence, outboundSequenceCompany } from '../packages/domain/src/index';
+import { createFixtureState, executeCommand, catalog, parseCsvImport, CSV_FIELDS, parseLeadCsv, mappedLeadRow, isLeadCsvFile, leadCsvFileError, generateOutboundSequence, outboundSequenceCompany, writeOutboundSequence } from '../packages/domain/src/index';
 import { agentDelivery } from '../packages/domain/src/delivery';
 import { denyInstantlyLeadFinder, normalizeInstantlyWebhook, parseInstantlyAccounts } from '../packages/connectors/src/instantly';
 import { launchManagedInstantlyCampaign } from '../packages/orchestration/src/action-service';
@@ -82,6 +82,22 @@ describe('Outbound Email SDR — Instantly, autonomous, no lead gen', () => {
     expect(state.outboundSdr?.sequence.every(step => step.body.trim().split(/\s+/).length <= 120)).toBe(true);
     expect(generateOutboundSequence(outboundSequenceCompany(state, 'paid search audits'), 'https://calendly.com/example/30min').map(step => step.body).join('\n')).not.toMatch(/Stay inside approved brand|Do not claim/i);
     expect(generateOutboundSequence(outboundSequenceCompany(state, 'AI Implementation'), 'https://calendly.com/example/30min')[0]?.body).toMatch(/stalls after the first pass/i);
+    const company = outboundSequenceCompany(state, 'paid search audits');
+    const booking = 'https://calendly.com/example/30min';
+    await expect(writeOutboundSequence(company, booking, {
+      draftColdSequence: async () => [
+        { subject: 'paid search audits', body: `{{firstName}} —\n\nMost teams I talk to let paid search audits die in a slide deck.\n\nIf that is on your plate: ${booking}\n\nIf I have the wrong person, reply and I will stop.\n\nDAVID AI` },
+        { subject: 'who owns the next 30 days?', body: `{{firstName}} —\n\nDifferent note than the last one. When paid search audits have three owners, the next 30 days never start. Who can say yes or no this quarter?\n\nIf that is you: ${booking}` },
+        { subject: 'should I close this out?', body: `{{firstName}} —\n\nLast note on paid search audits. I will not follow up again.\n\nIf a conversation would still help: ${booking}\n\nIf the timing is wrong, no need to reply.` },
+      ],
+    })).resolves.toMatchObject({ source: 'model' });
+    await expect(writeOutboundSequence(company, booking, {
+      draftColdSequence: async () => [
+        { subject: 'Quick question for {{firstName}}', body: `Hi {{firstName}},\n\nDAVID AI helps your team with paid search audits and grew clients 40%.\n\nBook a conversation: ${booking}` },
+        { subject: 'Checking in', body: `Just checking in. ${booking}` },
+        { subject: 'Close the loop', body: `Last note. ${booking}` },
+      ],
+    })).resolves.toMatchObject({ source: 'fallback' });
     const beforeActions = state.actions.length;
     const started = await executeCommand(state, { type: 'start_outbound_sdr' });
     expect(started.message).toMatch(/No live mailbox send/);

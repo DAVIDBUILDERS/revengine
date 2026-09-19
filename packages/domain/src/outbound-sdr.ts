@@ -156,6 +156,67 @@ export function generateOutboundSequence(company: WebsiteContext, bookingUrl: st
   return sequence;
 }
 
+export type ColdSequenceFacts = {
+  topic: string;
+  audience: string;
+  companyName: string;
+  bookingUrl: string;
+  brandGuidance: string;
+  forbiddenClaims: string;
+};
+
+export type ColdSequenceModelPort = {
+  draftColdSequence(facts: ColdSequenceFacts): Promise<OutboundSequenceStep[]>;
+};
+
+export function coldSequenceFacts(company: WebsiteContext, bookingUrl: string): ColdSequenceFacts {
+  const topic = topicPhrase(company);
+  if (!topic) throw new DomainError('SEQUENCE_TOPIC_REQUIRED', 'Say what these emails should be about.');
+  return {
+    topic,
+    audience: audiencePhrase(company),
+    companyName: company.companyName.trim(),
+    bookingUrl: bookingUrl.trim(),
+    brandGuidance: company.operatingGuidance?.brand?.trim() ?? '',
+    forbiddenClaims: company.operatingGuidance?.forbiddenClaims?.trim() ?? '',
+  };
+}
+
+const BANNED_COLD = /just checking in|checking whether|circling back|touching base|hope this finds you|following up|book a conversation|friendly reminder|quick question|helps .+ with|stay inside approved brand|do not claim:|bumping this/i;
+const INVENTED_PROOF = /\$\d|\d+%|\b\d{2,}\s*x\b|case study|guaranteed|our clients? (saw|grew|increased)/i;
+
+export function acceptColdSequence(sequence: OutboundSequenceStep[], company: WebsiteContext, bookingUrl: string): OutboundSequenceStep[] {
+  const facts = coldSequenceFacts(company, bookingUrl);
+  if (sequence.length !== 3) throw new DomainError('SEQUENCE_INVALID', 'Cold sequences are exactly three emails.');
+  const subjects = new Set(sequence.map(step => step.subject.trim().toLowerCase()));
+  if (subjects.size !== 3) throw new DomainError('SEQUENCE_INVALID', 'Each email needs a different subject.');
+  const topicWord = facts.topic.split(/\s+/).find(word => word.length >= 4)?.toLowerCase();
+  const firstText = `${sequence[0].subject} ${sequence[0].body}`.toLowerCase();
+  if (topicWord && !firstText.includes(topicWord)) throw new DomainError('SEQUENCE_INVALID', 'The first email has to be about the topic you gave.');
+  for (const step of sequence) {
+    if (/\{\{/.test(step.subject) || /^re:/i.test(step.subject)) throw new DomainError('SEQUENCE_INVALID', 'Subjects cannot use merge tags or Re:');
+    if (!step.body.startsWith('{{firstName}}')) throw new DomainError('SEQUENCE_INVALID', 'Greet with {{firstName}} only.');
+    if ((step.body.match(/\{\{/g) ?? []).length !== 1) throw new DomainError('SEQUENCE_INVALID', 'The only Instantly field is {{firstName}} in the greeting.');
+    if (!step.body.includes(facts.bookingUrl)) throw new DomainError('SEQUENCE_INVALID', 'Every email must include the meeting link.');
+    const words = wordCount(step.body);
+    if (words < 25 || words > 120) throw new DomainError('SEQUENCE_INVALID', 'Cold emails stay between 25 and 120 words.');
+    if (BANNED_COLD.test(`${step.subject} ${step.body}`) || INVENTED_PROOF.test(step.body)) throw new DomainError('SEQUENCE_INVALID', 'Cold emails cannot pitch, check in, or invent proof.');
+    if (facts.forbiddenClaims && step.body.includes(facts.forbiddenClaims)) throw new DomainError('SEQUENCE_INVALID', 'Forbidden claims cannot appear in sendable copy.');
+    if (facts.brandGuidance.length > 24 && step.body.includes(facts.brandGuidance)) throw new DomainError('SEQUENCE_INVALID', 'Brand notes stay internal.');
+  }
+  return sequence;
+}
+
+export async function writeOutboundSequence(company: WebsiteContext, bookingUrl: string, model?: ColdSequenceModelPort): Promise<{ sequence: OutboundSequenceStep[]; source: 'model' | 'fallback' }> {
+  const fallback = generateOutboundSequence(company, bookingUrl);
+  if (!model) return { sequence: fallback, source: 'fallback' };
+  try {
+    return { sequence: acceptColdSequence(await model.draftColdSequence(coldSequenceFacts(company, bookingUrl)), company, bookingUrl), source: 'model' };
+  } catch {
+    return { sequence: fallback, source: 'fallback' };
+  }
+}
+
 export function outboundReadyReasons(state: EngineState): string[] {
   const sdr = ensureOutboundSdr(state);
   const reasons: string[] = [];
