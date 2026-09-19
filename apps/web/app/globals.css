@@ -899,7 +899,7 @@
 .agent-setup-tools span{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border:1px solid #dedbd3;border-radius:99px;padding:4px 10px}
 .agent-setup-card{padding:16px 20px;border:1px solid #ccc9c1;border-radius:8px;background:#fff;animation:briefing-enter .5s ease both}
 .agent-setup-card strong{display:block;margin:0 0 10px}
-.agent-setup-card pre,.agent-setup-sequence pre,.agent-setup-mail{font:inherit;font-size:16px;line-height:1.7;white-space:normal;overflow-wrap:break-word;margin:0;letter-spacing:0;word-spacing:0.06em}
+.agent-setup-card pre,.agent-setup-sequence pre,.agent-setup-mail,.agent-setup-mail p,.agent-setup-card strong{font:inherit;font-size:16px;line-height:1.7;white-space:normal;overflow-wrap:break-word;margin:0;letter-spacing:0!important;word-spacing:.18em!important;font-kerning:none}
 .agent-setup-mail p{margin:0 0 12px}
 .agent-setup-mail p:last-child{margin-bottom:0}
 .agent-setup-sequence,.agent-setup-pages{display:grid;gap:12px}
