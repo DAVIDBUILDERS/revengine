@@ -4,24 +4,24 @@ import { z } from 'zod';
 
 export const MODEL_PROMPT_VERSION='bounded-jobs.v1';
 export const COLD_SEQUENCE_PROMPT_VERSION='cold-outbound.v1';
-export const COLD_SEQUENCE_SYSTEM=`DAVID ${COLD_SEQUENCE_PROMPT_VERSION}. Write a 3-email Instantly cold sequence. This is outbound to strangers, not nurture, not a brochure.
+export const COLD_SEQUENCE_SYSTEM=`DAVID ${COLD_SEQUENCE_PROMPT_VERSION}. You are a senior outbound SDR writing Instantly mail to strangers. Not nurture. Not a brochure. Not a fill-in-the-blank.
 
-Return only the schema. Exactly 3 emails.
+Return only the schema. Exactly 3 emails, each with a different job:
+1. Opener: one sharp observation about THIS topic in their world. Soft 15-minute ask. Permission to stop. Sign off with companyName only.
+2. New angle: a different question or failure mode. Never "checking in".
+3. Breakup: last note, easy out, no guilt.
 
-Email 1 — opener: start in their world around the topic. One concrete observation. Soft 15-minute ask. Permission to stop. Sign off with companyName only.
-Email 2 — new angle: do not repeat email 1 or "check in". Ask who owns the decision, or name a second failure mode. Different subject.
-Email 3 — breakup: last note, easy out, no guilt. Different subject.
+Write like a person. Short sentences. Specific to the topic. Subjects should sound human ("after the first tool"), not labeled ("AI Implementation for {{firstName}}").
 
 Hard rules:
 - First line of every body is exactly {{firstName}} —
-- Subjects: no merge tags, no Re:, no "quick question", max 8 words
-- 40-90 words per body, plain text, no HTML
-- Paste bookingUrl verbatim, once per email
-- Use only topic, audience, companyName, and bookingUrl
-- brandGuidance is voice constraint only. Never paste it.
-- Never mention forbiddenClaims or restate them
-- Do not invent metrics, dollar amounts, percentages, customer names, case studies, timelines, or "we help X with Y"
-- Banned: just checking in, circling back, touching base, hope this finds you, following up, book a conversation, friendly reminder, quick question, bumping this
+- Subjects: no merge tags, no Re:, no "quick question", max 6 words
+- 35-80 words per body, plain text, no HTML
+- Paste bookingUrl verbatim, once per email, on its own line
+- Use only topic, audience, companyName, bookingUrl, and brief
+- brandGuidance is voice only. Never paste it. Never mention forbiddenClaims
+- Do not invent metrics, dollar amounts, percentages, customer names, case studies, or "we help X with Y"
+- Banned: just checking in, circling back, touching base, hope this finds you, following up, book a conversation, friendly reminder, quick question, bumping this, usually stalls after the first pass, three owners, nothing ships
 - Instantly merge field allowed: {{firstName}} in the greeting only
 - Do not claim you have seen their company, stack, or results`;
 export const ColdSequenceDraft=z.object({steps:z.tuple([
@@ -62,7 +62,7 @@ export function createModelAdapter(config:{apiKey:string;modelId:string;provider
     const facts=selected.factIds.map(id=>confirmed.find(f=>f.id===id));if(facts.some(f=>!f))throw new Error('MODEL_FACT_UNSUPPORTED');
     const headings={offer_clarity:'Clarify the approved offer',audience_fit:'Explain fit for the confirmed audience',evaluation_questions:'Use the approved facts to frame review questions'};
     return {wording:`${headings[selected.framing]}\n${facts.map(f=>f!.text).join('\n')}`,sourceIds:facts.map(f=>f!.sourceId)};
-  },async draftColdSequence(input:{workspaceId:string;runId:string;facts:{topic:string;audience:string;companyName:string;bookingUrl:string;brandGuidance:string;forbiddenClaims:string}}){
+  },async draftColdSequence(input:{workspaceId:string;runId:string;facts:{topic:string;audience:string;companyName:string;bookingUrl:string;brandGuidance:string;forbiddenClaims:string;brief:string}}){
     const serialized=JSON.stringify(input.facts);if(serialized.length>20000)throw new Error('MODEL_INPUT_LIMIT');
     const maxTokens=Math.min(Math.max(config.maxOutputTokens??600,900),1500);const reservation=await budget.reserve({workspaceId:input.workspaceId,runId:input.runId,maxCostMinor:config.maxCostMinor,maxTokens});
     try{

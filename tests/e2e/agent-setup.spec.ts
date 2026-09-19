@@ -54,9 +54,9 @@ test('Set up Outbound Email SDR is one question at a time, then offers the next 
   await expect(heading).toHaveText('Here is the three-step sequence DAVID will send.');
   await expect(page.getByText(/Drafted as a cold sequence/)).toBeVisible();
   await expect(page.getByText(/paid search audits/).first()).toBeVisible();
-  await expect(page.getByText(/dies in a deck/i)).toBeVisible();
-  await expect(page.getByText(/who owns paid search audits/i)).toBeVisible();
-  await expect(page.getByText(/should I close this out/i)).toBeVisible();
+  await expect(page.getByText(/after the deck/i)).toBeVisible();
+  await expect(page.getByText(/who owns the next 30 days/i)).toBeVisible();
+  await expect(page.getByText(/last note from me/i).first()).toBeVisible();
   await expect(page.getByText(/helps your team with|Quick question|Book a conversation|Close the loop/)).toHaveCount(0);
   await expect(page.getByRole('article').filter({ hasText: 'Step 1' })).toBeVisible();
   await page.keyboard.press('Enter');

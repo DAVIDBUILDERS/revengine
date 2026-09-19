@@ -15,6 +15,7 @@ import {
   parseSetupKeywords,
   prepareFromContext,
   sequencePreviewFromSnapshot,
+  isStencilSequence,
   setupCompanyName,
   setupPages,
   slotAgentIds,
@@ -69,7 +70,12 @@ export function AgentSetupShell({agent,onExit,...props}:ScreenProps & {agent:Age
   const nextAgent=state.catalog.find(item=>item.id===nextAgentId);
   const bookingUrl=draft.bookingUrl || state.outboundSdr?.bookingUrl || '';
   const savedSequence=state.outboundSdr?.sequence ?? [];
-  const sequence=useMemo(()=>savedSequence.length>=3?savedSequence:sequencePreviewFromSnapshot(state, bookingUrl, draft.topic),[savedSequence,state,bookingUrl,draft.topic]);
+  const sequence=useMemo(()=>{
+    if (savedSequence.length>=3 && !isStencilSequence(savedSequence)) return savedSequence;
+    if (state.workspace.mode==='fixture') return sequencePreviewFromSnapshot(state, bookingUrl, draft.topic);
+    return savedSequence;
+  },[savedSequence,state,bookingUrl,draft.topic]);
+  const rewriteAttempted=useRef(false);
   const companyAnswers=state.onboarding?.answers.company;
   const voiceScript=draft.script || generateVoiceOpening({
     companyName:setupCompanyName(state),
@@ -92,6 +98,13 @@ export function AgentSetupShell({agent,onExit,...props}:ScreenProps & {agent:Age
     if (done || !steps.length) return;
     if (!steps.some(item=>item.id===stepId)) setStepId(steps[Math.min(index,steps.length-1)]?.id ?? steps[0].id);
   },[steps,stepId,done,index]);
+
+  useEffect(()=>{
+    if (rewriteAttempted.current || busy || step?.id!=='sequence' || state.workspace.mode==='fixture') return;
+    if (!isStencilSequence(savedSequence)) return;
+    rewriteAttempted.current=true;
+    void act({type:'generate_outbound_sequence'});
+  },[act,busy,savedSequence,state.workspace.mode,step?.id]);
 
   function update<K extends keyof typeof draft>(key:K,value:(typeof draft)[K]) {
     setDraft(current=>({...current,[key]:value}));
@@ -149,7 +162,7 @@ export function AgentSetupShell({agent,onExit,...props}:ScreenProps & {agent:Age
       return Boolean(await act({type:'generate_outbound_sequence'}));
     }
     if (step.id==='sequence') {
-      if (savedSequence.length>=3) return true;
+      if (savedSequence.length>=3 && !isStencilSequence(savedSequence)) return true;
       return Boolean(await act({type:'generate_outbound_sequence'}));
     }
     if (step.id==='bind') {

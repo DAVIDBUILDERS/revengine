@@ -36,7 +36,7 @@ describe('model failure/resource handling using mocked inference only', () => {
     expect(budget.fail).toHaveBeenCalled(); expect(budget.settle).not.toHaveBeenCalled();
   });
   it('drafts a cold sequence from a dedicated prompt, not the brochure job', async () => {
-    expect(COLD_SEQUENCE_SYSTEM).toMatch(/cold sequence|outbound to strangers/i);
+    expect(COLD_SEQUENCE_SYSTEM).toMatch(/outbound SDR|Instantly mail to strangers/i);
     expect(COLD_SEQUENCE_SYSTEM).toMatch(/Do not invent metrics/i);
     const { budget, adapter } = setup();
     vi.mocked(generateText).mockResolvedValueOnce({ output: { steps: [
@@ -47,7 +47,7 @@ describe('model failure/resource handling using mocked inference only', () => {
     const steps = await adapter.draftColdSequence({
       workspaceId: 'fixture-workspace',
       runId: 'fixture-run',
-      facts: { topic: 'paid search audits', audience: 'teams like yours', companyName: 'DAVID AI', bookingUrl: 'https://calendly.com/example/30min', brandGuidance: '', forbiddenClaims: '' },
+      facts: { topic: 'paid search audits', audience: 'teams like yours', companyName: 'DAVID AI', bookingUrl: 'https://calendly.com/example/30min', brandGuidance: '', forbiddenClaims: '', brief: 'Write like a sharp SDR.' },
     });
     expect(steps).toHaveLength(3);
     expect(vi.mocked(generateText).mock.calls.at(-1)?.[0]?.system).toBe(COLD_SEQUENCE_SYSTEM);

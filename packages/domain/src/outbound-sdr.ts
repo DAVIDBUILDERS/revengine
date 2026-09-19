@@ -117,18 +117,34 @@ function wordCount(value: string) {
   return value.trim().split(/\s+/).filter(Boolean).length;
 }
 
-function problemLine(topic: string, who: string) {
+function sequenceFrame(topic: string, who: string) {
   const text = topic.toLowerCase();
   if (/\b(audit|review|assessment|seo|search)\b/.test(text)) {
-    return `${topic} for ${who} usually dies in a deck. The findings are fine. Nobody owns the next 30 days.`;
+    return {
+      subjects: ['after the deck', 'who owns the next 30 days', 'last note from me'],
+      observation: `When ${topic} wraps, the findings are usually fine. The next 30 days are not. Nobody is named to change anything.`,
+      angle: `If ${topic} already happened, who owns the first change that comes out of it?`,
+    };
   }
   if (/\b(implement|implementation|onboard|rollout|adop|deploy)\b/.test(text)) {
-    return `${topic} for ${who} usually stalls after the first pass. Not from lack of interest. From split ownership and no next step.`;
+    return {
+      subjects: ['after the first tool', 'one decision owner', 'last note from me'],
+      observation: `${topic} usually looks busy and still has no owner for what happens after the first tool is live.`,
+      angle: `Who can approve ${topic} this quarter without turning it into a committee?`,
+    };
   }
   if (/\b(recruit|hiring|hire|staff|talent)\b/.test(text)) {
-    return `${topic} for ${who} usually slips because the role is everyone's job and nobody owns the calendar.`;
+    return {
+      subjects: ['whose calendar', 'one hiring owner', 'last note from me'],
+      observation: `${topic} slips when the role is everyone's job and nobody owns the calendar.`,
+      angle: `Who can actually open a req for ${topic} this quarter?`,
+    };
   }
-  return `${topic} for ${who} usually stalls after the first pass. Not from lack of interest. From split ownership and no next step.`;
+  return {
+    subjects: [clipSubject(topic), 'who can decide', 'last note from me'],
+    observation: `${topic} for ${who} usually dies when three people are involved and nobody is accountable for the next step.`,
+    angle: `Who can say yes or no to ${topic} this quarter?`,
+  };
 }
 
 export function generateOutboundSequence(company: WebsiteContext, bookingUrl: string): OutboundSequenceStep[] {
@@ -142,18 +158,24 @@ export function generateOutboundSequence(company: WebsiteContext, bookingUrl: st
   const who = audiencePhrase(company);
   const sender = company.companyName.trim();
   const link = bookingUrl.trim();
-  const opener = `${first} —\n\n${problemLine(topic, who)}\n\nIf that is on your plate this quarter, here is 15 minutes: ${link}\n\nIf I have the wrong person or the wrong time, reply and I will close the thread.\n\n${sender}`;
-  const bump = `${first} —\n\nDifferent note than the last one.\n\nWhen ${topic} has three owners, nothing ships. Who can say yes or no to it this quarter?\n\nIf that is you: ${link}`;
-  const close = `${first} —\n\nLast note on ${topic}. I will not follow up again.\n\nIf a conversation would still help: ${link}\n\nIf the timing is wrong, no need to reply.`;
+  const frame = sequenceFrame(topic, who);
+  const opener = `${first} —\n\n${frame.observation}\n\nIf that sits with you this quarter, here is 15 minutes:\n${link}\n\nIf I have the wrong person, reply and I will stop.\n\n${sender}`;
+  const bump = `${first} —\n\nDifferent note than the last one.\n\n${frame.angle}\n\nIf that is you:\n${link}`;
+  const close = `${first} —\n\nLast note from me on ${topic}. I will not follow up again.\n\nIf the timing is wrong, ignore this. If a conversation would help:\n${link}`;
   const sequence = [
-    { subject: clipSubject(topic), body: opener },
-    { subject: clipSubject(`who owns ${topic}?`), body: bump },
-    { subject: clipSubject('should I close this out?'), body: close },
+    { subject: clipSubject(frame.subjects[0]), body: opener },
+    { subject: clipSubject(frame.subjects[1]), body: bump },
+    { subject: clipSubject(frame.subjects[2]), body: close },
   ];
   for (const step of sequence) {
     if (wordCount(step.body) > 120) throw new DomainError('SEQUENCE_TOO_LONG', 'Cold emails stay under 120 words.');
   }
   return sequence;
+}
+
+export function isStencilSequence(sequence: OutboundSequenceStep[]) {
+  const text = sequence.map(step => `${step.subject} ${step.body}`).join('\n');
+  return /stalls after the first pass|When .+ has three owners, nothing ships|should I close this out\?|helps .+ with|Book a conversation|Quick question for/i.test(text);
 }
 
 export type ColdSequenceFacts = {
@@ -163,6 +185,7 @@ export type ColdSequenceFacts = {
   bookingUrl: string;
   brandGuidance: string;
   forbiddenClaims: string;
+  brief: string;
 };
 
 export type ColdSequenceModelPort = {
@@ -179,6 +202,7 @@ export function coldSequenceFacts(company: WebsiteContext, bookingUrl: string): 
     bookingUrl: bookingUrl.trim(),
     brandGuidance: company.operatingGuidance?.brand?.trim() ?? '',
     forbiddenClaims: company.operatingGuidance?.forbiddenClaims?.trim() ?? '',
+    brief: `Write like a sharp SDR, not a sequence tool. Specific to "${topic}" for ${audiencePhrase(company)}. Do not reuse "usually stalls after the first pass" or "three owners, nothing ships".`,
   };
 }
 
@@ -195,11 +219,11 @@ export function acceptColdSequence(sequence: OutboundSequenceStep[], company: We
   if (topicWord && !firstText.includes(topicWord)) throw new DomainError('SEQUENCE_INVALID', 'The first email has to be about the topic you gave.');
   for (const step of sequence) {
     if (/\{\{/.test(step.subject) || /^re:/i.test(step.subject)) throw new DomainError('SEQUENCE_INVALID', 'Subjects cannot use merge tags or Re:');
-    if (!step.body.startsWith('{{firstName}}')) throw new DomainError('SEQUENCE_INVALID', 'Greet with {{firstName}} only.');
+    if (!/^\{\{firstName\}\}/.test(step.body.trim())) throw new DomainError('SEQUENCE_INVALID', 'Greet with {{firstName}} only.');
     if ((step.body.match(/\{\{/g) ?? []).length !== 1) throw new DomainError('SEQUENCE_INVALID', 'The only Instantly field is {{firstName}} in the greeting.');
     if (!step.body.includes(facts.bookingUrl)) throw new DomainError('SEQUENCE_INVALID', 'Every email must include the meeting link.');
     const words = wordCount(step.body);
-    if (words < 25 || words > 120) throw new DomainError('SEQUENCE_INVALID', 'Cold emails stay between 25 and 120 words.');
+    if (words < 20 || words > 130) throw new DomainError('SEQUENCE_INVALID', 'Cold emails stay between 20 and 130 words.');
     if (BANNED_COLD.test(`${step.subject} ${step.body}`) || INVENTED_PROOF.test(step.body)) throw new DomainError('SEQUENCE_INVALID', 'Cold emails cannot pitch, check in, or invent proof.');
     if (facts.forbiddenClaims && step.body.includes(facts.forbiddenClaims)) throw new DomainError('SEQUENCE_INVALID', 'Forbidden claims cannot appear in sendable copy.');
     if (facts.brandGuidance.length > 24 && step.body.includes(facts.brandGuidance)) throw new DomainError('SEQUENCE_INVALID', 'Brand notes stay internal.');
@@ -207,12 +231,16 @@ export function acceptColdSequence(sequence: OutboundSequenceStep[], company: We
   return sequence;
 }
 
-export async function writeOutboundSequence(company: WebsiteContext, bookingUrl: string, model?: ColdSequenceModelPort): Promise<{ sequence: OutboundSequenceStep[]; source: 'model' | 'fallback' }> {
+export async function writeOutboundSequence(company: WebsiteContext, bookingUrl: string, model?: ColdSequenceModelPort, options?: { requireModel?: boolean }): Promise<{ sequence: OutboundSequenceStep[]; source: 'model' | 'fallback' }> {
   const fallback = generateOutboundSequence(company, bookingUrl);
+  if (options?.requireModel && !model) throw new DomainError('MODEL_ACCESS_MISSING', 'DAVID cannot draft these emails until the model is configured.');
   if (!model) return { sequence: fallback, source: 'fallback' };
   try {
     return { sequence: acceptColdSequence(await model.draftColdSequence(coldSequenceFacts(company, bookingUrl)), company, bookingUrl), source: 'model' };
-  } catch {
+  } catch (error) {
+    if (options?.requireModel) {
+      throw error instanceof DomainError ? error : new DomainError('SEQUENCE_DRAFT_FAILED', 'The draft failed review. Try the topic step again.');
+    }
     return { sequence: fallback, source: 'fallback' };
   }
 }
