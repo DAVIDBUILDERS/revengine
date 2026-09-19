@@ -175,7 +175,22 @@ export function generateOutboundSequence(company: WebsiteContext, bookingUrl: st
 
 export function isStencilSequence(sequence: OutboundSequenceStep[]) {
   const text = sequence.map(step => `${step.subject} ${step.body}`).join('\n');
-  return /stalls after the first pass|When .+ has three owners, nothing ships|should I close this out\?|helps .+ with|Book a conversation|Quick question for/i.test(text);
+  return /stalls after the first pass|When .+ has three owners, nothing ships|should I close this out\?|helps .+ with|Book a conversation|Quick question for|Different note than the last one|usually looks busy and still has no owner|If that sits with you this quarter, here is 15 minutes/i.test(text);
+}
+
+export function repairColdSequence(sequence: OutboundSequenceStep[], company: WebsiteContext, bookingUrl: string): OutboundSequenceStep[] {
+  const link = bookingUrl.trim();
+  return sequence.slice(0, 3).map(step => {
+    let subject = clipSubject(step.subject.replace(/\{\{[\s\S]*?\}\}/g, ' ').replace(/^re:\s*/i, ' '));
+    let body = step.body.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '').replace(/\r/g, '').trim();
+    body = body.replace(/\{\{\s*firstName\s*\}\}/gi, '{{firstName}}');
+    body = body.replace(/\{\{(?!firstName\}\})[^}]+\}\}/g, '').trim();
+    body = body.replace(/^hi\s+\{\{firstName\}\}[,.\s—-]*/i, '{{firstName}} —\n\n');
+    if (!/^\{\{firstName\}\}/.test(body)) body = `{{firstName}} —\n\n${body}`;
+    if (!body.includes(link) && link) body = `${body.replace(/\s+$/, '')}\n\n${link}`;
+    body = body.replace(/\n{3,}/g, '\n\n').trim();
+    return { subject, body };
+  });
 }
 
 export type ColdSequenceFacts = {
@@ -214,16 +229,16 @@ export function acceptColdSequence(sequence: OutboundSequenceStep[], company: We
   if (sequence.length !== 3) throw new DomainError('SEQUENCE_INVALID', 'Cold sequences are exactly three emails.');
   const subjects = new Set(sequence.map(step => step.subject.trim().toLowerCase()));
   if (subjects.size !== 3) throw new DomainError('SEQUENCE_INVALID', 'Each email needs a different subject.');
-  const topicWord = facts.topic.split(/\s+/).find(word => word.length >= 4)?.toLowerCase();
+  const topicWords = facts.topic.toLowerCase().split(/\s+/).filter(word => word.length >= 4);
   const firstText = `${sequence[0].subject} ${sequence[0].body}`.toLowerCase();
-  if (topicWord && !firstText.includes(topicWord)) throw new DomainError('SEQUENCE_INVALID', 'The first email has to be about the topic you gave.');
+  if (topicWords.length && !topicWords.some(word => firstText.includes(word))) throw new DomainError('SEQUENCE_INVALID', 'The first email has to be about the topic you gave.');
   for (const step of sequence) {
     if (/\{\{/.test(step.subject) || /^re:/i.test(step.subject)) throw new DomainError('SEQUENCE_INVALID', 'Subjects cannot use merge tags or Re:');
     if (!/^\{\{firstName\}\}/.test(step.body.trim())) throw new DomainError('SEQUENCE_INVALID', 'Greet with {{firstName}} only.');
     if ((step.body.match(/\{\{/g) ?? []).length !== 1) throw new DomainError('SEQUENCE_INVALID', 'The only Instantly field is {{firstName}} in the greeting.');
     if (!step.body.includes(facts.bookingUrl)) throw new DomainError('SEQUENCE_INVALID', 'Every email must include the meeting link.');
     const words = wordCount(step.body);
-    if (words < 20 || words > 130) throw new DomainError('SEQUENCE_INVALID', 'Cold emails stay between 20 and 130 words.');
+    if (words < 18 || words > 150) throw new DomainError('SEQUENCE_INVALID', 'Cold emails stay between 18 and 150 words.');
     if (BANNED_COLD.test(`${step.subject} ${step.body}`) || INVENTED_PROOF.test(step.body)) throw new DomainError('SEQUENCE_INVALID', 'Cold emails cannot pitch, check in, or invent proof.');
     if (facts.forbiddenClaims && step.body.includes(facts.forbiddenClaims)) throw new DomainError('SEQUENCE_INVALID', 'Forbidden claims cannot appear in sendable copy.');
     if (facts.brandGuidance.length > 24 && step.body.includes(facts.brandGuidance)) throw new DomainError('SEQUENCE_INVALID', 'Brand notes stay internal.');
@@ -235,14 +250,24 @@ export async function writeOutboundSequence(company: WebsiteContext, bookingUrl:
   const fallback = generateOutboundSequence(company, bookingUrl);
   if (options?.requireModel && !model) throw new DomainError('MODEL_ACCESS_MISSING', 'DAVID cannot draft these emails until the model is configured.');
   if (!model) return { sequence: fallback, source: 'fallback' };
-  try {
-    return { sequence: acceptColdSequence(await model.draftColdSequence(coldSequenceFacts(company, bookingUrl)), company, bookingUrl), source: 'model' };
-  } catch (error) {
-    if (options?.requireModel) {
-      throw error instanceof DomainError ? error : new DomainError('SEQUENCE_DRAFT_FAILED', 'The draft failed review. Try the topic step again.');
+  const facts = coldSequenceFacts(company, bookingUrl);
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const drafted = acceptColdSequence(repairColdSequence(await model.draftColdSequence(attempt === 0 ? facts : {
+        ...facts,
+        brief: `${facts.brief}\nThe previous draft failed review: ${lastError instanceof Error ? lastError.message : 'invalid draft'}. Fix that and keep the same three-email shape.`,
+      }), company, bookingUrl), company, bookingUrl);
+      if (isStencilSequence(drafted)) throw new DomainError('SEQUENCE_INVALID', 'The draft reused the template. Write a new sequence.');
+      return { sequence: drafted, source: 'model' };
+    } catch (error) {
+      lastError = error;
     }
-    return { sequence: fallback, source: 'fallback' };
   }
+  if (options?.requireModel) {
+    throw lastError instanceof DomainError ? lastError : new DomainError('SEQUENCE_DRAFT_FAILED', 'The draft failed review. Try the topic step again.');
+  }
+  return { sequence: fallback, source: 'fallback' };
 }
 
 export function outboundReadyReasons(state: EngineState): string[] {

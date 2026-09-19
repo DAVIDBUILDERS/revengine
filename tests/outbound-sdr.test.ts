@@ -82,16 +82,25 @@ describe('Outbound Email SDR — Instantly, autonomous, no lead gen', () => {
     expect(state.outboundSdr?.sequence.every(step => step.body.trim().split(/\s+/).length <= 120)).toBe(true);
     expect(generateOutboundSequence(outboundSequenceCompany(state, 'paid search audits'), 'https://calendly.com/example/30min').map(step => step.body).join('\n')).not.toMatch(/Stay inside approved brand|Do not claim/i);
     expect(generateOutboundSequence(outboundSequenceCompany(state, 'AI Implementation'), 'https://calendly.com/example/30min')[0]?.body).toMatch(/after the first tool is live/i);
-    expect(isStencilSequence(generateOutboundSequence(outboundSequenceCompany(state, 'AI Implementation'), 'https://calendly.com/example/30min'))).toBe(false);
+    expect(isStencilSequence(generateOutboundSequence(outboundSequenceCompany(state, 'AI Implementation'), 'https://calendly.com/example/30min'))).toBe(true);
     const company = outboundSequenceCompany(state, 'paid search audits');
     const booking = 'https://calendly.com/example/30min';
     await expect(writeOutboundSequence(company, booking, {
       draftColdSequence: async () => [
         { subject: 'paid search audits', body: `{{firstName}} —\n\nMost teams I talk to let paid search audits die in a slide deck.\n\nIf that is on your plate: ${booking}\n\nIf I have the wrong person, reply and I will stop.\n\nDAVID AI` },
-        { subject: 'who owns the next 30 days?', body: `{{firstName}} —\n\nDifferent note than the last one. When paid search audits have three owners, the next 30 days never start. Who can say yes or no this quarter?\n\nIf that is you: ${booking}` },
-        { subject: 'should I close this out?', body: `{{firstName}} —\n\nLast note on paid search audits. I will not follow up again.\n\nIf a conversation would still help: ${booking}\n\nIf the timing is wrong, no need to reply.` },
+        { subject: 'who can decide', body: `{{firstName}} —\n\nWhen paid search audits have three owners, the next 30 days never start. Who can say yes or no this quarter?\n\nIf that is you: ${booking}` },
+        { subject: 'closing this out', body: `{{firstName}} —\n\nLast note on paid search audits. I will not follow up again.\n\nIf a conversation would still help: ${booking}\n\nIf the timing is wrong, no need to reply.` },
       ],
     })).resolves.toMatchObject({ source: 'model' });
+    const repaired = await writeOutboundSequence(company, booking, {
+      draftColdSequence: async () => [
+        { subject: 'paid search audits', body: `Most paid search audits stall in a slide deck. If that is sitting with you this quarter, I can walk the next step in fifteen minutes.` },
+        { subject: 'who can decide', body: `Who can say yes or no to paid search audits this quarter without turning the work into another committee?` },
+        { subject: 'closing this out', body: `Last note on paid search audits. I will not write again. If the timing is wrong, ignore this and I will leave it.` },
+      ],
+    });
+    expect(repaired.source).toBe('model');
+    expect(repaired.sequence.every(step => step.body.startsWith('{{firstName}}') && step.body.includes(booking))).toBe(true);
     await expect(writeOutboundSequence(company, booking, {
       draftColdSequence: async () => [
         { subject: 'Quick question for {{firstName}}', body: `Hi {{firstName}},\n\nDAVID AI helps your team with paid search audits and grew clients 40%.\n\nBook a conversation: ${booking}` },

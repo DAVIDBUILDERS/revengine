@@ -20,8 +20,7 @@ export function coldSequenceModelConfig(env: Record<string, string | undefined>)
   const modelId = env.AI_MODEL_ID?.trim() || COLD_SEQUENCE_DEFAULT_MODEL_ID;
   const provider = env.AI_ALLOWED_PROVIDER?.trim() || undefined;
   const maxCostMinor = env.AI_MAX_JOB_COST_MINOR === undefined ? COLD_SEQUENCE_DEFAULT_COST_MINOR : Number(env.AI_MAX_JOB_COST_MINOR);
-  const hosted = env.VERCEL === '1' || Boolean(env.VERCEL_OIDC_TOKEN?.trim());
-  const usable = Boolean((apiKey || hosted) && modelId && Number.isSafeInteger(maxCostMinor) && maxCostMinor >= 1 && maxCostMinor <= 100000);
+  const usable = Boolean(modelId && Number.isSafeInteger(maxCostMinor) && maxCostMinor >= 1 && maxCostMinor <= 100000);
   return { apiKey, modelId, provider, maxCostMinor, usable };
 }
 

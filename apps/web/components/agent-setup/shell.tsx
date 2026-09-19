@@ -1,5 +1,5 @@
 'use client';
-import {useEffect,useMemo,useRef,useState} from 'react';
+import {useContext,useEffect,useMemo,useRef,useState} from 'react';
 import type {AgentDefinition} from '@david/contracts';
 import {SERP_LOCATIONS} from '@david/contracts';
 import {
@@ -24,6 +24,7 @@ import {
 } from '@david/domain';
 import {Answer,Question} from '../briefing/question';
 import {CsvDropInput} from '../csv-drop';
+import {FeedbackContext} from '../ui';
 import type {ScreenProps} from '../app-shell';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -44,6 +45,7 @@ function SequenceMail({subject,body}:{subject:string;body:string}) {
 
 export function AgentSetupShell({agent,onExit,...props}:ScreenProps & {agent:AgentDefinition;onExit:()=>void}) {
   const {state,act,busy,navigate}=props;
+  const feedback=useContext(FeedbackContext);
   const steps=agentSetupPath(state,agent.id);
   const [stepId,setStepId]=useState(steps[0]?.id ?? 'intro');
   const [done,setDone]=useState(false);
@@ -73,7 +75,7 @@ export function AgentSetupShell({agent,onExit,...props}:ScreenProps & {agent:Age
   const sequence=useMemo(()=>{
     if (savedSequence.length>=3 && !isStencilSequence(savedSequence)) return savedSequence;
     if (state.workspace.mode==='fixture') return sequencePreviewFromSnapshot(state, bookingUrl, draft.topic);
-    return savedSequence;
+    return [];
   },[savedSequence,state,bookingUrl,draft.topic]);
   const rewriteAttempted=useRef(false);
   const companyAnswers=state.onboarding?.answers.company;
@@ -122,7 +124,7 @@ export function AgentSetupShell({agent,onExit,...props}:ScreenProps & {agent:Age
       case 'booking': return bookingUrlInfo(draft.bookingUrl).ok;
       case 'leads': return Boolean(draft.csv.trim()) || step.canContinue;
       case 'topic': return draft.topic.trim().length>=2;
-      case 'sequence': return sequence.length>=3 || bookingUrlInfo(bookingUrl).ok || step.canContinue;
+      case 'sequence': return bookingUrlInfo(bookingUrl).ok || sequence.length>=3 || step.canContinue;
       case 'keywords': { const keywords=parseSetupKeywords(draft.keywords); return keywords.length>=1 && keywords.length<=20; }
       case 'location': return SERP_LOCATIONS.some(item=>item.name===draft.locationName);
       case 'bind': return UUID.test(draft.bindId.trim());
@@ -257,7 +259,9 @@ export function AgentSetupShell({agent,onExit,...props}:ScreenProps & {agent:Age
                 <p className="eyebrow">Step {position+1}</p>
                 <SequenceMail subject={item.subject} body={item.body}/>
               </article>)}
-              {!sequence.length && <p className="help">Save a meeting link first so the sequence can include it.</p>}
+              {!sequence.length && <p className="help">{busy?'Writing the three emails from your services.':'DAVID writes these with the cold-outreach prompt. Continue to draft them.'}</p>}
+              {feedback?.error && <p className="notice notice-warning" role="alert">{feedback.text}</p>}
+              {!sequence.length && bookingUrlInfo(bookingUrl).ok && !busy && <button type="button" className="btn" onClick={()=>void act({type:'generate_outbound_sequence'})}>Write the emails</button>}
             </div>}
             {step.id==='keywords' && <Answer label="Keywords" value={draft.keywords} onChange={value=>update('keywords',value)} multiline/>}
             {step.id==='keywords' && <div className="agent-setup-tools">{parseSetupKeywords(draft.keywords).map(keyword=><span key={keyword}>{keyword}</span>)}</div>}
