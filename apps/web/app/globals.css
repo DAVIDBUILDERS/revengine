@@ -889,8 +889,9 @@
 .briefing-footer{border-top:1px solid #dedbd3;margin-top:auto}
 @keyframes briefing-enter{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 @media(prefers-reduced-motion:reduce){.briefing-question{animation:none}}
-.agent-setup-shell{position:fixed;inset:0;z-index:80;background:var(--background,#faf9f6);height:100dvh;overflow:hidden;letter-spacing:0;word-spacing:0.05em}
-.agent-setup-shell :is(h1,p,strong,pre,button,label,span,div,article):not(.eyebrow):not(.agent-setup-tools span){letter-spacing:0;word-spacing:0.05em}
+.agent-setup-shell{position:fixed;inset:0;z-index:80;background:var(--background,#faf9f6);height:100dvh;overflow:hidden;letter-spacing:normal;word-spacing:normal}
+.agent-setup-shell :is(h1,p,strong,pre,button,label,span,div,article,.briefing-description,.agent-setup-mail){letter-spacing:normal!important;word-spacing:normal!important}
+.agent-setup-shell .eyebrow,.agent-setup-shell .agent-setup-tools span{letter-spacing:.08em}
 .agent-setup-shell .briefing-main{justify-content:flex-start;overflow:auto;min-height:0}
 .agent-setup-shell .briefing-question{animation:briefing-enter .36s cubic-bezier(.2,.7,.2,1)}
 .agent-setup-progress{height:3px;width:min(220px,28vw);background:#e8e6df;border-radius:99px;overflow:hidden}
@@ -899,7 +900,7 @@
 .agent-setup-tools span{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border:1px solid #dedbd3;border-radius:99px;padding:4px 10px}
 .agent-setup-card{padding:16px 20px;border:1px solid #ccc9c1;border-radius:8px;background:#fff;animation:briefing-enter .5s ease both}
 .agent-setup-card strong{display:block;margin:0 0 10px}
-.agent-setup-card pre,.agent-setup-sequence pre,.agent-setup-mail,.agent-setup-mail p,.agent-setup-card strong{font:inherit;font-size:16px;line-height:1.7;white-space:normal;overflow-wrap:break-word;margin:0;letter-spacing:0!important;word-spacing:.18em!important;font-kerning:none}
+.agent-setup-card pre,.agent-setup-sequence pre,.agent-setup-mail,.agent-setup-mail p,.agent-setup-card strong{font:inherit;font-size:16px;line-height:1.7;white-space:pre-wrap;overflow-wrap:break-word;margin:0;letter-spacing:normal!important;word-spacing:normal!important}
 .agent-setup-mail p{margin:0 0 12px}
 .agent-setup-mail p:last-child{margin-bottom:0}
 .agent-setup-sequence,.agent-setup-pages{display:grid;gap:12px}
