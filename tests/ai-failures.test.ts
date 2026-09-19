@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 vi.mock('ai', () => ({ generateText: vi.fn(), Output: { object: (input: unknown) => input } }));
 import { generateText } from 'ai';
-import { COLD_SEQUENCE_SYSTEM, createModelAdapter, type UsageBudget } from '../packages/ai/src/index';
+import { COLD_OUTREACH_PROMPT, COLD_SEQUENCE_SYSTEM, buildColdOutreachUserMessage, createModelAdapter, type UsageBudget } from '../packages/ai/src/index';
 
 function setup() {
   const budget: UsageBudget = { reserve: vi.fn(async () => 'synthetic-reservation'), settle: vi.fn(async () => {}), fail: vi.fn(async () => {}) };
@@ -35,9 +35,13 @@ describe('model failure/resource handling using mocked inference only', () => {
     await expect(adapter.draft({ workspaceId: 'fixture-workspace', runId: 'fixture-run', facts: [{ id: 'scope', text: 'Approved scope', sourceId: 'proposal-v1', confirmed: true }] })).rejects.toThrow('MODEL_JOB_BLOCKED');
     expect(budget.fail).toHaveBeenCalled(); expect(budget.settle).not.toHaveBeenCalled();
   });
-  it('drafts a cold sequence from a dedicated prompt, not the brochure job', async () => {
-    expect(COLD_SEQUENCE_SYSTEM).toMatch(/outbound SDR|Instantly mail to strangers/i);
-    expect(COLD_SEQUENCE_SYSTEM).toMatch(/Do not invent metrics/i);
+  it('drafts a cold sequence from the same outreach prompt every time', async () => {
+    expect(COLD_SEQUENCE_SYSTEM).toBe(COLD_OUTREACH_PROMPT);
+    expect(COLD_OUTREACH_PROMPT).toMatch(/Three touches capture almost all replies/i);
+    expect(COLD_OUTREACH_PROMPT).toMatch(/Email 3 is a breakup/i);
+    expect(COLD_OUTREACH_PROMPT).toMatch(/Do not invent proof/i);
+    const facts = { topic: 'paid search audits', audience: 'teams like yours', companyName: 'DAVID AI', bookingUrl: 'https://calendly.com/example/30min', brandGuidance: '', forbiddenClaims: '' };
+    expect(buildColdOutreachUserMessage(facts)).toMatch(/Service they provide \(what the emails are about\): paid search audits/);
     const { budget, adapter } = setup();
     vi.mocked(generateText).mockResolvedValueOnce({ output: { steps: [
       { subject: 'paid search audits', body: '{{firstName}} —\n\nMost audits die in a deck.\n\nhttps://calendly.com/example/30min' },
@@ -47,10 +51,12 @@ describe('model failure/resource handling using mocked inference only', () => {
     const steps = await adapter.draftColdSequence({
       workspaceId: 'fixture-workspace',
       runId: 'fixture-run',
-      facts: { topic: 'paid search audits', audience: 'teams like yours', companyName: 'DAVID AI', bookingUrl: 'https://calendly.com/example/30min', brandGuidance: '', forbiddenClaims: '', brief: 'Write like a sharp SDR.' },
+      facts,
     });
     expect(steps).toHaveLength(3);
-    expect(vi.mocked(generateText).mock.calls.at(-1)?.[0]?.system).toBe(COLD_SEQUENCE_SYSTEM);
+    const request = vi.mocked(generateText).mock.calls.at(-1)?.[0];
+    expect(request?.system).toBe(COLD_OUTREACH_PROMPT);
+    expect(request?.prompt).toBe(buildColdOutreachUserMessage(facts));
     expect(budget.settle).toHaveBeenCalled();
   });
 });
