@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AgentDefinition } from '../packages/contracts/src/index';
-import { createFixtureState, executeCommand, catalog, parseCsvImport, CSV_FIELDS, parseLeadCsv, mappedLeadRow, isLeadCsvFile, leadCsvFileError, generateOutboundSequence, outboundSequenceCompany, writeOutboundSequence, isStencilSequence } from '../packages/domain/src/index';
+import { createFixtureState, executeCommand, catalog, parseCsvImport, CSV_FIELDS, parseLeadCsv, mappedLeadRow, isLeadCsvFile, leadCsvFileError, generateOutboundSequence, outboundSequenceCompany, writeOutboundSequence, isStencilSequence, coldSequenceDraftError } from '../packages/domain/src/index';
 import { agentDelivery } from '../packages/domain/src/delivery';
 import { denyInstantlyLeadFinder, normalizeInstantlyWebhook, parseInstantlyAccounts } from '../packages/connectors/src/instantly';
 import { launchManagedInstantlyCampaign } from '../packages/orchestration/src/action-service';
@@ -112,7 +112,8 @@ describe('Outbound Email SDR — Instantly, autonomous, no lead gen', () => {
       draftColdSequence: async () => {
         throw new Error('synthetic model outage');
       },
-    }, { requireModel: true })).rejects.toThrow(/could not finish these emails|draft failed review|SEQUENCE_DRAFT_FAILED/i);
+    }, { requireModel: true })).rejects.toThrow(/could not finish these emails|not connected|draft failed review|SEQUENCE_DRAFT_FAILED/i);
+    expect(coldSequenceDraftError(new Error('GatewayAuthenticationError: No authentication provided')).message).toMatch(/not connected/i);
     const beforeActions = state.actions.length;
     const started = await executeCommand(state, { type: 'start_outbound_sdr' });
     expect(started.message).toMatch(/No live mailbox send/);
