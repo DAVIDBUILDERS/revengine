@@ -266,11 +266,20 @@ export async function writeOutboundSequence(company: WebsiteContext, bookingUrl:
     if (isStencilSequence(drafted)) throw new DomainError('SEQUENCE_INVALID', 'The draft reused the template. Write a new sequence.');
     return { sequence: drafted, source: 'model' };
   } catch (error) {
-    if (options?.requireModel) {
-      throw error instanceof DomainError ? error : new DomainError('SEQUENCE_DRAFT_FAILED', 'DAVID could not finish these emails. Try again.');
-    }
+    if (options?.requireModel) throw coldSequenceDraftError(error);
     return { sequence: fallback, source: 'fallback' };
   }
+}
+
+export function coldSequenceDraftError(error: unknown) {
+  if (error instanceof DomainError) return error;
+  const text = error instanceof Error ? `${error.message} ${error.cause instanceof Error ? error.cause.message : ''}` : '';
+  if (/auth|oidc|api key|401|403|GatewayAuthentication|No authentication/i.test(text)) {
+    return new DomainError('MODEL_ACCESS_MISSING', 'The hosted model is not connected on this app. DAVID cannot draft until Vercel AI Gateway can sign in.');
+  }
+  if (/timeout|aborted|AbortError/i.test(text)) return new DomainError('SEQUENCE_DRAFT_FAILED', 'The model ran out of time. Try again.');
+  if (/not 3 emails/i.test(text)) return new DomainError('SEQUENCE_DRAFT_FAILED', 'The model returned copy DAVID could not use. Try again.');
+  return new DomainError('SEQUENCE_DRAFT_FAILED', 'DAVID could not finish these emails. Try again.');
 }
 
 export function outboundReadyReasons(state: EngineState): string[] {

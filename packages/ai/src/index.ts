@@ -62,18 +62,35 @@ export function validateReply(value:unknown,text:string){const result=ReplyInter
 export const COLD_SEQUENCE_DEFAULT_MODEL_ID='openai/gpt-4o-mini';
 export const COLD_SEQUENCE_DEFAULT_COST_MINOR=25;
 
+export function usableGatewayKey(value?:string){
+  const key=value?.trim()??'';
+  if(key.length<20)return undefined;
+  if(/^(changeme|your-|xxx|todo|placeholder|none|null|undefined|test|secret)$/i.test(key))return undefined;
+  return key;
+}
+
+async function withGatewayAuth<T>(apiKey:string|undefined,work:()=>Promise<T>){
+  const previous=process.env.AI_GATEWAY_API_KEY;
+  if(apiKey)process.env.AI_GATEWAY_API_KEY=apiKey;
+  else delete process.env.AI_GATEWAY_API_KEY;
+  try{return await work();}
+  finally{
+    if(previous===undefined)delete process.env.AI_GATEWAY_API_KEY;
+    else process.env.AI_GATEWAY_API_KEY=previous;
+  }
+}
+
 function gatewayProviderOptions(provider?:string){
   return provider?{gateway:{only:[provider],order:[provider]}}:undefined;
 }
 
 export function createColdOutreachAdapter(config:{apiKey?:string;modelId:string;provider?:string;maxOutputTokens?:number;timeoutMs?:number;maxCostMinor:number},budget:UsageBudget){
   if(!config.modelId||!Number.isSafeInteger(config.maxCostMinor)||config.maxCostMinor<1)throw new Error('MODEL_CONFIGURATION_REQUIRED');
-  const gateway=config.apiKey?createGateway({apiKey:config.apiKey}):createGateway();
   return {async draftColdSequence(input:{workspaceId:string;runId:string;facts:{topic:string;audience:string;companyName:string;bookingUrl:string;brandGuidance:string;forbiddenClaims:string;brief?:string}}){
     const prompt=buildColdOutreachUserMessage(input.facts);if(prompt.length>20000)throw new Error('MODEL_INPUT_LIMIT');
     const maxTokens=Math.min(Math.max(config.maxOutputTokens??600,900),1500);const reservation=await budget.reserve({workspaceId:input.workspaceId,runId:input.runId,maxCostMinor:config.maxCostMinor,maxTokens});
     try{
-      const result=await generateText({model:gateway(config.modelId),system:COLD_OUTREACH_PROMPT,prompt,maxOutputTokens:maxTokens,maxRetries:1,abortSignal:AbortSignal.timeout(Math.min(config.timeoutMs??20000,20000)),providerOptions:gatewayProviderOptions(config.provider)});
+      const result=await withGatewayAuth(usableGatewayKey(config.apiKey),()=>generateText({model:config.modelId,system:COLD_OUTREACH_PROMPT,prompt,maxOutputTokens:maxTokens,maxRetries:1}));
       const steps=parseColdSequenceDraft(result.output??result.text);
       await budget.settle(reservation,{inputTokens:result.usage.inputTokens??0,outputTokens:result.usage.outputTokens??0,model:config.modelId,costMinor:null});
       return steps;

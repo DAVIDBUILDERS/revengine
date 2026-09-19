@@ -153,6 +153,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@ai-sdk/gateway':
+        specifier: 4.0.78
+        version: 4.0.78(zod@4.6.2)
       '@david/agents':
         specifier: workspace:*
         version: link:../../packages/agents
@@ -183,6 +186,9 @@ importers:
       '@tailwindcss/postcss':
         specifier: 4.3.3
         version: 4.3.3
+      ai:
+        specifier: 7.0.97
+        version: 7.0.97(zod@4.6.2)
       lucide-react:
         specifier: 1.44.0
         version: 1.44.0(react@19.3.0)
@@ -4919,7 +4925,7 @@ snapshots:
 
   '@vercel/queue@0.3.1':
     dependencies:
-      '@vercel/oidc': 3.2.0
+      '@vercel/oidc': 3.8.7
       minimatch: 10.2.6
       mixpart: 0.0.6
       picocolors: 1.1.1

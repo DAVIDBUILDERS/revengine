@@ -14,25 +14,28 @@ describe('hosted cold-sequence model', () => {
     expect(config.modelId).toBe(COLD_SEQUENCE_DEFAULT_MODEL_ID);
     expect(config.maxCostMinor).toBe(25);
     expect(config.apiKey).toBeUndefined();
-    expect(config.provider).toBeUndefined();
     expect(hostedColdSequenceModel('workspace', 'live', {})).toBeDefined();
   });
 
-  it('keeps an explicit key, model, provider, and spend cap when they are set', () => {
+  it('keeps an explicit key, model, and spend cap when they are set', () => {
     const config = coldSequenceModelConfig({
-      AI_GATEWAY_API_KEY: 'SYNTHETIC_KEY',
+      AI_GATEWAY_API_KEY: 'SYNTHETIC_GATEWAY_KEY_VALUE',
       AI_MODEL_ID: 'anthropic/claude-sonnet-4',
       AI_ALLOWED_PROVIDER: 'anthropic',
       AI_MAX_JOB_COST_MINOR: '40',
     });
     expect(config).toMatchObject({
       usable: true,
-      apiKey: 'SYNTHETIC_KEY',
+      apiKey: 'SYNTHETIC_GATEWAY_KEY_VALUE',
       modelId: 'anthropic/claude-sonnet-4',
-      provider: 'anthropic',
       maxCostMinor: 40,
     });
-    expect(hostedColdSequenceModel('workspace', 'live', { AI_GATEWAY_API_KEY: 'SYNTHETIC_KEY' })).toBeDefined();
+    expect(hostedColdSequenceModel('workspace', 'live', { AI_GATEWAY_API_KEY: 'SYNTHETIC_GATEWAY_KEY_VALUE' })).toBeDefined();
+  });
+
+  it('ignores placeholder gateway keys so OIDC can sign in', () => {
+    expect(coldSequenceModelConfig({ AI_GATEWAY_API_KEY: 'secret' }).apiKey).toBeUndefined();
+    expect(coldSequenceModelConfig({ AI_GATEWAY_API_KEY: 'changeme' }).apiKey).toBeUndefined();
   });
 
   it('does not treat a zero spend cap as usable', () => {

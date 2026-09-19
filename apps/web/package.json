@@ -25,7 +25,9 @@
     "@supabase/ssr": "0.12.7",
     "@supabase/supabase-js": "2.116.0",
     "@david/db": "workspace:*",
-    "@david/connectors": "workspace:*"
+    "@david/connectors": "workspace:*",
+    "ai": "7.0.97",
+    "@ai-sdk/gateway": "4.0.78"
   },
   "engines": {
     "node": "24.x"
