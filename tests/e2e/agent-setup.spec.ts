@@ -48,11 +48,11 @@ test('Set up Outbound Email SDR is one question at a time, then offers the next 
   });
   await expect(page.getByText('picked.csv', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Continue' }).click();
-  await expect(heading).toHaveText('What should these emails be about?');
-  await page.getByLabel('Email topic').fill('paid search audits');
+  await expect(heading).toHaveText('What services do you provide?');
+  await page.getByRole('textbox', { name: 'Services' }).fill('paid search audits');
   await page.getByRole('button', { name: 'Continue' }).click();
   await expect(heading).toHaveText('Here is the three-step sequence DAVID will send.');
-  await expect(page.getByText(/Drafted as a cold sequence/)).toBeVisible();
+  await expect(page.getByText(/same cold-outreach prompt every time/)).toBeVisible();
   await expect(page.getByText(/paid search audits/).first()).toBeVisible();
   await expect(page.getByText(/after the deck/i)).toBeVisible();
   await expect(page.getByText(/who owns the next 30 days/i)).toBeVisible();

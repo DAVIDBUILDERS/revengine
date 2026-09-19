@@ -13,6 +13,7 @@ describe('agent setup path', () => {
     expect(ids().indexOf('topic')).toBeLessThan(ids().indexOf('sequence'));
     expect(ids()).toEqual(expect.arrayContaining(['intro', 'booking', 'leads', 'topic', 'sequence', 'ready']));
     expect(agentSetupPath(state, 'outbound-email-sdr').find(step => step.id === 'leads')?.description).toMatch(/Name the email column email/);
+    expect(agentSetupPath(state, 'outbound-email-sdr').find(step => step.id === 'topic')?.title).toBe('What services do you provide?');
     expect(agentSetupPath(state, 'outbound-email-sdr').find(step => step.id === 'topic')?.canContinue).toBe(false);
     await executeCommand(state, { type: 'save_agent_onboarding', agentId: 'outbound-email-sdr', expectedRevision: 0, answers: { sequenceTopic: 'paid search audits' } });
     expect(agentSetupPath(state, 'outbound-email-sdr').find(step => step.id === 'topic')?.canContinue).toBe(true);

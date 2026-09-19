@@ -251,7 +251,7 @@ export function AgentSetupShell({agent,onExit,...props}:ScreenProps & {agent:Age
               {csvError && <p className="notice notice-warning" role="alert">{csvError}</p>}
               <p className="help">{EMAIL_COLUMN_HELP} This agent does not find leads.</p>
             </>}
-            {step.id==='topic' && <Answer label="Email topic" value={draft.topic} onChange={value=>update('topic',value)}/>}
+            {step.id==='topic' && <Answer label="Services" value={draft.topic} onChange={value=>update('topic',value)}/>}
             {step.id==='sequence' && <div className="agent-setup-sequence" aria-label="Three-step sequence preview">
               {sequence.map((item,position)=><article key={`${item.subject}-${position}`} className="agent-setup-card" style={{animationDelay:`${position*90}ms`}}>
                 <p className="eyebrow">Step {position+1}</p>
