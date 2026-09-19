@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 vi.mock('ai', () => ({ generateText: vi.fn(), Output: { object: (input: unknown) => input } }));
 import { generateText } from 'ai';
-import { COLD_OUTREACH_PROMPT, COLD_SEQUENCE_SYSTEM, buildColdOutreachUserMessage, createModelAdapter, type UsageBudget } from '../packages/ai/src/index';
+import { COLD_OUTREACH_PROMPT, COLD_SEQUENCE_SYSTEM, COLD_SEQUENCE_DEFAULT_MODEL_ID, buildColdOutreachUserMessage, createColdOutreachAdapter, createModelAdapter, type UsageBudget } from '../packages/ai/src/index';
 
 function setup() {
   const budget: UsageBudget = { reserve: vi.fn(async () => 'synthetic-reservation'), settle: vi.fn(async () => {}), fail: vi.fn(async () => {}) };
@@ -58,5 +58,20 @@ describe('model failure/resource handling using mocked inference only', () => {
     expect(request?.system).toBe(COLD_OUTREACH_PROMPT);
     expect(request?.prompt).toBe(buildColdOutreachUserMessage(facts));
     expect(budget.settle).toHaveBeenCalled();
+  });
+  it('drafts cold emails through the hosted gateway without a pre-set API key', async () => {
+    const budget: UsageBudget = { reserve: vi.fn(async () => 'synthetic-reservation'), settle: vi.fn(async () => {}), fail: vi.fn(async () => {}) };
+    const adapter = createColdOutreachAdapter({ modelId: COLD_SEQUENCE_DEFAULT_MODEL_ID, maxCostMinor: 25, maxOutputTokens: 1200 }, budget);
+    const facts = { topic: 'paid search audits', audience: 'growth teams', companyName: 'DAVID AI', bookingUrl: 'https://calendly.com/example/30min', brandGuidance: '', forbiddenClaims: '' };
+    vi.mocked(generateText).mockResolvedValueOnce({ output: { steps: [
+      { subject: 'paid search audits', body: '{{firstName}} —\n\nMost audits die in a deck.\n\nhttps://calendly.com/example/30min' },
+      { subject: 'who owns this?', body: '{{firstName}} —\n\nWho can say yes?\n\nhttps://calendly.com/example/30min' },
+      { subject: 'closing this out', body: '{{firstName}} —\n\nLast note.\n\nhttps://calendly.com/example/30min' },
+    ] }, usage: { inputTokens: 20, outputTokens: 40 } } as unknown as Awaited<ReturnType<typeof generateText>>);
+    await expect(adapter.draftColdSequence({ workspaceId: 'fixture-workspace', runId: 'fixture-run', facts })).resolves.toHaveLength(3);
+    const request = vi.mocked(generateText).mock.calls.at(-1)?.[0];
+    expect(request?.system).toBe(COLD_OUTREACH_PROMPT);
+    expect(request?.prompt).toBe(buildColdOutreachUserMessage(facts));
+    expect(request?.providerOptions).toBeUndefined();
   });
 });
